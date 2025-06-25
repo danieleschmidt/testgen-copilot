@@ -6,5 +6,37 @@
       "success": "Asserts that the identity function returns its input.",
       "edge_case_null_input": "Asserts that providing null input is handled gracefully."
     }
+  },
+  "scaffold-vs-code-extension-for-ide-integration": {
+    "test_file": "tests/scaffold-vs-code-extension-for-ide-integration.py",
+    "description": "Scaffold VS Code extension for IDE Integration",
+    "cases": {
+      "success": "Scaffold VS Code extension for IDE Integration functions correctly",
+      "edge_case": "Handles error conditions gracefully"
+    }
+  },
+  "add-command-to-generate-tests-from-active-file": {
+    "test_file": "tests/add-command-to-generate-tests-from-active-file.py",
+    "description": "Add command to generate tests from active file",
+    "cases": {
+      "success": "Add command to generate tests from active file functions correctly",
+      "edge_case": "Handles error conditions gracefully"
+    }
+  },
+  "provide-real-time-suggestions-using-lsp-diagnostics": {
+    "test_file": "tests/provide-real-time-suggestions-using-lsp-diagnostics.py",
+    "description": "Provide real-time suggestions using LSP diagnostics",
+    "cases": {
+      "success": "Provide real-time suggestions using LSP diagnostics functions correctly",
+      "edge_case": "Handles error conditions gracefully"
+    }
+  },
+  "document-extension-usage-and-configuration": {
+    "test_file": "tests/document-extension-usage-and-configuration.py",
+    "description": "Document extension usage and configuration",
+    "cases": {
+      "success": "Document extension usage and configuration functions correctly",
+      "edge_case": "Handles error conditions gracefully"
+    }
   }
 }
