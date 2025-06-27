@@ -33,8 +33,21 @@ code --install-extension testgen.copilot-assistant
 # Generate tests for a single file
 testgen --file src/calculator.py --output tests/
 
-# Analyze entire project
+# Analyze entire project and enforce 90% coverage
 testgen --project . --security-scan --coverage-target 90
+
+# Check coverage only (no test generation)
+# default tests directory is 'tests'
+testgen --project . --coverage-target 80
+
+# Use a custom tests directory
+testgen --project . --coverage-target 80 --tests-dir mytests
+
+# Show missing functions when checking coverage
+testgen --project . --coverage-target 80 --show-missing
+
+# Enforce test quality score
+testgen --project . --quality-target 90
 
 # Watch mode for continuous testing
 testgen --watch src/ --auto-generate
@@ -209,6 +222,29 @@ from testgen import TestGenerator
 generator = TestGenerator(language='python')
 tests = generator.generate_tests('src/calculator.py')
 security_report = generator.analyze_security('src/')
+```
+
+### Coverage Analysis
+```python
+from testgen_copilot import CoverageAnalyzer
+
+analyzer = CoverageAnalyzer()
+percent = analyzer.analyze('src/calculator.py', 'tests')  # or any tests directory
+print(f"Calculator module covered: {percent:.1f}%")
+```
+
+### Test Quality Scoring
+```python
+from testgen_copilot import TestQualityScorer
+
+scorer = TestQualityScorer()
+quality = scorer.score('tests')
+print(f"Test suite quality: {quality:.1f}%")
+```
+
+Use `--quality-target` on the CLI to enforce a minimum score:
+```bash
+testgen --project . --quality-target 90
 ```
 
 ## Contributing
