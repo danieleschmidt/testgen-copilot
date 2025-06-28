@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import time
 
 from pathlib import Path
 
@@ -11,6 +12,38 @@ from .security import SecurityScanner
 from .vscode import scaffold_extension
 from .coverage import CoverageAnalyzer
 from .quality import TestQualityScorer
+
+
+LANG_PATTERNS = {
+    "python": "*.py",
+    "py": "*.py",
+    "javascript": "*.js",
+    "js": "*.js",
+    "typescript": "*.ts",
+    "ts": "*.ts",
+    "java": "*.java",
+    "c#": "*.cs",
+    "csharp": "*.cs",
+    "go": "*.go",
+    "rust": "*.rs",
+}
+
+
+def _language_pattern(language: str) -> str:
+    """Return glob pattern for ``language`` source files."""
+    return LANG_PATTERNS.get(language.lower(), f"*{language}")
+
+
+def _load_config(path: Path) -> dict:
+    """Load configuration dictionary from ``path`` if it exists."""
+    if path.exists():
+        try:
+            import json
+
+            return json.loads(path.read_text())
+        except Exception:
+            return {}
+    return {}
 
 
 def _coverage_failures(
@@ -40,6 +73,39 @@ def _check_project_coverage(
     return [
         f"{m}: {c:.1f}%" for m, c, _ in _coverage_failures(project_dir, target, tests_dir)
     ]
+
+
+def _watch_for_changes(
+    directory: Path,
+    generator: TestGenerator,
+    out_dir: Path,
+    pattern: str,
+    poll: float = 1.0,
+    *,
+    auto_generate: bool = False,
+    max_cycles: int | None = None,
+) -> None:
+    """Watch ``directory`` for updates and optionally generate tests."""
+    seen = {p: p.stat().st_mtime for p in directory.rglob(pattern)}
+    cycles = 0
+    try:
+        while True:
+            for path in directory.rglob(pattern):
+                if out_dir in path.parents:
+                    continue
+                mtime = path.stat().st_mtime
+                if path not in seen or mtime > seen[path]:
+                    if auto_generate:
+                        generator.generate_tests(path, out_dir)
+                    else:
+                        print(f"Change detected: {path}")
+                    seen[path] = mtime
+            cycles += 1
+            if max_cycles is not None and cycles >= max_cycles:
+                break
+            time.sleep(poll)
+    except KeyboardInterrupt:
+        pass
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -82,25 +148,92 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="List uncovered functions for modules below the coverage target",
     )
+    parser.add_argument(
+        "--no-edge-cases",
+        action="store_true",
+        help="Skip generating edge case tests",
+    )
+    parser.add_argument(
+        "--no-error-tests",
+        action="store_true",
+        help="Skip generating error path tests",
+    )
+    parser.add_argument(
+        "--no-benchmark-tests",
+        action="store_true",
+        help="Skip generating performance benchmark tests",
+    )
+    parser.add_argument(
+        "--no-integration-tests",
+        action="store_true",
+        help="Skip generating integration tests",
+    )
+    parser.add_argument(
+        "--config",
+        help="Path to configuration file (defaults to .testgen.config.json)",
+    )
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="Generate tests for all project files (requires --project and --output)",
+    )
+    parser.add_argument(
+        "--watch",
+        help="Watch a directory for changes and regenerate tests",
+    )
+    parser.add_argument(
+        "--auto-generate",
+        action="store_true",
+        help="Automatically generate tests when watching for changes",
+    )
+    parser.add_argument(
+        "--poll",
+        type=float,
+        default=1.0,
+        help="Polling interval in seconds when watching for changes",
+    )
 
     args = parser.parse_args(argv)
+
+    base = Path(args.project) if args.project else Path.cwd()
+    cfg_path = Path(args.config) if args.config else base / ".testgen.config.json"
+    cfg = _load_config(cfg_path)
 
     if args.scaffold_vscode:
         path = scaffold_extension(args.scaffold_vscode)
         print(f"VS Code extension scaffolded at {path.parent}")
         return
 
-    is_generating = args.file and args.output
+    if args.batch:
+        if args.file:
+            parser.error("--file cannot be used with --batch")
+        if not args.project:
+            parser.error("--batch requires --project")
+        if not args.output:
+            parser.error("--batch requires --output")
+
+    if args.watch:
+        if args.file:
+            parser.error("--file cannot be used with --watch")
+        if args.batch:
+            parser.error("--watch cannot be used with --batch")
+        if not args.output:
+            parser.error("--watch requires --output")
+
+    is_batch = args.batch and args.project and args.output
+    is_watch = args.watch and args.output
+    is_generating = (args.file and args.output) or is_batch or is_watch
     analysis_only = (
         (args.coverage_target is not None or args.quality_target is not None)
         and args.project
-        and not is_generating
+        and not ((args.file and args.output) or is_batch or is_watch)
     )
 
     if not is_generating and not analysis_only:
         parser.error(
-            "--file and --output are required unless --scaffold-vscode or "
-            "--coverage-target/--quality-target with --project is used"
+            "--file/--output or --batch with --project and --output are required "
+            "unless --scaffold-vscode or --coverage-target/--quality-target with "
+            "--project is used"
         )
 
     if analysis_only:
@@ -131,10 +264,62 @@ def main(argv: list[str] | None = None) -> None:
             print("Quality target satisfied")
         return
 
-    config = GenerationConfig(language=args.language)
+    language = args.language if args.language != "python" else cfg.get("language", args.language)
+    include_edge_cases = cfg.get("include_edge_cases", True)
+    include_error_paths = cfg.get("include_error_paths", True)
+    include_benchmarks = cfg.get("include_benchmarks", True)
+    include_integration_tests = cfg.get("include_integration_tests", True)
+    if args.no_edge_cases:
+        include_edge_cases = False
+    if args.no_error_tests:
+        include_error_paths = False
+    if args.no_benchmark_tests:
+        include_benchmarks = False
+    if args.no_integration_tests:
+        include_integration_tests = False
+
+    config = GenerationConfig(
+        language=language,
+        include_edge_cases=include_edge_cases,
+        include_error_paths=include_error_paths,
+        include_benchmarks=include_benchmarks,
+        include_integration_tests=include_integration_tests,
+    )
     generator = TestGenerator(config)
     scanner = SecurityScanner()
-    output_path = generator.generate_tests(args.file, args.output)
+
+    if args.watch:
+        if args.file or args.batch:
+            parser.error("--watch cannot be used with --file or --batch")
+        if not args.output:
+            parser.error("--watch requires --output")
+        watch_dir = Path(args.watch)
+        out_dir = Path(args.output)
+        pattern = _language_pattern(config.language)
+        _watch_for_changes(
+            watch_dir,
+            generator,
+            out_dir,
+            pattern,
+            poll=args.poll,
+            auto_generate=args.auto_generate,
+        )
+        return
+
+    if is_batch:
+        project = Path(args.project)
+        out_dir = Path(args.output)
+        pattern = _language_pattern(config.language)
+        files = [
+            p
+            for p in project.rglob(pattern)
+            if out_dir not in p.parents
+        ]
+        for f in files:
+            generator.generate_tests(f, out_dir)
+        output_path = out_dir
+    else:
+        output_path = generator.generate_tests(args.file, args.output)
     if args.security_scan:
         target = args.project if args.project else args.file
         reports = (

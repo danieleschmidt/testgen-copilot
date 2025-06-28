@@ -33,6 +33,14 @@ code --install-extension testgen.copilot-assistant
 # Generate tests for a single file
 testgen --file src/calculator.py --output tests/
 
+# Generate tests for every file in a project
+testgen --project . --output tests --batch  # requires --project and --output only
+
+# Use a configuration file
+testgen --config myconfig.json --file src/calculator.py --output tests
+# A file named `.testgen.config.json` in the current or project directory
+# is loaded automatically when present
+
 # Analyze entire project and enforce 90% coverage
 testgen --project . --security-scan --coverage-target 90
 
@@ -49,8 +57,22 @@ testgen --project . --coverage-target 80 --show-missing
 # Enforce test quality score
 testgen --project . --quality-target 90
 
+# Skip edge case tests
+testgen --file src/calculator.py --output tests --no-edge-cases
+
+# Skip error path tests
+testgen --file src/calculator.py --output tests --no-error-tests
+
+# Skip benchmark tests
+testgen --file src/calculator.py --output tests --no-benchmark-tests
+
+# Skip integration tests
+testgen --file src/calculator.py --output tests --no-integration-tests
+
 # Watch mode for continuous testing
-testgen --watch src/ --auto-generate
+# pass `--auto-generate` to write tests automatically
+# adjust polling interval with --poll (seconds)
+testgen --watch src/ --output tests --auto-generate --poll 2.0
 ```
 
 ### VS Code Integration
@@ -78,7 +100,7 @@ Create `.testgen.config.json` in your project root:
     "edge_cases": true,
     "error_handling": true,
     "mocking": true,
-    "integration_scenarios": false
+    "integration_scenarios": false  # disable integration tests
   },
   "output": {
     "format": "standard",

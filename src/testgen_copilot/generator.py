@@ -15,6 +15,9 @@ class GenerationConfig:
 
     language: str = "python"
     include_edge_cases: bool = True
+    include_error_paths: bool = True
+    include_benchmarks: bool = True
+    include_integration_tests: bool = True
     use_mocking: bool = True
 
 
@@ -71,6 +74,11 @@ class TestGenerator:
 
         if any(self._uses_open(func) for func in functions) and self.config.use_mocking:
             imports.append("from unittest.mock import mock_open, patch")
+        if (
+            self.config.include_error_paths
+            and any(self._exception_names(f) for f in functions)
+        ) or self.config.include_benchmarks:
+            imports.append("import pytest")
 
         lines: List[str] = ["\n".join(imports), ""]
 
@@ -81,6 +89,19 @@ class TestGenerator:
             if self.config.include_edge_cases:
                 lines.extend(self._build_edge_case_test(source_path, func))
                 lines.append("")
+
+            if self.config.include_error_paths:
+                for exc in self._exception_names(func):
+                    lines.extend(self._build_error_test(source_path, func, exc))
+                    lines.append("")
+
+            if self.config.include_benchmarks:
+                lines.extend(self._build_benchmark_test(source_path, func))
+                lines.append("")
+
+        if self.config.include_integration_tests and len(functions) > 1:
+            lines.extend(self._build_integration_test(source_path, functions))
+            lines.append("")
 
         return "\n".join(lines).rstrip() + "\n"
 
@@ -146,6 +167,71 @@ class TestGenerator:
         if "path" in name_l or "file" in name_l:
             return "''"
         return "0"
+
+    @staticmethod
+    def _exception_names(func: ast.FunctionDef) -> List[str]:
+        """Return list of exception names raised in ``func``."""
+        names = []
+        for node in ast.walk(func):
+            if isinstance(node, ast.Raise):
+                exc = node.exc
+                if isinstance(exc, ast.Call):
+                    exc = exc.func
+                if isinstance(exc, ast.Name):
+                    names.append(exc.id)
+                elif exc is not None:
+                    names.append("Exception")
+        return names
+
+    def _build_error_test(
+        self, source_path: Path, func: ast.FunctionDef, exc: str
+    ) -> List[str]:
+        args = [arg.arg for arg in func.args.args]
+        call_args = ", ".join(self._default_value(arg) for arg in args)
+
+        lines = [f"def test_{func.name}_raises_{exc.lower()}():"]
+        lines.append(f"    with pytest.raises({exc}):")
+        lines.append(f"        {source_path.stem}.{func.name}({call_args})")
+        return lines
+
+    def _build_benchmark_test(
+        self, source_path: Path, func: ast.FunctionDef
+    ) -> List[str]:
+        args = [arg.arg for arg in func.args.args]
+        call_args = ", ".join(self._default_value(arg) for arg in args)
+
+        lines = [f"def test_{func.name}_benchmark(benchmark):"]
+        if self._uses_open(func) and self.config.use_mocking:
+            lines.append("    with patch('builtins.open', mock_open(read_data='data')):")
+            lines.append(
+                f"        benchmark({source_path.stem}.{func.name}, {call_args})"
+            )
+        else:
+            lines.append(
+                f"    benchmark({source_path.stem}.{func.name}, {call_args})"
+            )
+        return lines
+
+    def _build_integration_test(
+        self, source_path: Path, functions: Iterable[ast.FunctionDef]
+    ) -> List[str]:
+        """Build a simple integration test calling all functions."""
+        lines = [f"def test_{source_path.stem}_integration():"]
+        for func in functions:
+            args = [arg.arg for arg in func.args.args]
+            call_args = ", ".join(self._default_value(arg) for arg in args)
+            if self._uses_open(func) and self.config.use_mocking:
+                lines.append(
+                    "    with patch('builtins.open', mock_open(read_data='data')):"  # noqa: E501
+                )
+                lines.append(
+                    f"        {source_path.stem}.{func.name}({call_args})"
+                )
+            else:
+                lines.append(
+                    f"    {source_path.stem}.{func.name}({call_args})"
+                )
+        return lines
 
     # ------------------------------------------------------------------
     # JavaScript / TypeScript generation
