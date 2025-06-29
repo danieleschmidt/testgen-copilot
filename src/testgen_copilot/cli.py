@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import time
 
 from pathlib import Path
@@ -30,7 +31,25 @@ LANG_PATTERNS = {
 }
 
 
+
 logger = logging.getLogger(__name__)
+
+
+def _validate_config_schema(cfg: dict) -> dict:
+    """Validate configuration dictionary schema."""
+    allowed = {
+        "language": str,
+        "include_edge_cases": bool,
+        "include_error_paths": bool,
+        "include_benchmarks": bool,
+        "include_integration_tests": bool,
+    }
+    for key, value in cfg.items():
+        if key not in allowed:
+            raise ValueError(f"Unknown config option: {key}")
+        if not isinstance(value, allowed[key]):
+            raise ValueError(f"Invalid type for {key}")
+    return cfg
 
 
 def _language_pattern(language: str) -> str:
@@ -39,15 +58,41 @@ def _language_pattern(language: str) -> str:
 
 
 def _load_config(path: Path) -> dict:
-    """Load configuration dictionary from ``path`` if it exists."""
+    """Load and validate configuration from ``path`` if it exists."""
     if path.exists():
-        try:
-            import json
-
-            return json.loads(path.read_text())
-        except Exception:
-            return {}
+        cfg = json.loads(path.read_text())
+        return _validate_config_schema(cfg)
     return {}
+
+
+def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    """Validate and normalize path arguments."""
+    if args.file:
+        file_path = Path(args.file)
+        if not file_path.is_file():
+            parser.error(f"--file {args.file} is not a valid file")
+        args.file = str(file_path.resolve())
+    if args.project:
+        project = Path(args.project)
+        if not project.is_dir():
+            parser.error(f"--project {args.project} is not a directory")
+        args.project = str(project.resolve())
+    if args.watch:
+        watch_dir = Path(args.watch)
+        if not watch_dir.is_dir():
+            parser.error(f"--watch {args.watch} is not a directory")
+        args.watch = str(watch_dir.resolve())
+    if args.output:
+        out_dir = Path(args.output)
+        if out_dir.exists() and not out_dir.is_dir():
+            parser.error(f"--output {args.output} is not a directory")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        args.output = str(out_dir.resolve())
+    if args.config:
+        cfg_path = Path(args.config)
+        if not cfg_path.is_file():
+            parser.error(f"Config file {args.config} not found")
+        args.config = str(cfg_path.resolve())
 
 
 def _coverage_failures(
@@ -169,7 +214,10 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
     logger.info("Starting generation")
     base = Path(args.project) if args.project else Path.cwd()
     cfg_path = Path(args.config) if args.config else base / ".testgen.config.json"
-    cfg = _load_config(cfg_path)
+    try:
+        cfg = _load_config(cfg_path)
+    except Exception as exc:  # json or validation errors
+        parser.error(str(exc))
 
     if args.batch:
         if args.file:
@@ -186,6 +234,8 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
             parser.error("--watch cannot be used with --batch")
         if not args.output:
             parser.error("--watch requires --output")
+
+    _validate_paths(args, parser)
 
     is_batch = args.batch and args.project and args.output
     is_watch = args.watch and args.output

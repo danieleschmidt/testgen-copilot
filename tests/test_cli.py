@@ -336,3 +336,66 @@ def test_cli_scaffold_command(tmp_path):
     main(["scaffold", str(dest)])
     assert (dest / "package.json").exists()
 
+
+def test_cli_invalid_file_path(tmp_path):
+    out = tmp_path / "tests"
+    with pytest.raises(SystemExit):
+        main(["generate", "--file", str(tmp_path / "nofile.py"), "--output", str(out)])
+
+
+def test_cli_invalid_project_path(tmp_path):
+    out = tmp_path / "tests"
+    with pytest.raises(SystemExit):
+        main(["generate", "--project", str(tmp_path / "missing"), "--output", str(out), "--batch"])
+
+
+def test_cli_invalid_watch_path(tmp_path):
+    out = tmp_path / "tests"
+    with pytest.raises(SystemExit):
+        main(["generate", "--watch", str(tmp_path / "missing"), "--output", str(out)])
+
+
+def test_cli_invalid_config_schema(tmp_path):
+    src = tmp_path / "a.py"
+    src.write_text("def foo():\n    pass\n")
+    cfg = {"include_edge_cases": "yes"}
+    cfg_path = tmp_path / ".testgen.config.json"
+    cfg_path.write_text(json.dumps(cfg))
+    out = tmp_path / "tests"
+    with pytest.raises(SystemExit):
+        main(["generate", "--file", str(src), "--output", str(out), "--config", str(cfg_path)])
+
+
+def test_cli_invalid_config_option(tmp_path):
+    src = tmp_path / "a.py"
+    src.write_text("def foo():\n    pass\n")
+    cfg = {"unknown": True}
+    cfg_path = tmp_path / ".testgen.config.json"
+    cfg_path.write_text(json.dumps(cfg))
+    out = tmp_path / "tests"
+    with pytest.raises(SystemExit):
+        main(["generate", "--file", str(src), "--output", str(out), "--config", str(cfg_path)])
+
+
+def test_cli_invalid_config_json(tmp_path):
+    src = tmp_path / "a.py"
+    src.write_text("def foo():\n    pass\n")
+    cfg_path = tmp_path / ".testgen.config.json"
+    cfg_path.write_text("{invalid")
+    out = tmp_path / "tests"
+    with pytest.raises(SystemExit):
+        main(["generate", "--file", str(src), "--output", str(out), "--config", str(cfg_path)])
+
+
+def test_cli_creates_output_directory(tmp_path, monkeypatch):
+    src = tmp_path / "a.py"
+    src.write_text("def foo():\n    pass\n")
+    out = tmp_path / "tests"
+
+    def fake_generate(self, file_path, output_dir):
+        return Path(output_dir) / "test_a.py"
+
+    monkeypatch.setattr(TG, "generate_tests", fake_generate)
+    main(["generate", "--file", str(src), "--output", str(out)])
+    assert out.is_dir()
+

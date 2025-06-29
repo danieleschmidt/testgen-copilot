@@ -28,6 +28,11 @@ code --install-extension testgen.copilot-assistant
 
 ## Quick Start
 
+## CLI Commands
+- `testgen generate` – generate tests for a file or project
+- `testgen analyze` – check coverage and quality metrics
+- `testgen scaffold` – create a VS Code extension scaffold
+
 ### Command Line Usage
 ```bash
 # Generate tests for a single file
@@ -78,6 +83,7 @@ testgen generate --watch src/ --output tests --auto-generate --poll 2.0
 ```
 
 ### VS Code Integration
+For a full command reference see [USAGE.md](docs/USAGE.md).
 1. Open any source file
 2. Right-click → "Generate Tests with TestGen"
 3. Review generated tests in the side panel
