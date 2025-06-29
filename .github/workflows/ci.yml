@@ -16,14 +16,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest coverage ruff bandit
+          pip install pytest pytest-cov pytest-xdist coverage ruff bandit
           pip install -e .
       - name: Lint with ruff
         run: ruff check .
       - name: Security scan with bandit
         run: bandit -r src
       - name: Run tests
-        run: pytest --cov=src --cov-report=xml
+        run: pytest --cov=src --cov-report=xml -n auto
       - name: Upload coverage
         uses: actions/upload-artifact@v3
         with:
