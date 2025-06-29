@@ -56,7 +56,7 @@ def test_a():
 
 def test_cli_coverage_only_pass(tmp_path, capsys):
     _make_project(tmp_path, covered=True)
-    main(["--project", str(tmp_path), "--coverage-target", "100"])
+    main(["analyze", "--project", str(tmp_path), "--coverage-target", "100"])
     out = capsys.readouterr().out
     assert "Coverage target satisfied" in out
 
@@ -64,7 +64,7 @@ def test_cli_coverage_only_pass(tmp_path, capsys):
 def test_cli_coverage_only_fail(tmp_path):
     _make_project(tmp_path, covered=False)
     with pytest.raises(SystemExit) as exc:
-        main(["--project", str(tmp_path), "--coverage-target", "100"])
+        main(["analyze", "--project", str(tmp_path), "--coverage-target", "100"])
     assert exc.value.code == 1
 
 
@@ -72,6 +72,7 @@ def test_cli_show_missing(tmp_path, capsys):
     _make_project(tmp_path, covered=False)
     with pytest.raises(SystemExit):
         main([
+            "analyze",
             "--project",
             str(tmp_path),
             "--coverage-target",
@@ -85,6 +86,7 @@ def test_cli_show_missing(tmp_path, capsys):
 def test_cli_custom_tests_dir(tmp_path, capsys):
     _make_project(tmp_path, dir_name="unit", covered=True)
     main([
+        "analyze",
         "--project",
         str(tmp_path),
         "--coverage-target",
@@ -99,6 +101,7 @@ def test_cli_custom_tests_dir(tmp_path, capsys):
 def test_cli_quality_only_pass(tmp_path, capsys):
     _make_project(tmp_path, quality=True)
     main([
+        "analyze",
         "--project",
         str(tmp_path),
         "--quality-target",
@@ -112,6 +115,7 @@ def test_cli_quality_only_fail(tmp_path):
     _make_project(tmp_path, quality=False)
     with pytest.raises(SystemExit) as exc:
         main([
+            "analyze",
             "--project",
             str(tmp_path),
             "--quality-target",
@@ -128,7 +132,7 @@ def test_cli_batch_generation(tmp_path):
     src2 = sub / "b.py"
     src2.write_text("def bar():\n    pass\n")
     out = tmp_path / "tests"
-    main(["--project", str(tmp_path), "--output", str(out), "--batch"])
+    main(["generate", "--project", str(tmp_path), "--output", str(out), "--batch"])
     assert (out / "test_a.py").exists()
     assert (out / "test_b.py").exists()
 
@@ -136,18 +140,19 @@ def test_cli_batch_generation(tmp_path):
 def test_cli_batch_requires_project(tmp_path):
     out = tmp_path / "tests"
     with pytest.raises(SystemExit):
-        main(["--output", str(out), "--batch"])
+        main(["generate", "--output", str(out), "--batch"])
 
 
 def test_cli_batch_requires_output(tmp_path):
     with pytest.raises(SystemExit):
-        main(["--project", str(tmp_path), "--batch"])
+        main(["generate", "--project", str(tmp_path), "--batch"])
 
 
 def test_cli_batch_no_file_allowed(tmp_path):
     out = tmp_path / "tests"
     with pytest.raises(SystemExit):
         main([
+            "generate",
             "--project",
             str(tmp_path),
             "--output",
@@ -174,7 +179,7 @@ def test_cli_watch_auto_generation(tmp_path, monkeypatch):
             generator.generate_tests(file, out_dir)
 
     monkeypatch.setattr("testgen_copilot.cli._watch_for_changes", fake_watch)
-    main(["--watch", str(src), "--output", str(out), "--auto-generate", "--poll", "2.0"])
+    main(["generate", "--watch", str(src), "--output", str(out), "--auto-generate", "--poll", "2.0"])
     assert called.get("auto") is True
     assert called.get("poll") == 2.0
     assert (out / "test_a.py").exists()
@@ -192,7 +197,7 @@ def test_cli_watch_change_report_only(tmp_path, monkeypatch):
         called["poll"] = poll
 
     monkeypatch.setattr("testgen_copilot.cli._watch_for_changes", fake_watch)
-    main(["--watch", str(src), "--output", str(out)])
+    main(["generate", "--watch", str(src), "--output", str(out)])
     assert called.get("auto") is False
     assert called.get("poll") == 1.0
     assert not list(out.glob("test_*.py"))
@@ -200,7 +205,7 @@ def test_cli_watch_change_report_only(tmp_path, monkeypatch):
 
 def test_cli_watch_requires_output(tmp_path):
     with pytest.raises(SystemExit):
-        main(["--watch", str(tmp_path)])
+        main(["generate", "--watch", str(tmp_path)])
 
 
 def test_cli_watch_no_file_allowed(tmp_path):
@@ -212,6 +217,7 @@ def foo():
     out = tmp_path / "tests"
     with pytest.raises(SystemExit):
         main([
+            "generate",
             "--watch",
             str(tmp_path),
             "--output",
@@ -233,7 +239,7 @@ def test_cli_no_edge_cases_flag(tmp_path, monkeypatch):
         return Path(output_dir) / "test_a.py"
 
     monkeypatch.setattr(TG, "generate_tests", fake_generate)
-    main(["--file", str(src), "--output", str(out), "--no-edge-cases"])
+    main(["generate", "--file", str(src), "--output", str(out), "--no-edge-cases"])
     assert config_values["include_edge_cases"] is False
 
 
@@ -249,7 +255,7 @@ def test_cli_no_error_tests_flag(tmp_path, monkeypatch):
         return Path(output_dir) / "test_a.py"
 
     monkeypatch.setattr(TG, "generate_tests", fake_generate)
-    main(["--file", str(src), "--output", str(out), "--no-error-tests"])
+    main(["generate", "--file", str(src), "--output", str(out), "--no-error-tests"])
     assert config_values["include_error_paths"] is False
 
 
@@ -265,7 +271,7 @@ def test_cli_no_benchmark_tests_flag(tmp_path, monkeypatch):
         return Path(output_dir) / "test_a.py"
 
     monkeypatch.setattr(TG, "generate_tests", fake_generate)
-    main(["--file", str(src), "--output", str(out), "--no-benchmark-tests"])
+    main(["generate", "--file", str(src), "--output", str(out), "--no-benchmark-tests"])
     assert config_values["include_benchmarks"] is False
 
 
@@ -281,7 +287,7 @@ def test_cli_no_integration_tests_flag(tmp_path, monkeypatch):
         return Path(output_dir) / "test_a.py"
 
     monkeypatch.setattr(TG, "generate_tests", fake_generate)
-    main(["--file", str(src), "--output", str(out), "--no-integration-tests"])
+    main(["generate", "--file", str(src), "--output", str(out), "--no-integration-tests"])
     assert config_values["include_integration_tests"] is False
 
 
@@ -301,7 +307,7 @@ def test_cli_config_file(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(TG, "generate_tests", fake_generate)
-    main(["--file", str(src), "--output", str(out)])
+    main(["generate", "--file", str(src), "--output", str(out)])
     assert config_values["include_edge_cases"] is False
 
 
@@ -321,6 +327,12 @@ def test_cli_flag_overrides_config(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(TG, "generate_tests", fake_generate)
-    main(["--file", str(src), "--output", str(out), "--no-edge-cases"])
+    main(["generate", "--file", str(src), "--output", str(out), "--no-edge-cases"])
     assert config_values["include_edge_cases"] is False
+
+
+def test_cli_scaffold_command(tmp_path):
+    dest = tmp_path / "ext"
+    main(["scaffold", str(dest)])
+    assert (dest / "package.json").exists()
 
