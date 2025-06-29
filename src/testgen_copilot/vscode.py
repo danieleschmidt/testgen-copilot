@@ -28,6 +28,8 @@ def scaffold_extension(path: str | Path) -> Path:
         "activationEvents": [
             "onCommand:testgen.generateTests",
             "onCommand:testgen.generateTestsFromActiveFile",
+            "onCommand:testgen.runSecurityScan",
+            "onCommand:testgen.showCoverage",
         ],
         "main": "./src/extension.js",
         "contributes": {
@@ -39,6 +41,14 @@ def scaffold_extension(path: str | Path) -> Path:
                 {
                     "command": "testgen.generateTestsFromActiveFile",
                     "title": "Generate Tests for Active File",
+                },
+                {
+                    "command": "testgen.runSecurityScan",
+                    "title": "Run Security Scan",
+                },
+                {
+                    "command": "testgen.showCoverage",
+                    "title": "Show Coverage",
                 },
             ]
         },
@@ -69,8 +79,9 @@ function activate(context) {
     const filePath = editor.document.fileName;
     const workspace = vscode.workspace.workspaceFolders?.[0];
     const outDir = workspace ? `${workspace.uri.fsPath}/tests` : '';
-    cp.exec(
-      `python -m testgen_copilot --file \"${filePath}\" --output \"${outDir}\"`,
+    cp.execFile(
+      'python',
+      ['-m', 'testgen_copilot', 'generate', '--file', filePath, '--output', outDir],
       err => {
         if (err) {
           vscode.window.showErrorMessage('Failed to generate tests');
@@ -81,7 +92,51 @@ function activate(context) {
     );
   });
 
-  context.subscriptions.push(disposable, genActive);
+  let runScan = vscode.commands.registerCommand(
+    'testgen.runSecurityScan',
+    () => {
+      const workspace = vscode.workspace.workspaceFolders?.[0];
+      if (!workspace) {
+        vscode.window.showErrorMessage('No workspace folder found');
+        return;
+      }
+      cp.execFile(
+        'python',
+        ['-m', 'testgen_copilot', 'analyze', '--project', workspace.uri.fsPath, '--security-scan'],
+        err => {
+          if (err) {
+            vscode.window.showErrorMessage('Security scan failed');
+          } else {
+            vscode.window.showInformationMessage('Security scan complete');
+          }
+        },
+      );
+    },
+  );
+
+  let showCov = vscode.commands.registerCommand(
+    'testgen.showCoverage',
+    () => {
+      const workspace = vscode.workspace.workspaceFolders?.[0];
+      if (!workspace) {
+        vscode.window.showErrorMessage('No workspace folder found');
+        return;
+      }
+      cp.execFile(
+        'python',
+        ['-m', 'testgen_copilot', 'analyze', '--project', workspace.uri.fsPath, '--coverage-target', '0'],
+        (err, stdout) => {
+          if (err) {
+            vscode.window.showErrorMessage('Coverage run failed');
+          } else {
+            vscode.window.showInformationMessage(stdout);
+          }
+        },
+      );
+    },
+  );
+
+  context.subscriptions.push(disposable, genActive, runScan, showCov);
 }
 
 function deactivate() {}
@@ -133,6 +188,8 @@ def write_usage_docs(path: str | Path) -> Path:
 
 - **Generate Tests with TestGen** – generate tests for the current project.
 - **Generate Tests for Active File** – generate tests for the currently open file.
+- **Run Security Scan** – check the project for insecure code patterns.
+- **Show Coverage** – display coverage statistics in VS Code.
 
 Place generated tests under the project's ``tests`` directory and review them before committing.
 """

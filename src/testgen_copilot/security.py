@@ -43,6 +43,7 @@ class SecurityScanner:
         "pickle.load": "Deserializing with pickle can be unsafe with untrusted data",
         "pickle.loads": "Deserializing with pickle can be unsafe with untrusted data",
         "yaml.load": "yaml.load is unsafe; use yaml.safe_load instead",
+        "tempfile.mktemp": "tempfile.mktemp is insecure; use NamedTemporaryFile",
     }
 
     def scan_file(self, path: str | Path) -> SecurityReport:
@@ -60,10 +61,26 @@ class SecurityScanner:
                     continue
                 msg = self._dangerous_calls.get(name)
                 if msg:
-                    if "subprocess" in name or name == "os.system":
+                    if "subprocess" in name:
                         if not self._has_shell_true(node):
                             continue
                     issues.append(SecurityIssue(node.lineno, msg))
+
+                if name == "os.system" or ("subprocess" in name and self._has_shell_true(node)):
+                    if node.args and self._is_non_constant(node.args[0]):
+                        issues.append(
+                            SecurityIssue(node.lineno, "Possible shell injection with dynamic command")
+                        )
+
+                if name == "tempfile.NamedTemporaryFile":
+                    for kw in node.keywords:
+                        if kw.arg == "delete" and isinstance(kw.value, ast.Constant) and kw.value.value is False:
+                            issues.append(
+                                SecurityIssue(
+                                    node.lineno,
+                                    "NamedTemporaryFile(delete=False) is insecure; use delete=True",
+                                )
+                            )
         return SecurityReport(file_path, issues)
 
     def scan_project(self, path: str | Path) -> List[SecurityReport]:
@@ -79,6 +96,10 @@ class SecurityScanner:
             if kw.arg == "shell" and isinstance(kw.value, ast.Constant):
                 return bool(kw.value.value)
         return False
+
+    @staticmethod
+    def _is_non_constant(arg: ast.AST) -> bool:
+        return not isinstance(arg, ast.Constant)
 
     @staticmethod
     def _full_name(func: ast.AST) -> str | None:

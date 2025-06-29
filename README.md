@@ -31,48 +31,50 @@ code --install-extension testgen.copilot-assistant
 ### Command Line Usage
 ```bash
 # Generate tests for a single file
-testgen --file src/calculator.py --output tests/
+testgen generate --file src/calculator.py --output tests/
+# Enable verbose logging
+testgen --log-level debug generate --file src/calculator.py --output tests/
 
 # Generate tests for every file in a project
-testgen --project . --output tests --batch  # requires --project and --output only
+testgen generate --project . --output tests --batch  # requires --project and --output only
 
 # Use a configuration file
-testgen --config myconfig.json --file src/calculator.py --output tests
+testgen generate --config myconfig.json --file src/calculator.py --output tests
 # A file named `.testgen.config.json` in the current or project directory
 # is loaded automatically when present
 
 # Analyze entire project and enforce 90% coverage
-testgen --project . --security-scan --coverage-target 90
+testgen generate --project . --security-scan --coverage-target 90
 
 # Check coverage only (no test generation)
 # default tests directory is 'tests'
-testgen --project . --coverage-target 80
+testgen analyze --project . --coverage-target 80
 
 # Use a custom tests directory
-testgen --project . --coverage-target 80 --tests-dir mytests
+testgen analyze --project . --coverage-target 80 --tests-dir mytests
 
 # Show missing functions when checking coverage
-testgen --project . --coverage-target 80 --show-missing
+testgen analyze --project . --coverage-target 80 --show-missing
 
 # Enforce test quality score
-testgen --project . --quality-target 90
+testgen analyze --project . --quality-target 90
 
 # Skip edge case tests
-testgen --file src/calculator.py --output tests --no-edge-cases
+testgen generate --file src/calculator.py --output tests --no-edge-cases
 
 # Skip error path tests
-testgen --file src/calculator.py --output tests --no-error-tests
+testgen generate --file src/calculator.py --output tests --no-error-tests
 
 # Skip benchmark tests
-testgen --file src/calculator.py --output tests --no-benchmark-tests
+testgen generate --file src/calculator.py --output tests --no-benchmark-tests
 
 # Skip integration tests
-testgen --file src/calculator.py --output tests --no-integration-tests
+testgen generate --file src/calculator.py --output tests --no-integration-tests
 
 # Watch mode for continuous testing
 # pass `--auto-generate` to write tests automatically
 # adjust polling interval with --poll (seconds)
-testgen --watch src/ --output tests --auto-generate --poll 2.0
+testgen generate --watch src/ --output tests --auto-generate --poll 2.0
 ```
 
 ### VS Code Integration
@@ -80,6 +82,8 @@ testgen --watch src/ --output tests --auto-generate --poll 2.0
 2. Right-click → "Generate Tests with TestGen"
 3. Review generated tests in the side panel
 4. Accept, modify, or regenerate as needed
+5. Run `TestGen: Run Security Scan` from the command palette
+6. Run `TestGen: Show Coverage` from the command palette
 
 ## Configuration
 
@@ -125,32 +129,32 @@ from calculator import calculate_discount
 
 class TestCalculateDiscount:
     """Comprehensive tests for calculate_discount function."""
-    
+
     def test_basic_discount_calculation(self):
         """Test standard discount calculation."""
         result = calculate_discount(100, 10)
         assert result == 90.0
-    
+
     def test_zero_discount(self):
         """Test with zero discount."""
         result = calculate_discount(100, 0)
         assert result == 100.0
-    
+
     def test_full_discount(self):
         """Test with 100% discount."""
         result = calculate_discount(100, 100)
         assert result == 0.0
-    
+
     def test_negative_price_edge_case(self):
         """Test behavior with negative price."""
         result = calculate_discount(-50, 10)
         assert result == -45.0
-    
+
     def test_discount_over_100_percent(self):
         """Test edge case with discount over 100%."""
         result = calculate_discount(100, 150)
         assert result == -50.0  # May indicate business logic issue
-    
+
     @pytest.mark.parametrize("price,discount,expected", [
         (200, 25, 150),
         (50, 50, 25),
