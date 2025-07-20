@@ -44,12 +44,67 @@ def _validate_config_schema(cfg: dict) -> dict:
         "include_benchmarks": bool,
         "include_integration_tests": bool,
     }
+    
+    # Check for dangerous keys that could indicate code injection attempts
+    dangerous_keys = {"__import__", "eval", "exec", "open", "compile", "globals", "locals"}
+    for key in cfg.keys():
+        if key in dangerous_keys:
+            raise ValueError(f"Dangerous config option detected: {key}")
+    
     for key, value in cfg.items():
         if key not in allowed:
             raise ValueError(f"Unknown config option: {key}")
         if not isinstance(value, allowed[key]):
-            raise ValueError(f"Invalid type for {key}")
+            raise ValueError(f"Invalid type for {key}: expected {allowed[key].__name__}, got {type(value).__name__}")
+    
+    # Validate specific values
+    if "language" in cfg:
+        valid_languages = {"python", "py", "javascript", "js", "typescript", "ts", "java", "c#", "csharp", "go", "rust"}
+        if cfg["language"].lower() not in valid_languages:
+            raise ValueError(f"Unsupported language: {cfg['language']}. Supported: {', '.join(sorted(valid_languages))}")
+    
     return cfg
+
+
+def _is_dangerous_path(path: Path) -> bool:
+    """Check if path accesses dangerous system locations."""
+    # Convert to string for easier checking
+    path_str = str(path).lower()
+    
+    # Dangerous system directories
+    dangerous_dirs = {
+        "/etc", "/sys", "/proc", "/dev", "/boot", "/root",
+        "/var/log", "/var/run", "/var/lib", "/usr/bin", "/usr/sbin",
+        "/bin", "/sbin", "/lib", "/lib64"
+    }
+    
+    # Check if path starts with any dangerous directory
+    for dangerous in dangerous_dirs:
+        if path_str.startswith(dangerous.lower()):
+            return True
+    
+    # Check for path traversal attempts
+    if "../" in path_str or "..\\" in path_str:
+        return True
+        
+    return False
+
+
+def _validate_numeric_args(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    """Validate numeric argument ranges."""
+    if hasattr(args, 'coverage_target') and args.coverage_target is not None:
+        if not 0 <= args.coverage_target <= 100:
+            parser.error(f"--coverage-target must be between 0 and 100, got {args.coverage_target}")
+    
+    if hasattr(args, 'quality_target') and args.quality_target is not None:
+        if not 0 <= args.quality_target <= 100:
+            parser.error(f"--quality-target must be between 0 and 100, got {args.quality_target}")
+    
+    if hasattr(args, 'poll') and args.poll is not None:
+        if args.poll <= 0:
+            parser.error(f"--poll interval must be positive, got {args.poll}")
+        if args.poll > 300:  # 5 minutes max
+            parser.error(f"--poll interval too large (max 300 seconds), got {args.poll}")
 
 
 def _language_pattern(language: str) -> str:
@@ -71,28 +126,51 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
         file_path = Path(args.file)
         if not file_path.is_file():
             parser.error(f"--file {args.file} is not a valid file")
-        args.file = str(file_path.resolve())
+        # Security: Ensure path is within reasonable bounds and not accessing system files
+        resolved_path = file_path.resolve()
+        if _is_dangerous_path(resolved_path):
+            parser.error(f"Access to path {args.file} is not allowed")
+        args.file = str(resolved_path)
+        
     if args.project:
         project = Path(args.project)
         if not project.is_dir():
             parser.error(f"--project {args.project} is not a directory")
-        args.project = str(project.resolve())
+        resolved_path = project.resolve()
+        if _is_dangerous_path(resolved_path):
+            parser.error(f"Access to path {args.project} is not allowed")
+        args.project = str(resolved_path)
+        
     if args.watch:
         watch_dir = Path(args.watch)
         if not watch_dir.is_dir():
             parser.error(f"--watch {args.watch} is not a directory")
-        args.watch = str(watch_dir.resolve())
+        resolved_path = watch_dir.resolve()
+        if _is_dangerous_path(resolved_path):
+            parser.error(f"Access to path {args.watch} is not allowed")
+        args.watch = str(resolved_path)
+        
     if args.output:
         out_dir = Path(args.output)
         if out_dir.exists() and not out_dir.is_dir():
             parser.error(f"--output {args.output} is not a directory")
-        out_dir.mkdir(parents=True, exist_ok=True)
-        args.output = str(out_dir.resolve())
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError) as e:
+            parser.error(f"Cannot create output directory {args.output}: {e}")
+        resolved_path = out_dir.resolve()
+        if _is_dangerous_path(resolved_path):
+            parser.error(f"Access to path {args.output} is not allowed")
+        args.output = str(resolved_path)
+        
     if args.config:
         cfg_path = Path(args.config)
         if not cfg_path.is_file():
             parser.error(f"Config file {args.config} not found")
-        args.config = str(cfg_path.resolve())
+        resolved_path = cfg_path.resolve()
+        if _is_dangerous_path(resolved_path):
+            parser.error(f"Access to config file {args.config} is not allowed")
+        args.config = str(resolved_path)
 
 
 def _coverage_failures(
@@ -236,6 +314,7 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
             parser.error("--watch requires --output")
 
     _validate_paths(args, parser)
+    _validate_numeric_args(args, parser)
 
     is_batch = args.batch and args.project and args.output
     is_watch = args.watch and args.output
@@ -335,6 +414,11 @@ def _analyze(args: argparse.Namespace) -> None:
     logger.info("Starting analysis")
     if args.coverage_target is None and args.quality_target is None:
         raise SystemExit("No analysis target specified")
+    
+    # Validate paths and numeric arguments for analyze command
+    parser = _build_parser()  # We need parser for error handling
+    _validate_paths(args, parser)
+    _validate_numeric_args(args, parser)
 
     if args.coverage_target is not None:
         failures = _coverage_failures(args.project, args.coverage_target, args.tests_dir)
@@ -373,6 +457,12 @@ def _analyze(args: argparse.Namespace) -> None:
 
 def _scaffold(args: argparse.Namespace) -> None:
     logger.info("Scaffolding VS Code extension")
+    
+    # Validate scaffold directory path
+    directory_path = Path(args.directory)
+    if _is_dangerous_path(directory_path.resolve()):
+        raise SystemExit(f"Access to path {args.directory} is not allowed")
+    
     path = scaffold_extension(args.directory)
     logger.info("VS Code extension scaffolded at %s", path.parent)
     print(f"VS Code extension scaffolded at {path.parent}")
