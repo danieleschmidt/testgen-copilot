@@ -241,85 +241,177 @@ class TestGenerator:
     # JavaScript / TypeScript generation
     # ------------------------------------------------------------------
     def _generate_javascript_tests(self, source_path: Path, out_dir: Path) -> Path:
-        names = self._parse_js_functions(source_path)
-        lines: List[str] = [
-            f"import {{ {', '.join(names)} }} from './{source_path.stem}';",
-            "",
-        ]
-        for name in names:
-            lines.append(f"test('{name} works', () => {{")
-            lines.append(f"  const result = {name}();")
-            lines.append("  expect(result).toBeDefined();")
-            lines.append("});\n")
+        logger = logging.getLogger(__name__)
+        
+        try:
+            names = self._parse_js_functions(source_path)
+            lines: List[str] = [
+                f"import {{ {', '.join(names)} }} from './{source_path.stem}';",
+                "",
+            ]
+            for name in names:
+                lines.append(f"test('{name} works', () => {{")
+                lines.append(f"  const result = {name}();")
+                lines.append("  expect(result).toBeDefined();")
+                lines.append("});\n")
 
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"{source_path.stem}.test.js"
-        out_file.write_text("\n".join(lines).rstrip() + "\n")
-        return out_file
+            try:
+                out_dir.mkdir(parents=True, exist_ok=True)
+            except (OSError, PermissionError) as e:
+                raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
+            
+            out_file = out_dir / f"{source_path.stem}.test.js"
+            
+            try:
+                out_file.write_text("\n".join(lines).rstrip() + "\n")
+            except (OSError, PermissionError) as e:
+                raise PermissionError(f"Cannot write test file {out_file}: {e}")
+            
+            logger.info(f"Generated JavaScript tests: {out_file}")
+            return out_file
+            
+        except Exception as e:
+            logger.error(f"Failed to generate JavaScript tests for {source_path}: {e}")
+            raise
 
     def _parse_js_functions(self, path: Path) -> List[str]:
-        text = path.read_text()
-        patterns = [r"function\s+(\w+)\s*\(", r"const\s+(\w+)\s*=\s*\("]
-        names = []
-        for pat in patterns:
-            names.extend(re.findall(pat, text))
-        return list(dict.fromkeys(names)) or [path.stem]
+        logger = logging.getLogger(__name__)
+        
+        try:
+            text = path.read_text()
+            patterns = [r"function\s+(\w+)\s*\(", r"const\s+(\w+)\s*=\s*\("]
+            names = []
+            for pat in patterns:
+                try:
+                    matches = re.findall(pat, text)
+                    names.extend(matches)
+                except re.error as e:
+                    logger.warning(f"Regex pattern '{pat}' failed: {e}")
+                    continue
+            
+            result = list(dict.fromkeys(names)) or [path.stem]
+            logger.debug(f"Parsed {len(result)} JavaScript functions from {path}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to parse JavaScript functions from {path}: {e}")
+            raise
 
     # ------------------------------------------------------------------
     # Java generation
     # ------------------------------------------------------------------
     def _generate_java_tests(self, source_path: Path, out_dir: Path) -> Path:
-        methods = self._parse_java_methods(source_path)
-        class_name = source_path.stem.capitalize() + "Test"
-        lines: List[str] = [
-            "import org.junit.jupiter.api.Test;",
-            f"class {class_name} {{",
-            "",
-        ]
-        for m in methods:
-            lines.append("    @Test")
-            lines.append(f"    void {m}() {{")
-            lines.append(f"        {m}();")
-            lines.append("        // Verify method executes without throwing")
-            lines.append("    }\n")
-        lines.append("}")
+        logger = logging.getLogger(__name__)
+        
+        try:
+            methods = self._parse_java_methods(source_path)
+            class_name = source_path.stem.capitalize() + "Test"
+            lines: List[str] = [
+                "import org.junit.jupiter.api.Test;",
+                f"class {class_name} {{",
+                "",
+            ]
+            for m in methods:
+                lines.append("    @Test")
+                lines.append(f"    void {m}() {{")
+                lines.append(f"        {m}();")
+                lines.append("        // Verify method executes without throwing")
+                lines.append("    }\n")
+            lines.append("}")
 
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"{class_name}.java"
-        out_file.write_text("\n".join(lines).rstrip() + "\n")
-        return out_file
+            try:
+                out_dir.mkdir(parents=True, exist_ok=True)
+            except (OSError, PermissionError) as e:
+                raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
+            
+            out_file = out_dir / f"{class_name}.java"
+            
+            try:
+                out_file.write_text("\n".join(lines).rstrip() + "\n")
+            except (OSError, PermissionError) as e:
+                raise PermissionError(f"Cannot write test file {out_file}: {e}")
+            
+            logger.info(f"Generated Java tests: {out_file}")
+            return out_file
+            
+        except Exception as e:
+            logger.error(f"Failed to generate Java tests for {source_path}: {e}")
+            raise
 
     def _parse_java_methods(self, path: Path) -> List[str]:
-        text = path.read_text()
-        return re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["methodUnderTest"]
+        logger = logging.getLogger(__name__)
+        
+        try:
+            text = path.read_text()
+            try:
+                methods = re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["methodUnderTest"]
+                logger.debug(f"Parsed {len(methods)} Java methods from {path}")
+                return methods
+            except re.error as e:
+                logger.warning(f"Regex parsing failed for Java methods: {e}")
+                return ["methodUnderTest"]
+                
+        except Exception as e:
+            logger.error(f"Failed to parse Java methods from {path}: {e}")
+            raise
 
     # ------------------------------------------------------------------
     # C# generation
     # ------------------------------------------------------------------
     def _generate_csharp_tests(self, source_path: Path, out_dir: Path) -> Path:
-        methods = self._parse_csharp_methods(source_path)
-        class_name = source_path.stem + "Tests"
-        lines: List[str] = [
-            "using NUnit.Framework;",
-            f"public class {class_name} {{",
-            "",
-        ]
-        for m in methods:
-            lines.append("    [Test]")
-            lines.append(f"    public void {m}() {{")
-            lines.append(f"        {m}();")
-            lines.append("        // Verify method executes without throwing")
-            lines.append("    }\n")
-        lines.append("}")
+        logger = logging.getLogger(__name__)
+        
+        try:
+            methods = self._parse_csharp_methods(source_path)
+            class_name = source_path.stem + "Tests"
+            lines: List[str] = [
+                "using NUnit.Framework;",
+                f"public class {class_name} {{",
+                "",
+            ]
+            for m in methods:
+                lines.append("    [Test]")
+                lines.append(f"    public void {m}() {{")
+                lines.append(f"        {m}();")
+                lines.append("        // Verify method executes without throwing")
+                lines.append("    }\n")
+            lines.append("}")
 
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"{class_name}.cs"
-        out_file.write_text("\n".join(lines).rstrip() + "\n")
-        return out_file
+            try:
+                out_dir.mkdir(parents=True, exist_ok=True)
+            except (OSError, PermissionError) as e:
+                raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
+            
+            out_file = out_dir / f"{class_name}.cs"
+            
+            try:
+                out_file.write_text("\n".join(lines).rstrip() + "\n")
+            except (OSError, PermissionError) as e:
+                raise PermissionError(f"Cannot write test file {out_file}: {e}")
+            
+            logger.info(f"Generated C# tests: {out_file}")
+            return out_file
+            
+        except Exception as e:
+            logger.error(f"Failed to generate C# tests for {source_path}: {e}")
+            raise
 
     def _parse_csharp_methods(self, path: Path) -> List[str]:
-        text = path.read_text()
-        return re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["MethodUnderTest"]
+        logger = logging.getLogger(__name__)
+        
+        try:
+            text = path.read_text()
+            try:
+                methods = re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["MethodUnderTest"]
+                logger.debug(f"Parsed {len(methods)} C# methods from {path}")
+                return methods
+            except re.error as e:
+                logger.warning(f"Regex parsing failed for C# methods: {e}")
+                return ["MethodUnderTest"]
+                
+        except Exception as e:
+            logger.error(f"Failed to parse C# methods from {path}: {e}")
+            raise
 
     # ------------------------------------------------------------------
     # Go generation
