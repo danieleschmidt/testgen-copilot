@@ -14,6 +14,7 @@ from .security import SecurityScanner
 from .vscode import scaffold_extension
 from .coverage import CoverageAnalyzer
 from .quality import TestQualityScorer
+from .logging_config import configure_logging, get_cli_logger, LogContext
 
 
 LANG_PATTERNS = {
@@ -289,7 +290,21 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
-    logger.info("Starting generation")
+    logger = get_cli_logger()
+    
+    with LogContext(logger, "generate_command", {
+        "file": args.file,
+        "project": args.project,
+        "output": args.output,
+        "language": args.language,
+        "batch": getattr(args, 'batch', False),
+        "watch": getattr(args, 'watch', False)
+    }):
+        logger.info("Starting test generation", {
+            "operation_type": "generate",
+            "source": args.file or args.project,
+            "output_dir": args.output
+        })
     base = Path(args.project) if args.project else Path.cwd()
     cfg_path = Path(args.config) if args.config else base / ".testgen.config.json"
     try:
@@ -472,15 +487,46 @@ def main(argv: list[str] | None = None) -> None:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    level = getattr(logging, args.log_level.upper(), logging.INFO)
-    logging.basicConfig(level=level, format="%(levelname)s:%(message)s")
-
-    if args.command == "generate":
-        _generate(args, parser)
-    elif args.command == "analyze":
-        _analyze(args)
-    elif args.command == "scaffold":
-        _scaffold(args)
+    # Configure structured logging
+    configure_logging(
+        level=args.log_level.upper(),
+        format_type="structured",
+        enable_console=True
+    )
+    
+    logger = get_cli_logger()
+    
+    # Create operation context for the entire CLI session
+    with LogContext(logger, f"cli_{args.command}", {
+        "command": args.command,
+        "log_level": args.log_level,
+        "arguments": vars(args)
+    }):
+        logger.info("Starting TestGen Copilot CLI", {
+            "command": args.command,
+            "version": "0.0.1",  # Could be extracted from package metadata
+            "log_level": args.log_level
+        })
+        
+        try:
+            if args.command == "generate":
+                _generate(args, parser)
+            elif args.command == "analyze":
+                _analyze(args)
+            elif args.command == "scaffold":
+                _scaffold(args)
+            
+            logger.info("CLI operation completed successfully", {
+                "command": args.command
+            })
+            
+        except Exception as e:
+            logger.error("CLI operation failed", {
+                "command": args.command,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
+            raise
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point

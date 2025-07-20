@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 from typing import Iterable, List
 
+from .logging_config import get_generator_logger, LogContext
+
 
 @dataclass
 class GenerationConfig:
@@ -32,40 +34,186 @@ class TestGenerator:
     # ------------------------------------------------------------------
     def generate_tests(self, file_path: str | Path, output_dir: str | Path) -> Path:
         """Generate tests for ``file_path`` inside ``output_dir``."""
-
+        logger = get_generator_logger()
+        
+        source_path = Path(file_path)
+        out_path = Path(output_dir)
         lang = self.config.language.lower()
-        if lang in {"python", "py"}:
-            return self._generate_python_tests(Path(file_path), Path(output_dir))
-        if lang in {"javascript", "js", "typescript", "ts"}:
-            return self._generate_javascript_tests(Path(file_path), Path(output_dir))
-        if lang == "java":
-            return self._generate_java_tests(Path(file_path), Path(output_dir))
-        if lang in {"c#", "csharp"}:
-            return self._generate_csharp_tests(Path(file_path), Path(output_dir))
-        if lang == "go":
-            return self._generate_go_tests(Path(file_path), Path(output_dir))
-        if lang == "rust":
-            return self._generate_rust_tests(Path(file_path), Path(output_dir))
-        raise ValueError(f"Unsupported language: {self.config.language}")
+        
+        # Create operation context for tracking
+        with LogContext(logger, "generate_tests", {
+            "source_file": str(source_path),
+            "output_dir": str(out_path),
+            "language": lang,
+            "config": {
+                "include_edge_cases": self.config.include_edge_cases,
+                "include_error_paths": self.config.include_error_paths,
+                "include_benchmarks": self.config.include_benchmarks,
+                "include_integration_tests": self.config.include_integration_tests,
+                "use_mocking": self.config.use_mocking
+            }
+        }):
+            # Validate inputs with structured logging
+            if not source_path.exists():
+                logger.error("Source file not found", {
+                    "file_path": str(source_path),
+                    "error_type": "file_not_found"
+                })
+                raise FileNotFoundError(f"Source file not found: {source_path}")
+            
+            if not source_path.is_file():
+                logger.error("Path is not a file", {
+                    "file_path": str(source_path),
+                    "error_type": "invalid_file_type"
+                })
+                raise ValueError(f"Path is not a file: {source_path}")
+            
+            # Test file readability early
+            try:
+                source_path.read_text()
+            except (OSError, PermissionError) as e:
+                logger.error("Cannot read source file", {
+                    "file_path": str(source_path),
+                    "error_type": "permission_error",
+                    "error_message": str(e)
+                })
+                raise PermissionError(f"Cannot read source file {source_path}: {e}")
+            except UnicodeDecodeError as e:
+                logger.error("Source file encoding error", {
+                    "file_path": str(source_path),
+                    "error_type": "encoding_error",
+                    "error_message": str(e)
+                })
+                raise ValueError(f"Source file {source_path} contains invalid text encoding: {e}")
+            
+            logger.info("Starting test generation", {
+                "language": lang,
+                "source_file": str(source_path),
+                "output_dir": str(out_path)
+            })
+            
+            # Generate tests based on language with performance timing
+            with logger.time_operation(f"{lang}_test_generation", {"language": lang}):
+                if lang in {"python", "py"}:
+                    result = self._generate_python_tests(source_path, out_path)
+                elif lang in {"javascript", "js", "typescript", "ts"}:
+                    result = self._generate_javascript_tests(source_path, out_path)
+                elif lang == "java":
+                    result = self._generate_java_tests(source_path, out_path)
+                elif lang in {"c#", "csharp"}:
+                    result = self._generate_csharp_tests(source_path, out_path)
+                elif lang == "go":
+                    result = self._generate_go_tests(source_path, out_path)
+                elif lang == "rust":
+                    result = self._generate_rust_tests(source_path, out_path)
+                else:
+                    logger.error("Unsupported language", {
+                        "language": self.config.language,
+                        "supported_languages": ["python", "javascript", "typescript", "java", "c#", "go", "rust"],
+                        "error_type": "unsupported_language"
+                    })
+                    raise ValueError(f"Unsupported language: {self.config.language}")
+            
+            logger.info("Test generation completed successfully", {
+                "generated_file": str(result),
+                "language": lang,
+                "source_file": str(source_path)
+            })
+            
+            return result
 
     # ------------------------------------------------------------------
     # Python generation
     # ------------------------------------------------------------------
     def _generate_python_tests(self, source_path: Path, out_dir: Path) -> Path:
-        functions = self._parse_functions(source_path)
-        test_content = self._build_test_file(source_path, functions)
-
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"test_{source_path.stem}.py"
-        out_file.write_text(test_content)
-        return out_file
+        logger = get_generator_logger()
+        
+        with logger.time_operation("python_test_generation", {"source_file": str(source_path)}):
+            try:
+                functions = self._parse_functions(source_path)
+                logger.debug("Parsed Python functions", {
+                    "function_count": len(functions),
+                    "function_names": [func.name for func in functions],
+                    "source_file": str(source_path)
+                })
+                
+                test_content = self._build_test_file(source_path, functions)
+                
+                # Ensure output directory exists
+                try:
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot create output directory", {
+                        "output_dir": str(out_dir),
+                        "error_type": "permission_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
+                
+                out_file = out_dir / f"test_{source_path.stem}.py"
+                
+                # Write test file with error handling
+                try:
+                    out_file.write_text(test_content)
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot write test file", {
+                        "output_file": str(out_file),
+                        "error_type": "write_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot write test file {out_file}: {e}")
+                
+                logger.info("Python tests generated successfully", {
+                    "output_file": str(out_file),
+                    "function_count": len(functions),
+                    "test_content_length": len(test_content)
+                })
+                
+                return out_file
+                
+            except Exception as e:
+                logger.error("Failed to generate Python tests", {
+                    "source_file": str(source_path),
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
+                })
+                raise
 
     # ------------------------------------------------------------------
     # Implementation helpers
     # ------------------------------------------------------------------
     def _parse_functions(self, path: Path) -> List[ast.FunctionDef]:
-        tree = ast.parse(path.read_text())
-        return [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+        logger = get_generator_logger()
+        
+        try:
+            content = path.read_text()
+            tree = ast.parse(content)
+            functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+            
+            logger.debug("Parsed functions from source file", {
+                "source_file": str(path),
+                "function_count": len(functions),
+                "content_length": len(content),
+                "ast_node_count": len(tree.body)
+            })
+            
+            return functions
+            
+        except SyntaxError as e:
+            logger.error("Syntax error in source file", {
+                "source_file": str(path),
+                "line_number": e.lineno,
+                "error_message": e.msg,
+                "error_type": "syntax_error"
+            })
+            raise SyntaxError(f"Cannot parse {path}: syntax error at line {e.lineno}: {e.msg}")
+        except Exception as e:
+            logger.error("Failed to parse functions from source file", {
+                "source_file": str(path),
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
+            raise
 
     def _build_test_file(
         self, source_path: Path, functions: Iterable[ast.FunctionDef]
