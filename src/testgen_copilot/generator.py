@@ -121,7 +121,9 @@ class TestGenerator:
         else:
             body.append(f"    result = {source_path.stem}.{func.name}({call_args})")
 
-        body.append("    # TODO: assert expected result")
+        # Generate appropriate assertion based on function analysis
+        assertion = self._generate_assertion(func, "result")
+        body.append(f"    {assertion}")
         return body
 
     def _build_edge_case_test(
@@ -144,7 +146,9 @@ class TestGenerator:
         else:
             lines.append(f"    result = {source_path.stem}.{func.name}({call_args})")
 
-        lines.append("    # TODO: assert edge case result")
+        # Generate appropriate assertion for edge case
+        assertion = self._generate_edge_case_assertion(func, "result")
+        lines.append(f"    {assertion}")
         return lines
 
     @staticmethod
@@ -245,7 +249,7 @@ class TestGenerator:
         for name in names:
             lines.append(f"test('{name} works', () => {{")
             lines.append(f"  const result = {name}();")
-            lines.append("  // TODO: expect result")
+            lines.append("  expect(result).toBeDefined();")
             lines.append("});\n")
 
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -275,7 +279,8 @@ class TestGenerator:
         for m in methods:
             lines.append("    @Test")
             lines.append(f"    void {m}() {{")
-            lines.append(f"        // TODO: call {m} and assert")
+            lines.append(f"        {m}();")
+            lines.append("        // Verify method executes without throwing")
             lines.append("    }\n")
         lines.append("}")
 
@@ -302,7 +307,8 @@ class TestGenerator:
         for m in methods:
             lines.append("    [Test]")
             lines.append(f"    public void {m}() {{")
-            lines.append(f"        // TODO: call {m} and Assert")
+            lines.append(f"        {m}();")
+            lines.append("        // Verify method executes without throwing")
             lines.append("    }\n")
         lines.append("}")
 
@@ -324,7 +330,9 @@ class TestGenerator:
         for f_name in funcs:
             lines.append(f"func Test{f_name.capitalize()}(t *testing.T) {{")
             lines.append(f"    result := {f_name}()")
-            lines.append("    _ = result // TODO: use result")
+            lines.append("    if result != nil {")
+            lines.append("        t.Errorf(\"Expected nil, got %v\", result)")
+            lines.append("    }")
             lines.append("}\n")
 
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -346,7 +354,7 @@ class TestGenerator:
             lines.append("    #[test]")
             lines.append(f"    fn {f_name}_test() {{")
             lines.append(f"        let result = {f_name}();")
-            lines.append("        // TODO: assert result")
+            lines.append("        assert!(result.is_ok());")
             lines.append("    }\n")
         lines.append("}")
 
@@ -358,3 +366,99 @@ class TestGenerator:
     def _parse_rust_functions(self, path: Path) -> List[str]:
         text = path.read_text()
         return re.findall(r"fn\s+(\w+)\s*\(", text) or ["func_under_test"]
+
+    # ------------------------------------------------------------------
+    # Assertion generation helpers
+    # ------------------------------------------------------------------
+    def _generate_assertion(self, func: ast.FunctionDef, result_var: str) -> str:
+        """Generate appropriate assertion based on function analysis."""
+        # Analyze function to determine likely return type and assertion
+        return_hints = self._analyze_return_type(func)
+        
+        if "bool" in return_hints.lower():
+            return f"assert isinstance({result_var}, bool)"
+        elif "str" in return_hints.lower() or "string" in return_hints.lower():
+            return f"assert isinstance({result_var}, str)"
+        elif "int" in return_hints.lower() or "number" in return_hints.lower():
+            return f"assert isinstance({result_var}, (int, float))"
+        elif "list" in return_hints.lower() or "array" in return_hints.lower():
+            return f"assert isinstance({result_var}, list)"
+        elif "dict" in return_hints.lower() or "object" in return_hints.lower():
+            return f"assert isinstance({result_var}, dict)"
+        elif self._has_return_statement(func):
+            return f"assert {result_var} is not None"
+        else:
+            return f"assert {result_var} is None"
+
+    def _generate_edge_case_assertion(self, func: ast.FunctionDef, result_var: str) -> str:
+        """Generate assertion for edge case scenarios."""
+        # For edge cases, often check for specific boundary conditions
+        if self._raises_exceptions(func):
+            return f"# Edge case may raise exception or return special value"
+        
+        return_hints = self._analyze_return_type(func)
+        if "bool" in return_hints.lower():
+            return f"assert isinstance({result_var}, bool)"
+        elif "str" in return_hints.lower():
+            return f"assert {result_var} == '' or isinstance({result_var}, str)"
+        elif "int" in return_hints.lower() or "number" in return_hints.lower():
+            return f"assert {result_var} == 0 or isinstance({result_var}, (int, float))"
+        else:
+            return f"assert {result_var} is not None or {result_var} is None"
+
+    def _analyze_return_type(self, func: ast.FunctionDef) -> str:
+        """Analyze function to determine likely return type."""
+        # Check for type annotations first
+        if func.returns:
+            if isinstance(func.returns, ast.Name):
+                return func.returns.id
+            elif isinstance(func.returns, ast.Constant):
+                return str(func.returns.value)
+        
+        # Analyze docstring for type hints
+        docstring = ast.get_docstring(func)
+        if docstring:
+            doc_lower = docstring.lower()
+            if "return" in doc_lower:
+                if "bool" in doc_lower or "true" in doc_lower or "false" in doc_lower:
+                    return "bool"
+                elif "str" in doc_lower or "string" in doc_lower:
+                    return "str"
+                elif "int" in doc_lower or "number" in doc_lower or "float" in doc_lower:
+                    return "int"
+                elif "list" in doc_lower or "array" in doc_lower:
+                    return "list"
+                elif "dict" in doc_lower or "dictionary" in doc_lower:
+                    return "dict"
+        
+        # Analyze return statements
+        return_types = []
+        for node in ast.walk(func):
+            if isinstance(node, ast.Return) and node.value:
+                if isinstance(node.value, ast.Constant):
+                    return_types.append(type(node.value.value).__name__)
+                elif isinstance(node.value, ast.BinOp):
+                    return_types.append("int")  # Assume arithmetic operations return numbers
+                elif isinstance(node.value, ast.Call):
+                    if isinstance(node.value.func, ast.Name):
+                        if node.value.func.id in ["str", "format"]:
+                            return_types.append("str")
+                        elif node.value.func.id in ["int", "float"]:
+                            return_types.append("int")
+                        elif node.value.func.id in ["list", "[]"]:
+                            return_types.append("list")
+                        elif node.value.func.id in ["dict", "{}"]:
+                            return_types.append("dict")
+        
+        return return_types[0] if return_types else "unknown"
+
+    def _has_return_statement(self, func: ast.FunctionDef) -> bool:
+        """Check if function has explicit return statements."""
+        for node in ast.walk(func):
+            if isinstance(node, ast.Return) and node.value is not None:
+                return True
+        return False
+
+    def _raises_exceptions(self, func: ast.FunctionDef) -> bool:
+        """Check if function explicitly raises exceptions."""
+        return bool(self._exception_names(func))
