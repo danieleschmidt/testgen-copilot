@@ -4,7 +4,7 @@ from .core import identity
 from .generator import GenerationConfig, TestGenerator
 from .security import SecurityScanner, SecurityIssue, SecurityReport
 from .vscode import scaffold_extension, suggest_from_diagnostics, write_usage_docs
-from .coverage import CoverageAnalyzer
+from .coverage import CoverageAnalyzer, ParallelCoverageAnalyzer, CoverageResult
 from .quality import TestQualityScorer
 
 __all__ = [
@@ -18,5 +18,7 @@ __all__ = [
     "suggest_from_diagnostics",
     "write_usage_docs",
     "CoverageAnalyzer",
+    "ParallelCoverageAnalyzer",
+    "CoverageResult",
     "TestQualityScorer",
 ]

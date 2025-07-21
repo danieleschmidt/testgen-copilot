@@ -12,7 +12,7 @@ import logging
 from .generator import GenerationConfig, TestGenerator
 from .security import SecurityScanner
 from .vscode import scaffold_extension
-from .coverage import CoverageAnalyzer
+from .coverage import CoverageAnalyzer, ParallelCoverageAnalyzer, CoverageResult
 from .quality import TestQualityScorer
 from .logging_config import configure_logging, get_cli_logger, LogContext
 
@@ -177,21 +177,54 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
 def _coverage_failures(
     project_dir: str | Path, target: float, tests_dir: str | Path | None = None
 ) -> list[tuple[str, float, set[str]]]:
-    """Return modules below ``target`` with their uncovered functions."""
-    analyzer = CoverageAnalyzer()
+    """Return modules below ``target`` with their uncovered functions using parallel processing."""
     project = Path(project_dir)
     tests_dir = Path(tests_dir) if tests_dir else Path("tests")
     if not tests_dir.is_absolute():
         tests_dir = project / tests_dir
-    failures: list[tuple[str, float, set[str]]] = []
-    for path in project.rglob("*.py"):
-        if tests_dir in path.parents:
-            continue
-        cov = analyzer.analyze(path, tests_dir)
-        if cov < target:
-            missing = analyzer.uncovered_functions(path, tests_dir)
-            failures.append((str(path.relative_to(project)), cov, missing))
-    return failures
+    
+    # Use parallel coverage analyzer for improved performance
+    parallel_analyzer = ParallelCoverageAnalyzer()
+    
+    def progress_callback(completed: int, total: int):
+        """Progress callback for large projects."""
+        if total > 20:  # Only show progress for large projects
+            logger.info(f"Coverage analysis progress: {completed}/{total} files ({100*completed/total:.1f}%)")
+    
+    try:
+        coverage_results = parallel_analyzer.analyze_project_parallel(
+            project_dir=project,
+            tests_dir=tests_dir,
+            target_coverage=target,
+            progress_callback=progress_callback
+        )
+        
+        # Transform CoverageResult objects to the expected format
+        failures = [
+            (str(Path(result.file_path).relative_to(project)), result.coverage_percentage, result.uncovered_functions)
+            for result in coverage_results
+        ]
+        
+        logger.info(f"Parallel coverage analysis found {len(failures)} files below {target}% coverage")
+        return failures
+        
+    except Exception as e:
+        logger.warning(f"Parallel coverage analysis failed, falling back to sequential: {e}")
+        # Fallback to original sequential implementation
+        analyzer = CoverageAnalyzer()
+        failures: list[tuple[str, float, set[str]]] = []
+        for path in project.rglob("*.py"):
+            if tests_dir in path.parents:
+                continue
+            try:
+                cov = analyzer.analyze(path, tests_dir)
+                if cov < target:
+                    missing = analyzer.uncovered_functions(path, tests_dir)
+                    failures.append((str(path.relative_to(project)), cov, missing))
+            except Exception as file_error:
+                logger.warning(f"Failed to analyze {path}: {file_error}")
+                continue
+        return failures
 
 
 def _check_project_coverage(
