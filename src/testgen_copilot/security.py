@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-from .file_utils import safe_read_file, FileSizeError
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 
 
 @dataclass
@@ -54,9 +54,13 @@ class SecurityScanner:
         file_path = Path(path)
         
         try:
-            # Use safe file reading with comprehensive error handling
+            # Use safe_parse_ast for consolidated error handling
             try:
-                content = safe_read_file(file_path)
+                result = safe_parse_ast(file_path, raise_on_syntax_error=False)
+                if result is None:
+                    # Syntax error occurred - safe_parse_ast already logged it
+                    return SecurityReport(file_path, [SecurityIssue(0, "Syntax error in file")])
+                tree, content = result
             except FileNotFoundError as e:
                 logger.warning(f"File not found for security scan: {file_path}")
                 return SecurityReport(file_path, [SecurityIssue(0, "File not found")])
@@ -72,12 +76,6 @@ class SecurityScanner:
             except OSError as e:
                 logger.error(f"File I/O error during security scan: {file_path}: {e}")
                 return SecurityReport(file_path, [SecurityIssue(0, f"File I/O error: {e}")])
-            
-            try:
-                tree = ast.parse(content)
-            except SyntaxError as e:
-                logger.warning(f"Syntax error in {file_path} at line {e.lineno}: {e.msg}")
-                return SecurityReport(file_path, [SecurityIssue(e.lineno or 0, f"Syntax error: {e.msg}")])
             
             issues: List[SecurityIssue] = []
             

@@ -6,7 +6,7 @@ import ast
 import logging
 from pathlib import Path
 
-from .file_utils import safe_read_file, FileSizeError
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 
 
 class TestQualityScorer:
@@ -40,17 +40,11 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
-                    try:
-                        content = safe_read_file(path)
-                    except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-                        logger.warning(f"Cannot read test file {path}: {e}")
+                    result = safe_parse_ast(path, raise_on_syntax_error=False)
+                    if result is None:
+                        # safe_parse_ast already logged the syntax error
                         continue
-                    
-                    try:
-                        tree = ast.parse(content)
-                    except SyntaxError as e:
-                        logger.warning(f"Syntax error in test file {path} at line {e.lineno}: {e.msg}")
-                        continue
+                    tree, content = result
                     
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:
@@ -97,17 +91,11 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
-                    try:
-                        content = safe_read_file(path)
-                    except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-                        logger.warning(f"Cannot read test file {path}: {e}")
+                    result = safe_parse_ast(path, raise_on_syntax_error=False)
+                    if result is None:
+                        # safe_parse_ast already logged the syntax error
                         continue
-                    
-                    try:
-                        tree = ast.parse(content)
-                    except SyntaxError as e:
-                        logger.warning(f"Syntax error in test file {path} at line {e.lineno}: {e.msg}")
-                        continue
+                    tree, content = result
                     
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:
@@ -300,8 +288,7 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
-                    content = safe_read_file(path)
-                    tree = ast.parse(content)
+                    tree, content = safe_parse_ast(path)
                     
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:

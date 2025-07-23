@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
-from .file_utils import safe_read_file, FileSizeError
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 
 
 @dataclass
@@ -257,15 +257,9 @@ class CoverageAnalyzer:
         logger = logging.getLogger(__name__)
         
         try:
-            content = safe_read_file(path)
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-            # Errors are already logged by safe_read_file with structured context
-            raise
-        
-        try:
-            tree = ast.parse(content)
-        except SyntaxError as e:
-            logger.error(f"Syntax error in {path} at line {e.lineno}: {e.msg}")
+            tree, content = safe_parse_ast(path)
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError, SyntaxError) as e:
+            # Errors are already logged by safe_parse_ast with structured context
             raise
         
         functions = [
@@ -294,20 +288,14 @@ class CoverageAnalyzer:
         
         for test_file in test_files:
             try:
-                try:
-                    content = test_file.read_text()
-                except (OSError, PermissionError) as e:
-                    logger.warning(f"Cannot read test file {test_file}: {e}")
+                result = safe_parse_ast(test_file, raise_on_syntax_error=False)
+                if result is None:
+                    # safe_parse_ast already logged the syntax error
                     continue
-                except UnicodeDecodeError as e:
-                    logger.warning(f"Encoding error in test file {test_file}: {e}")
-                    continue
-                
-                try:
-                    tree = ast.parse(content)
-                except SyntaxError as e:
-                    logger.warning(f"Syntax error in test file {test_file} at line {e.lineno}: {e.msg}")
-                    continue
+                tree, content = result
+            except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+                logger.warning(f"Cannot read test file {test_file}: {e}")
+                continue
                 
                 # Track aliases from ``from x import y as z`` so calls to ``z`` are
                 # associated with ``y`` when checking coverage.
