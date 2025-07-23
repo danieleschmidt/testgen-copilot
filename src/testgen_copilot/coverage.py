@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
+from .file_utils import safe_read_file, FileSizeError
+
 
 @dataclass
 class CoverageResult:
@@ -255,12 +257,9 @@ class CoverageAnalyzer:
         logger = logging.getLogger(__name__)
         
         try:
-            content = path.read_text()
-        except (OSError, PermissionError) as e:
-            logger.error(f"Cannot read file {path}: {e}")
-            raise
-        except UnicodeDecodeError as e:
-            logger.error(f"File encoding error in {path}: {e}")
+            content = safe_read_file(path)
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # Errors are already logged by safe_read_file with structured context
             raise
         
         try:
