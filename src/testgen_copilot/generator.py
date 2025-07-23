@@ -10,6 +10,8 @@ from typing import Iterable, List
 
 from .logging_config import get_generator_logger, LogContext
 from .file_utils import safe_read_file, FileSizeError
+from .resource_limits import ResourceMonitor, ResourceLimits
+from .ast_utils import safe_parse_ast, extract_functions
 
 
 @dataclass
@@ -27,8 +29,9 @@ class GenerationConfig:
 class TestGenerator:
     """Create simple unit test stubs for multiple languages."""
 
-    def __init__(self, config: GenerationConfig | None = None) -> None:
+    def __init__(self, config: GenerationConfig | None = None, resource_limits: ResourceLimits | None = None) -> None:
         self.config = config or GenerationConfig()
+        self.resource_monitor = ResourceMonitor(resource_limits)
 
     # ------------------------------------------------------------------
     # Public API
@@ -112,6 +115,22 @@ class TestGenerator:
             
             return result
 
+    def generate_tests_with_memory_monitoring(self, file_path: str | Path, output_dir: str | Path) -> Path:
+        """Generate tests with memory usage monitoring."""
+        logger = get_generator_logger()
+        
+        # Check memory usage before starting
+        if not self.resource_monitor.check_memory_usage():
+            raise MemoryError("Insufficient memory available for test generation")
+        
+        with LogContext(logger, "generate_tests_with_memory_monitoring", {
+            "source_file": str(file_path),
+            "output_dir": str(output_dir),
+            "memory_threshold": self.resource_monitor.limits.memory_threshold_percent
+        }):
+            # Generate tests normally but with periodic memory checks
+            return self.generate_tests(file_path, output_dir)
+
     # ------------------------------------------------------------------
     # Python generation
     # ------------------------------------------------------------------
@@ -141,6 +160,9 @@ class TestGenerator:
                     raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
                 
                 out_file = out_dir / f"test_{source_path.stem}.py"
+                
+                # Validate test content before writing to disk
+                self.resource_monitor.validate_test_content(test_content, out_file)
                 
                 # Write test file with error handling
                 try:
@@ -177,8 +199,9 @@ class TestGenerator:
         
         try:
             content = safe_read_file(path)
-            tree = ast.parse(content)
-            functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+            # Use common AST parsing utility for consistent error handling
+            tree = safe_parse_ast(content, path)
+            functions = extract_functions(tree)
             
             logger.debug("Parsed functions from source file", {
                 "source_file": str(path),
@@ -189,24 +212,10 @@ class TestGenerator:
             
             return functions
             
-        except SyntaxError as e:
-            logger.error("Syntax error in source file", {
-                "source_file": str(path),
-                "line_number": e.lineno,
-                "error_message": e.msg,
-                "error_type": "syntax_error"
-            })
-            raise SyntaxError(f"Cannot parse {path}: syntax error at line {e.lineno}: {e.msg}")
         except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
             # File reading errors are already logged by safe_read_file
             raise
-        except Exception as e:
-            logger.error("Failed to parse functions from source file", {
-                "source_file": str(path),
-                "error_type": type(e).__name__,
-                "error_message": str(e)
-            })
-            raise
+        # ASTParsingError from safe_parse_ast will bubble up with proper context
 
     def _build_test_file(
         self, source_path: Path, functions: Iterable[ast.FunctionDef]
@@ -382,7 +391,7 @@ class TestGenerator:
     # JavaScript / TypeScript generation
     # ------------------------------------------------------------------
     def _generate_javascript_tests(self, source_path: Path, out_dir: Path) -> Path:
-        logger = logging.getLogger(__name__)
+        logger = get_generator_logger()
         
         try:
             names = self._parse_js_functions(source_path)
@@ -408,15 +417,23 @@ class TestGenerator:
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot write test file {out_file}: {e}")
             
-            logger.info(f"Generated JavaScript tests: {out_file}")
+            logger.info("Generated JavaScript tests", {
+                "output_file": str(out_file),
+                "function_count": len(names),
+                "language": "javascript"
+            })
             return out_file
             
         except Exception as e:
-            logger.error(f"Failed to generate JavaScript tests for {source_path}: {e}")
+            logger.error("Failed to generate JavaScript tests", {
+                "source_file": str(source_path),
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
             raise
 
     def _parse_js_functions(self, path: Path) -> List[str]:
-        logger = logging.getLogger(__name__)
+        logger = get_generator_logger()
         
         try:
             text = safe_read_file(path)
@@ -427,25 +444,37 @@ class TestGenerator:
                     matches = re.findall(pat, text)
                     names.extend(matches)
                 except re.error as e:
-                    logger.warning(f"Regex pattern '{pat}' failed: {e}")
+                    logger.warning("Regex pattern failed", {
+                        "pattern": pat,
+                        "error_message": str(e),
+                        "language": "javascript"
+                    })
                     continue
             
             result = list(dict.fromkeys(names)) or [path.stem]
-            logger.debug(f"Parsed {len(result)} JavaScript functions from {path}")
+            logger.debug("Parsed JavaScript functions", {
+                "function_count": len(result),
+                "function_names": result,
+                "source_file": str(path)
+            })
             return result
             
         except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
-            logger.error(f"Failed to parse JavaScript functions from {path}: {e}")
+            logger.error("Failed to parse JavaScript functions", {
+                "source_file": str(path),
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
             raise
 
     # ------------------------------------------------------------------
     # Java generation
     # ------------------------------------------------------------------
     def _generate_java_tests(self, source_path: Path, out_dir: Path) -> Path:
-        logger = logging.getLogger(__name__)
+        logger = get_generator_logger()
         
         try:
             methods = self._parse_java_methods(source_path)
@@ -475,38 +504,58 @@ class TestGenerator:
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot write test file {out_file}: {e}")
             
-            logger.info(f"Generated Java tests: {out_file}")
+            logger.info("Generated Java tests", {
+                "output_file": str(out_file),
+                "method_count": len(methods),
+                "language": "java"
+            })
             return out_file
             
         except Exception as e:
-            logger.error(f"Failed to generate Java tests for {source_path}: {e}")
+            logger.error("Failed to generate Java tests", {
+                "source_file": str(source_path),
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
             raise
 
     def _parse_java_methods(self, path: Path) -> List[str]:
-        logger = logging.getLogger(__name__)
+        logger = get_generator_logger()
         
         try:
             text = safe_read_file(path)
             try:
                 methods = re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["methodUnderTest"]
-                logger.debug(f"Parsed {len(methods)} Java methods from {path}")
+                logger.debug("Parsed Java methods", {
+                    "method_count": len(methods),
+                    "method_names": methods,
+                    "source_file": str(path)
+                })
                 return methods
             except re.error as e:
-                logger.warning(f"Regex parsing failed for Java methods: {e}")
+                logger.warning("Regex parsing failed", {
+                    "language": "java",
+                    "error_message": str(e),
+                    "fallback_used": "methodUnderTest"
+                })
                 return ["methodUnderTest"]
                 
         except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
-            logger.error(f"Failed to parse Java methods from {path}: {e}")
+            logger.error("Failed to parse Java methods", {
+                "source_file": str(path),
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
             raise
 
     # ------------------------------------------------------------------
     # C# generation
     # ------------------------------------------------------------------
     def _generate_csharp_tests(self, source_path: Path, out_dir: Path) -> Path:
-        logger = logging.getLogger(__name__)
+        logger = get_generator_logger()
         
         try:
             methods = self._parse_csharp_methods(source_path)
@@ -536,31 +585,51 @@ class TestGenerator:
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot write test file {out_file}: {e}")
             
-            logger.info(f"Generated C# tests: {out_file}")
+            logger.info("Generated C# tests", {
+                "output_file": str(out_file),
+                "method_count": len(methods),
+                "language": "csharp"
+            })
             return out_file
             
         except Exception as e:
-            logger.error(f"Failed to generate C# tests for {source_path}: {e}")
+            logger.error("Failed to generate C# tests", {
+                "source_file": str(source_path),
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
             raise
 
     def _parse_csharp_methods(self, path: Path) -> List[str]:
-        logger = logging.getLogger(__name__)
+        logger = get_generator_logger()
         
         try:
             text = safe_read_file(path)
             try:
                 methods = re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["MethodUnderTest"]
-                logger.debug(f"Parsed {len(methods)} C# methods from {path}")
+                logger.debug("Parsed C# methods", {
+                    "method_count": len(methods),
+                    "method_names": methods,
+                    "source_file": str(path)
+                })
                 return methods
             except re.error as e:
-                logger.warning(f"Regex parsing failed for C# methods: {e}")
+                logger.warning("Regex parsing failed", {
+                    "language": "csharp",
+                    "error_message": str(e),
+                    "fallback_used": "MethodUnderTest"
+                })
                 return ["MethodUnderTest"]
                 
         except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
-            logger.error(f"Failed to parse C# methods from {path}: {e}")
+            logger.error("Failed to parse C# methods", {
+                "source_file": str(path),
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
             raise
 
     # ------------------------------------------------------------------

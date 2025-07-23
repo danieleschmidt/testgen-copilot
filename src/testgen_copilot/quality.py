@@ -7,6 +7,8 @@ import logging
 from pathlib import Path
 
 from .file_utils import safe_read_file, FileSizeError
+from .logging_config import get_quality_logger
+from .ast_utils import safe_parse_ast, ASTParsingError
 
 
 class TestQualityScorer:
@@ -14,7 +16,7 @@ class TestQualityScorer:
 
     def score(self, tests_dir: str | Path) -> float:
         """Return percentage of test functions containing ``assert`` statements."""
-        logger = logging.getLogger(__name__)
+        logger = get_quality_logger()
         
         try:
             tests = Path(tests_dir)
@@ -47,9 +49,12 @@ class TestQualityScorer:
                         continue
                     
                     try:
-                        tree = ast.parse(content)
-                    except SyntaxError as e:
-                        logger.warning(f"Syntax error in test file {path} at line {e.lineno}: {e.msg}")
+                        tree = safe_parse_ast(content, path)
+                    except ASTParsingError as e:
+                        logger.warning("Skipping test file due to parsing error", {
+                            "file_path": str(path),
+                            "error_message": str(e)
+                        })
                         continue
                     
                     test_functions = self._find_test_functions(tree)
@@ -76,7 +81,7 @@ class TestQualityScorer:
 
     def low_quality_tests(self, tests_dir: str | Path) -> set[str]:
         """Return names of test functions lacking assertions."""
-        logger = logging.getLogger(__name__)
+        logger = get_quality_logger()
         
         try:
             tests = Path(tests_dir)
@@ -104,9 +109,12 @@ class TestQualityScorer:
                         continue
                     
                     try:
-                        tree = ast.parse(content)
-                    except SyntaxError as e:
-                        logger.warning(f"Syntax error in test file {path} at line {e.lineno}: {e.msg}")
+                        tree = safe_parse_ast(content, path)
+                    except ASTParsingError as e:
+                        logger.warning("Skipping test file due to parsing error", {
+                            "file_path": str(path),
+                            "error_message": str(e)
+                        })
                         continue
                     
                     test_functions = self._find_test_functions(tree)
@@ -128,7 +136,7 @@ class TestQualityScorer:
     @staticmethod
     def _find_test_functions(tree: ast.AST) -> list[dict]:
         """Find and analyze test functions, including parameterized tests."""
-        logger = logging.getLogger(__name__)
+        logger = get_quality_logger()
         test_functions = []
         
         for node in ast.walk(tree):
@@ -264,7 +272,7 @@ class TestQualityScorer:
     
     def get_detailed_quality_metrics(self, tests_dir: str | Path) -> dict:
         """Return detailed quality metrics including parameterized test analysis."""
-        logger = logging.getLogger(__name__)
+        logger = get_quality_logger()
         
         try:
             tests = Path(tests_dir)
@@ -301,7 +309,7 @@ class TestQualityScorer:
             for path in test_files:
                 try:
                     content = safe_read_file(path)
-                    tree = ast.parse(content)
+                    tree = safe_parse_ast(content, path)
                     
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:
