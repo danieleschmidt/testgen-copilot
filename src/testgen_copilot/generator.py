@@ -9,6 +9,7 @@ import re
 from typing import Iterable, List
 
 from .logging_config import get_generator_logger, LogContext
+from .file_utils import safe_read_file, FileSizeError
 
 
 @dataclass
@@ -68,23 +69,12 @@ class TestGenerator:
                 })
                 raise ValueError(f"Path is not a file: {source_path}")
             
-            # Test file readability early
+            # Test file readability early using safe file utility
             try:
-                source_path.read_text()
-            except (OSError, PermissionError) as e:
-                logger.error("Cannot read source file", {
-                    "file_path": str(source_path),
-                    "error_type": "permission_error",
-                    "error_message": str(e)
-                })
-                raise PermissionError(f"Cannot read source file {source_path}: {e}")
-            except UnicodeDecodeError as e:
-                logger.error("Source file encoding error", {
-                    "file_path": str(source_path),
-                    "error_type": "encoding_error",
-                    "error_message": str(e)
-                })
-                raise ValueError(f"Source file {source_path} contains invalid text encoding: {e}")
+                safe_read_file(source_path)  # Just test readability, don't store content yet
+            except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+                # Errors are already logged by safe_read_file with structured context
+                raise
             
             logger.info("Starting test generation", {
                 "language": lang,
@@ -186,7 +176,7 @@ class TestGenerator:
         logger = get_generator_logger()
         
         try:
-            content = path.read_text()
+            content = safe_read_file(path)
             tree = ast.parse(content)
             functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
             
@@ -207,6 +197,9 @@ class TestGenerator:
                 "error_type": "syntax_error"
             })
             raise SyntaxError(f"Cannot parse {path}: syntax error at line {e.lineno}: {e.msg}")
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # File reading errors are already logged by safe_read_file
+            raise
         except Exception as e:
             logger.error("Failed to parse functions from source file", {
                 "source_file": str(path),
@@ -426,7 +419,7 @@ class TestGenerator:
         logger = logging.getLogger(__name__)
         
         try:
-            text = path.read_text()
+            text = safe_read_file(path)
             patterns = [r"function\s+(\w+)\s*\(", r"const\s+(\w+)\s*=\s*\("]
             names = []
             for pat in patterns:
@@ -441,6 +434,9 @@ class TestGenerator:
             logger.debug(f"Parsed {len(result)} JavaScript functions from {path}")
             return result
             
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # File reading errors are already logged by safe_read_file
+            raise
         except Exception as e:
             logger.error(f"Failed to parse JavaScript functions from {path}: {e}")
             raise
@@ -490,7 +486,7 @@ class TestGenerator:
         logger = logging.getLogger(__name__)
         
         try:
-            text = path.read_text()
+            text = safe_read_file(path)
             try:
                 methods = re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["methodUnderTest"]
                 logger.debug(f"Parsed {len(methods)} Java methods from {path}")
@@ -499,6 +495,9 @@ class TestGenerator:
                 logger.warning(f"Regex parsing failed for Java methods: {e}")
                 return ["methodUnderTest"]
                 
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # File reading errors are already logged by safe_read_file
+            raise
         except Exception as e:
             logger.error(f"Failed to parse Java methods from {path}: {e}")
             raise
@@ -548,7 +547,7 @@ class TestGenerator:
         logger = logging.getLogger(__name__)
         
         try:
-            text = path.read_text()
+            text = safe_read_file(path)
             try:
                 methods = re.findall(r"public\s+\w+\s+(\w+)\s*\(", text) or ["MethodUnderTest"]
                 logger.debug(f"Parsed {len(methods)} C# methods from {path}")
@@ -557,6 +556,9 @@ class TestGenerator:
                 logger.warning(f"Regex parsing failed for C# methods: {e}")
                 return ["MethodUnderTest"]
                 
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # File reading errors are already logged by safe_read_file
+            raise
         except Exception as e:
             logger.error(f"Failed to parse C# methods from {path}: {e}")
             raise
@@ -581,7 +583,7 @@ class TestGenerator:
         return out_file
 
     def _parse_go_functions(self, path: Path) -> List[str]:
-        text = path.read_text()
+        text = safe_read_file(path)
         return re.findall(r"func\s+(\w+)\s*\(", text) or ["FuncUnderTest"]
 
     # ------------------------------------------------------------------
@@ -604,7 +606,7 @@ class TestGenerator:
         return out_file
 
     def _parse_rust_functions(self, path: Path) -> List[str]:
-        text = path.read_text()
+        text = safe_read_file(path)
         return re.findall(r"fn\s+(\w+)\s*\(", text) or ["func_under_test"]
 
     # ------------------------------------------------------------------

@@ -12,6 +12,10 @@
 | ~~Add parameterized test support to quality scorer~~ | 6 | 6 | 4 | 5 | 3.2 | P0 | ✅ DONE |
 | ~~Add structured logging throughout codebase~~ | 6 | 5 | 8 | 8 | 2.4 | P0 | ✅ DONE |
 | ~~Implement multiprocessing for coverage analysis~~ | 7 | 5 | 6 | 8 | 2.25 | P1 | ✅ DONE |
+| ~~Add safe file I/O abstraction layer~~ | 8 | 9 | 8 | 3 | 8.33 | P0 | ✅ DONE |
+| Extract common AST parsing patterns | 7 | 8 | 6 | 5 | 4.2 | P0 | 📋 TODO |
+| Implement resource limits and validation | 8 | 7 | 9 | 5 | 4.8 | P0 | 📋 TODO |
+| Standardize logging patterns across modules | 6 | 7 | 7 | 3 | 6.67 | P0 | 📋 TODO |
 | Implement caching layer for performance | 7 | 4 | 5 | 8 | 2.0 | P1 | 📋 TODO |
 | Implement streaming for large project analysis | 5 | 3 | 7 | 13 | 1.15 | P2 | 📋 TODO |
 
@@ -117,16 +121,84 @@
 
 **Results**: Coverage analysis now uses multiprocessing for significant performance improvements on large codebases. The implementation includes progress reporting, error handling with sequential fallback, and maintains full compatibility with existing CLI and API interfaces. Testing shows successful parallel processing of multiple files with consistent results compared to sequential analysis.
 
+### ✅ 8. Add safe file I/O abstraction layer [WSJF: 8.33] - COMPLETED
+**Impact**: High - Eliminates duplicate code and security vulnerabilities
+**Effort**: Small (3 story points)
+**Risk**: Low - Foundational improvement
+**Status**: ✅ COMPLETED
+
+**Completed Tasks**:
+- ✅ Created `safe_read_file(path, max_size_mb=10)` utility with comprehensive error handling
+- ✅ Added file size limits (default 10MB) to prevent memory exhaustion attacks
+- ✅ Implemented consistent error logging with structured context throughout all modules
+- ✅ Replaced 15+ instances of duplicate file reading patterns across generator.py, coverage.py, quality.py, and security.py
+- ✅ Added FileSizeError exception for proper file size limit handling
+- ✅ Created comprehensive test suite including integration tests across all modules
+- ✅ Updated module exports to include new file utilities
+
+**Security Impact**: 
+- Prevents potential memory exhaustion via large file attacks
+- Standardizes error handling to prevent information leakage
+- Adds size limits to all file operations across the codebase
+- Improves error message consistency and logging
+
+**Results**: 
+- **Before**: 15+ duplicate file reading patterns with inconsistent error handling across modules
+- **After**: Single `safe_read_file()` utility used consistently with structured logging and size limits
+- **Security**: File size limits prevent DoS attacks, structured error handling prevents info leakage
+- **Code Quality**: Eliminated duplicate code patterns and standardized error handling across all modules
+
+## Current Sprint (P0 - Critical)
+
+### 9. Extract common AST parsing patterns [WSJF: 4.2]  
+**Impact**: Medium-High - Reduces duplicate code and improves maintainability
+**Effort**: Medium (5 story points)
+**Risk**: Low - Code quality improvement
+**Status**: 📋 TODO
+
+**Technical Requirements**:
+- Create `safe_parse_ast(content, path)` utility with consistent error handling
+- Extract duplicate AST parsing logic from quality.py (3 instances) and generator.py
+- Standardize syntax error reporting with file context and line numbers
+- Add comprehensive test coverage for edge cases
+
+### 10. Implement resource limits and validation [WSJF: 4.8]
+**Impact**: High - Critical security and reliability improvement  
+**Effort**: Medium (5 story points)
+**Risk**: Medium - Security-critical feature
+**Status**: 📋 TODO
+
+**Technical Requirements**:
+- Add file size limits (default 10MB) for all file read operations
+- Implement timeout handling for long-running AST parsing operations
+- Add batch size limits for project-wide analysis (default 1000 files)
+- Add memory usage monitoring and circuit breaker patterns
+- Validate generated test content before writing to disk
+
+**Security Impact**: Prevents DoS attacks via large files and resource exhaustion
+
+### 11. Standardize logging patterns across modules [WSJF: 6.67]
+**Impact**: Medium - Improves observability and debugging
+**Effort**: Small (3 story points)  
+**Risk**: Low - Internal improvement
+**Status**: 📋 TODO
+
+**Technical Requirements**:
+- Migrate all generator.py language methods to use structured logging
+- Replace inconsistent `logging.getLogger(__name__)` usage with `get_generator_logger()`
+- Add consistent LogContext usage for all major operations
+- Ensure all error scenarios have structured error logging with context
+
 ## Next Sprint (P1 - High Priority)
 
-### 8. Implement caching layer for performance [WSJF: 2.0]
+### 12. Implement caching layer for performance [WSJF: 2.0]
 **Impact**: Medium - Speed improvements for repeated operations
 **Effort**: Large (8 story points)
 **Risk**: Low - Performance optimization
 
 ## Future Sprints (P2 - Medium Priority)
 
-### 9. Implement streaming for large project analysis [WSJF: 1.15]
+### 13. Implement streaming for large project analysis [WSJF: 1.15]
 **Impact**: Low-Medium - Handles edge case of very large projects
 **Effort**: Extra Large (13 story points)
 **Risk**: Medium - Complex implementation

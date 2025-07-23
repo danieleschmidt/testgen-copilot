@@ -6,6 +6,8 @@ import logging
 from pathlib import Path
 from typing import List
 
+from .file_utils import safe_read_file, FileSizeError
+
 
 @dataclass
 class SecurityIssue:
@@ -52,23 +54,24 @@ class SecurityScanner:
         file_path = Path(path)
         
         try:
-            # Validate file exists and is readable
-            if not file_path.exists():
+            # Use safe file reading with comprehensive error handling
+            try:
+                content = safe_read_file(file_path)
+            except FileNotFoundError as e:
                 logger.warning(f"File not found for security scan: {file_path}")
                 return SecurityReport(file_path, [SecurityIssue(0, "File not found")])
-            
-            if not file_path.is_file():
-                logger.warning(f"Path is not a file: {file_path}")
-                return SecurityReport(file_path, [SecurityIssue(0, "Path is not a file")])
-            
-            try:
-                content = file_path.read_text()
-            except (OSError, PermissionError) as e:
+            except PermissionError as e:
                 logger.error(f"Cannot read file {file_path}: {e}")
                 return SecurityReport(file_path, [SecurityIssue(0, f"Cannot read file: {e}")])
-            except UnicodeDecodeError as e:
+            except ValueError as e:  # UnicodeDecodeError wrapped in ValueError
                 logger.warning(f"File encoding issue in {file_path}: {e}")
                 return SecurityReport(file_path, [SecurityIssue(0, f"File encoding error: {e}")])
+            except FileSizeError as e:
+                logger.warning(f"File too large for security scan: {file_path}: {e}")
+                return SecurityReport(file_path, [SecurityIssue(0, f"File too large: {e}")])
+            except OSError as e:
+                logger.error(f"File I/O error during security scan: {file_path}: {e}")
+                return SecurityReport(file_path, [SecurityIssue(0, f"File I/O error: {e}")])
             
             try:
                 tree = ast.parse(content)

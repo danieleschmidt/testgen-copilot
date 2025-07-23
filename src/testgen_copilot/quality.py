@@ -6,6 +6,8 @@ import ast
 import logging
 from pathlib import Path
 
+from .file_utils import safe_read_file, FileSizeError
+
 
 class TestQualityScorer:
     """Estimate quality of tests based on presence of assertions and advanced patterns."""
@@ -39,12 +41,9 @@ class TestQualityScorer:
             for path in test_files:
                 try:
                     try:
-                        content = path.read_text()
-                    except (OSError, PermissionError) as e:
+                        content = safe_read_file(path)
+                    except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
                         logger.warning(f"Cannot read test file {path}: {e}")
-                        continue
-                    except UnicodeDecodeError as e:
-                        logger.warning(f"Encoding error in test file {path}: {e}")
                         continue
                     
                     try:
@@ -99,12 +98,9 @@ class TestQualityScorer:
             for path in test_files:
                 try:
                     try:
-                        content = path.read_text()
-                    except (OSError, PermissionError) as e:
+                        content = safe_read_file(path)
+                    except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
                         logger.warning(f"Cannot read test file {path}: {e}")
-                        continue
-                    except UnicodeDecodeError as e:
-                        logger.warning(f"Encoding error in test file {path}: {e}")
                         continue
                     
                     try:
@@ -304,7 +300,7 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
-                    content = path.read_text()
+                    content = safe_read_file(path)
                     tree = ast.parse(content)
                     
                     test_functions = self._find_test_functions(tree)
