@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 from .file_utils import safe_read_file, FileSizeError
+from .logging_config import get_coverage_logger
+from .resource_limits import ResourceMonitor, ResourceLimits
+from .ast_utils import safe_parse_ast, ASTParsingError
 
 
 @dataclass
@@ -33,7 +36,7 @@ def _analyze_single_file(args: Tuple[Path, Path, float]) -> Optional[CoverageRes
         CoverageResult if the file is below target coverage, None otherwise
     """
     source_path, tests_dir, target = args
-    logger = logging.getLogger(__name__)
+    logger = get_coverage_logger()
     
     try:
         analyzer = CoverageAnalyzer()
@@ -80,7 +83,7 @@ class ParallelCoverageAnalyzer:
             max_workers: Maximum number of worker processes. Defaults to CPU count.
         """
         self.max_workers = max_workers or min(os.cpu_count() or 1, 8)  # Cap at 8 for memory efficiency
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_coverage_logger()
     
     def analyze_project_parallel(
         self, 
@@ -162,7 +165,7 @@ class CoverageAnalyzer:
 
     def analyze(self, source_path: str | Path, tests_dir: str | Path) -> float:
         """Return the percentage of source functions referenced in tests."""
-        logger = logging.getLogger(__name__)
+        logger = get_coverage_logger()
         
         try:
             src = Path(source_path)
@@ -213,7 +216,7 @@ class CoverageAnalyzer:
         self, source_path: str | Path, tests_dir: str | Path
     ) -> set[str]:
         """Return names of functions in ``source_path`` not referenced by tests."""
-        logger = logging.getLogger(__name__)
+        logger = get_coverage_logger()
         
         try:
             src = Path(source_path)
@@ -254,7 +257,7 @@ class CoverageAnalyzer:
     @staticmethod
     def _functions_in_file(path: Path) -> list[str]:
         """Return all function and method names defined in ``path``."""
-        logger = logging.getLogger(__name__)
+        logger = get_coverage_logger()
         
         try:
             content = safe_read_file(path)
@@ -263,9 +266,12 @@ class CoverageAnalyzer:
             raise
         
         try:
-            tree = ast.parse(content)
-        except SyntaxError as e:
-            logger.error(f"Syntax error in {path} at line {e.lineno}: {e.msg}")
+            tree = safe_parse_ast(content, path)
+        except ASTParsingError as e:
+            logger.error("Cannot parse source file", {
+                "file_path": str(path),
+                "error_message": str(e)
+            })
             raise
         
         functions = [
@@ -280,7 +286,7 @@ class CoverageAnalyzer:
     @staticmethod
     def _functions_used_in_tests(tests_dir: Path, func_names: Iterable[str]) -> set[str]:
         """Return the subset of ``func_names`` referenced within ``tests_dir``."""
-        logger = logging.getLogger(__name__)
+        logger = get_coverage_logger()
         
         names = set(func_names)
         covered: set[str] = set()
@@ -304,9 +310,12 @@ class CoverageAnalyzer:
                     continue
                 
                 try:
-                    tree = ast.parse(content)
-                except SyntaxError as e:
-                    logger.warning(f"Syntax error in test file {test_file} at line {e.lineno}: {e.msg}")
+                    tree = safe_parse_ast(content, test_file)
+                except ASTParsingError as e:
+                    logger.warning("Skipping test file due to parsing error", {
+                        "file_path": str(test_file),
+                        "error_message": str(e)
+                    })
                     continue
                 
                 # Track aliases from ``from x import y as z`` so calls to ``z`` are
@@ -338,3 +347,70 @@ class CoverageAnalyzer:
         
         logger.debug(f"Found {len(covered)} covered functions out of {len(names)}")
         return covered
+    
+    def analyze_project_batch(self, project_path: Path, max_files: Optional[int] = None) -> List[CoverageResult]:
+        """Analyze coverage for multiple files in a project with batch size limits."""
+        logger = get_coverage_logger()
+        resource_monitor = ResourceMonitor()
+        
+        # Find all Python files in the project
+        python_files = list(project_path.rglob("*.py"))
+        
+        # Apply batch size limits
+        if max_files is None:
+            max_files = resource_monitor.limits.max_batch_size
+        
+        resource_monitor.validate_batch_size(len(python_files))
+        
+        if len(python_files) > max_files:
+            logger.warning("Project has too many files, limiting batch", {
+                "total_files": len(python_files),
+                "max_files": max_files,
+                "project_path": str(project_path)
+            })
+            python_files = python_files[:max_files]
+        
+        logger.info("Starting project batch analysis", {
+            "project_path": str(project_path),
+            "file_count": len(python_files),
+            "max_batch_size": max_files
+        })
+        
+        results = []
+        for i, file_path in enumerate(python_files):
+            # Check memory usage periodically
+            if i % 50 == 0 and not resource_monitor.check_memory_usage():
+                logger.error("Stopping batch analysis due to high memory usage", {
+                    "processed_files": i,
+                    "total_files": len(python_files)
+                })
+                raise MemoryError("Insufficient memory to continue batch analysis")
+            
+            try:
+                # Analyze individual file coverage
+                # For now, just create a placeholder result
+                # In a real implementation, you'd analyze against test directories
+                coverage_pct = self.analyze(file_path, project_path / "tests")
+                
+                if coverage_pct < 80:  # Default threshold
+                    result = CoverageResult(
+                        source_file=str(file_path),
+                        coverage_percentage=coverage_pct,
+                        uncovered_functions=self.uncovered_functions(file_path, project_path / "tests"),
+                        total_functions=len(self._functions_in_file(file_path))
+                    )
+                    results.append(result)
+                    
+            except Exception as e:
+                logger.warning("Failed to analyze file in batch", {
+                    "file_path": str(file_path),
+                    "error_message": str(e)
+                })
+                continue
+        
+        logger.info("Project batch analysis completed", {
+            "total_files_processed": len(python_files),
+            "files_needing_coverage": len(results)
+        })
+        
+        return results
