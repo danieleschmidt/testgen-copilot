@@ -33,7 +33,7 @@ LANG_PATTERNS = {
 
 
 
-logger = logging.getLogger(__name__)
+logger = get_cli_logger()
 
 
 def _validate_config_schema(cfg: dict) -> dict:

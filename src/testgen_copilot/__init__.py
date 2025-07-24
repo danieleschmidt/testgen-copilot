@@ -39,4 +39,11 @@ __all__ = [
     "validate_test_content",
     "AST_PARSE_TIMEOUT",
     "MAX_PROJECT_FILES",
+    "ResourceLimits",
+    "ResourceMonitor", 
+    "CircuitBreaker",
+    "safe_parse_ast",
+    "ASTParsingError",
+    "extract_functions",
+    "extract_classes",
 ]

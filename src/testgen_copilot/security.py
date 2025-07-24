@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import List
 
 from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
+from .logging_config import get_security_logger
+from .ast_utils import safe_parse_ast, ASTParsingError
 
 
 @dataclass
@@ -50,7 +52,7 @@ class SecurityScanner:
     }
 
     def scan_file(self, path: str | Path) -> SecurityReport:
-        logger = logging.getLogger(__name__)
+        logger = get_security_logger()
         file_path = Path(path)
         
         try:
@@ -76,6 +78,15 @@ class SecurityScanner:
             except OSError as e:
                 logger.error(f"File I/O error during security scan: {file_path}: {e}")
                 return SecurityReport(file_path, [SecurityIssue(0, f"File I/O error: {e}")])
+            
+            try:
+                tree = safe_parse_ast(content, file_path)
+            except ASTParsingError as e:
+                logger.warning("Skipping file due to parsing error", {
+                    "file_path": str(file_path),
+                    "error_message": str(e)
+                })
+                return SecurityReport(file_path, [SecurityIssue(e.line_number or 0, f"Syntax error: {e}")])
             
             issues: List[SecurityIssue] = []
             
@@ -119,7 +130,7 @@ class SecurityScanner:
             return SecurityReport(file_path, [SecurityIssue(0, f"Scan failed: {e}")])
 
     def scan_project(self, path: str | Path) -> List[SecurityReport]:
-        logger = logging.getLogger(__name__)
+        logger = get_security_logger()
         base = Path(path)
         
         try:
