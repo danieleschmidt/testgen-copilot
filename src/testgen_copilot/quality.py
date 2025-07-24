@@ -6,9 +6,9 @@ import ast
 import logging
 from pathlib import Path
 
-from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast as file_safe_parse_ast
 from .logging_config import get_quality_logger
-from .ast_utils import safe_parse_ast, ASTParsingError
+from .ast_utils import safe_parse_ast as ast_safe_parse_ast, ASTParsingError
 from .cache import cached_operation, analysis_cache
 
 
@@ -43,7 +43,7 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
-                    result = safe_parse_ast(path, raise_on_syntax_error=False)
+                    result = file_safe_parse_ast(path, raise_on_syntax_error=False)
                     if result is None:
                         # safe_parse_ast already logged the syntax error
                         continue
@@ -109,7 +109,7 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
-                    result = safe_parse_ast(path, raise_on_syntax_error=False)
+                    result = file_safe_parse_ast(path, raise_on_syntax_error=False)
                     if result is None:
                         # safe_parse_ast already logged the syntax error
                         continue
@@ -166,6 +166,9 @@ class TestQualityScorer:
                 # Total effective test count (parameterized tests count as multiple)
                 total_count = max(1, param_count + data_driven_count)
                 
+                # Check for fixture usage
+                fixture_info = TestQualityScorer._analyze_fixture_usage(node)
+                
                 test_info = {
                     'name': node.name,
                     'has_assertions': has_assertions,
@@ -173,7 +176,10 @@ class TestQualityScorer:
                     'is_parameterized': param_count > 1,
                     'is_data_driven': data_driven_count > 1,
                     'parametrize_cases': param_count,
-                    'data_driven_cases': data_driven_count
+                    'data_driven_cases': data_driven_count,
+                    'fixtures_used': fixture_info['used'],
+                    'missing_fixtures': fixture_info['missing'],
+                    'fixture_count': len(fixture_info['used'])
                 }
                 
                 test_functions.append(test_info)
@@ -318,10 +324,16 @@ class TestQualityScorer:
             functions_with_assertions = 0
             parameterized_functions = 0
             data_driven_functions = 0
+            functions_with_fixtures = 0
+            missing_fixtures_count = 0
+            all_missing_fixtures = []
             
             for path in test_files:
                 try:
-                    tree, content = safe_parse_ast(path)
+                    result = file_safe_parse_ast(path, raise_on_syntax_error=False)
+                    if result is None:
+                        continue
+                    tree, content = result
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:
                         total_functions += 1
@@ -335,6 +347,13 @@ class TestQualityScorer:
                         
                         if func_info['is_data_driven']:
                             data_driven_functions += 1
+                        
+                        if func_info['fixture_count'] > 0:
+                            functions_with_fixtures += 1
+                        
+                        if func_info['missing_fixtures']:
+                            missing_fixtures_count += len(func_info['missing_fixtures'])
+                            all_missing_fixtures.extend(func_info['missing_fixtures'])
                             
                 except Exception as e:
                     logger.warning(f"Failed to analyze test file {path}: {e}")
@@ -349,6 +368,9 @@ class TestQualityScorer:
                 'functions_with_assertions': functions_with_assertions,
                 'parameterized_functions': parameterized_functions,
                 'data_driven_functions': data_driven_functions,
+                'functions_with_fixtures': functions_with_fixtures,
+                'missing_fixtures_count': missing_fixtures_count,
+                'missing_fixtures': all_missing_fixtures,
                 'error': None
             }
             
@@ -361,5 +383,84 @@ class TestQualityScorer:
                 'functions_with_assertions': 0,
                 'parameterized_functions': 0,
                 'data_driven_functions': 0,
+                'functions_with_fixtures': 0,
+                'missing_fixtures_count': 0,
+                'missing_fixtures': [],
                 'error': str(e)
             }
+    
+    @staticmethod
+    def _analyze_fixture_usage(func_node: ast.FunctionDef | ast.AsyncFunctionDef) -> dict:
+        """Analyze fixture usage in a test function."""
+        used_fixtures = set()
+        missing_fixtures = []
+        
+        # Extract fixture parameters from function signature
+        fixture_params = []
+        for arg in func_node.args.args:
+            if arg.arg not in ['self', 'cls']:  # Exclude method parameters
+                fixture_params.append(arg.arg)
+        
+        # Common fixture patterns to look for
+        common_fixtures = {
+            'tmpdir', 'tmp_path', 'monkeypatch', 'capsys', 'capfd', 
+            'client', 'app', 'db', 'session', 'mock', 'mocker',
+            'request', 'cache', 'settings'
+        }
+        
+        # Analyze function body for fixture usage patterns
+        for node in ast.walk(func_node):
+            # Look for variable usage that suggests fixtures
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                var_name = node.id
+                
+                # Check if it matches fixture parameters
+                if var_name in fixture_params:
+                    used_fixtures.add(var_name)
+                
+                # Check for common fixture patterns
+                elif var_name in common_fixtures:
+                    used_fixtures.add(var_name)
+            
+            # Look for attribute access that suggests fixture usage
+            elif isinstance(node, ast.Attribute):
+                if isinstance(node.value, ast.Name):
+                    base_name = node.value.id
+                    if base_name in fixture_params:
+                        used_fixtures.add(base_name)
+        
+        # Identify potentially missing fixtures based on code patterns
+        body_code = ast.unparse(func_node) if hasattr(ast, 'unparse') else str(func_node)
+        
+        # Check for patterns that suggest missing fixtures
+        missing_patterns = {
+            'tmpdir': ['tempfile.', 'temp_dir', 'temporary'],
+            'monkeypatch': ['setattr(', 'delattr(', 'setenv('],
+            'capsys': ['print(', 'sys.stdout', 'captured'],
+            'mock': ['Mock(', 'patch(', 'mock.'],
+            'client': ['requests.', 'http', 'response.'],
+            'db': ['database', 'query', 'session.']
+        }
+        
+        for fixture_name, patterns in missing_patterns.items():
+            if fixture_name not in used_fixtures and fixture_name not in fixture_params:
+                if any(pattern in body_code for pattern in patterns):
+                    missing_fixtures.append({
+                        'fixture': fixture_name,
+                        'reason': f'Code contains patterns suggesting {fixture_name} usage',
+                        'patterns_found': [p for p in patterns if p in body_code]
+                    })
+        
+        # Check for hardcoded paths/values that could use fixtures
+        if 'tmp_path' not in used_fixtures and 'tmp_path' not in fixture_params:
+            if any(pattern in body_code for pattern in ['/tmp/', '/temp/', 'C:\\temp']):
+                missing_fixtures.append({
+                    'fixture': 'tmp_path',
+                    'reason': 'Hardcoded temporary paths found',
+                    'patterns_found': ['hardcoded paths']
+                })
+        
+        return {
+            'used': list(used_fixtures),
+            'missing': missing_fixtures
+        }

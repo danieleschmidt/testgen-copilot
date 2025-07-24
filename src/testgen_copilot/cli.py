@@ -15,6 +15,8 @@ from .vscode import scaffold_extension
 from .coverage import CoverageAnalyzer, ParallelCoverageAnalyzer, CoverageResult
 from .quality import TestQualityScorer
 from .logging_config import configure_logging, get_cli_logger, LogContext
+from .profiler import GeneratorProfiler
+from .progress import progress_context, estimate_batch_time
 
 
 LANG_PATTERNS = {
@@ -123,7 +125,7 @@ def _load_config(path: Path) -> dict:
 
 def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
     """Validate and normalize path arguments."""
-    if args.file:
+    if hasattr(args, 'file') and args.file:
         file_path = Path(args.file)
         if not file_path.is_file():
             parser.error(f"--file {args.file} is not a valid file")
@@ -133,7 +135,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
             parser.error(f"Access to path {args.file} is not allowed")
         args.file = str(resolved_path)
         
-    if args.project:
+    if hasattr(args, 'project') and args.project:
         project = Path(args.project)
         if not project.is_dir():
             parser.error(f"--project {args.project} is not a directory")
@@ -142,7 +144,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
             parser.error(f"Access to path {args.project} is not allowed")
         args.project = str(resolved_path)
         
-    if args.watch:
+    if hasattr(args, 'watch') and args.watch:
         watch_dir = Path(args.watch)
         if not watch_dir.is_dir():
             parser.error(f"--watch {args.watch} is not a directory")
@@ -151,7 +153,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
             parser.error(f"Access to path {args.watch} is not allowed")
         args.watch = str(resolved_path)
         
-    if args.output:
+    if hasattr(args, 'output') and args.output:
         out_dir = Path(args.output)
         if out_dir.exists() and not out_dir.is_dir():
             parser.error(f"--output {args.output} is not a directory")
@@ -164,7 +166,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
             parser.error(f"Access to path {args.output} is not allowed")
         args.output = str(resolved_path)
         
-    if args.config:
+    if hasattr(args, 'config') and args.config:
         cfg_path = Path(args.config)
         if not cfg_path.is_file():
             parser.error(f"Config file {args.config} not found")
@@ -287,6 +289,7 @@ def _watch_for_changes(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="TestGen Copilot CLI")
     parser.add_argument("--log-level", default="info", help="Logging level")
+    parser.add_argument("--log-format", choices=["structured", "json"], default="structured", help="Log output format")
     sub = parser.add_subparsers(dest="command", required=True)
 
     gen = sub.add_parser("generate", help="Generate tests for files")
@@ -308,6 +311,10 @@ def _build_parser() -> argparse.ArgumentParser:
     gen.add_argument("--watch", help="Watch directory for changes")
     gen.add_argument("--auto-generate", action="store_true", help="Generate automatically when watching")
     gen.add_argument("--poll", type=float, default=1.0, help="Polling interval for watch mode")
+    gen.add_argument("--profile", action="store_true", help="Enable performance profiling during generation")
+    gen.add_argument("--profile-output", help="Save profiling report to specified file")
+    gen.add_argument("--progress", action="store_true", help="Show progress bar for batch operations")
+    gen.add_argument("--no-progress", action="store_true", help="Disable progress output (default for small batches)")
 
     analyze = sub.add_parser("analyze", help="Analyze coverage and quality")
     analyze.add_argument("--project", required=True, help="Project directory to analyze")
@@ -315,6 +322,7 @@ def _build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--quality-target", type=float, help="Quality threshold")
     analyze.add_argument("--tests-dir", default="tests", help="Location of tests relative to project")
     analyze.add_argument("--show-missing", action="store_true", help="List uncovered functions")
+    analyze.add_argument("--show-missing-fixtures", action="store_true", help="List tests with missing fixture opportunities")
 
     scaffold = sub.add_parser("scaffold", help="Create VS Code extension scaffold")
     scaffold.add_argument("directory", help="Destination directory")
@@ -405,9 +413,55 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
         out_dir = Path(args.output)
         pattern = _language_pattern(config.language)
         files = [p for p in project.rglob(pattern) if out_dir not in p.parents]
-        for f in files:
-            logger.info("Generating tests for %s", f)
-            generator.generate_tests(f, out_dir)
+        
+        # Show batch information
+        if len(files) > 10:
+            estimated_time = estimate_batch_time(len(files))
+            logger.info(f"Processing {len(files)} files (estimated time: {estimated_time})")
+        
+        # Determine if progress should be shown
+        show_progress = args.progress or (len(files) > 5 and not args.no_progress)
+        
+        # Use profiler if --profile flag is enabled
+        if args.profile:
+            logger.info("Profiling enabled for batch generation of %d files", len(files))
+            profiler = GeneratorProfiler(enable_cprofile=True)
+            profiler.profile_file_batch(files, generator, out_dir)
+            
+            # Generate and display report
+            logger.info("Performance profiling completed")
+            report = profiler.generate_report()
+            print("\n" + "="*60)
+            print("PERFORMANCE PROFILE REPORT")
+            print("="*60)
+            print(report)
+            
+            # Save report if output path specified
+            if args.profile_output:
+                report_path = Path(args.profile_output)
+                profiler.generate_report(report_path)
+                logger.info("Profile report saved to %s", report_path)
+        else:
+            # Standard batch processing with optional progress reporting
+            with progress_context(len(files), "Generating Tests", show_progress) as progress:
+                for f in files:
+                    try:
+                        if progress:
+                            progress.update(current_item=str(f.name))
+                        
+                        logger.info("Generating tests for %s", f)
+                        generator.generate_tests(f, out_dir)
+                        
+                    except Exception as e:
+                        if progress:
+                            progress.update(current_item=str(f.name), failed=True)
+                        logger.error("Failed to generate tests", {
+                            "file": str(f),
+                            "error": str(e),
+                            "error_type": type(e).__name__
+                        })
+                        # Continue processing other files
+        
         output_path = out_dir
     else:
         logger.info("Generating tests for %s", args.file)
@@ -501,6 +555,31 @@ def _analyze(args: argparse.Namespace) -> None:
             raise SystemExit(1)
         logger.info("Quality target satisfied")
         print("Quality target satisfied")
+    
+    # Show missing fixtures if requested
+    if args.show_missing_fixtures:
+        tests_dir = Path(args.tests_dir)
+        if not tests_dir.is_absolute():
+            tests_dir = Path(args.project) / tests_dir
+        
+        scorer = TestQualityScorer()
+        detailed_metrics = scorer.get_detailed_quality_metrics(tests_dir)
+        
+        if detailed_metrics['missing_fixtures']:
+            print("\n🔧 Missing Fixture Opportunities:")
+            print("-" * 35)
+            
+            for missing in detailed_metrics['missing_fixtures']:
+                print(f"• {missing['fixture']}: {missing['reason']}")
+                if missing['patterns_found']:
+                    patterns = ', '.join(missing['patterns_found'])
+                    print(f"  Patterns found: {patterns}")
+            
+            print(f"\nTotal missing fixture opportunities: {detailed_metrics['missing_fixtures_count']}")
+            logger.info(f"Found {detailed_metrics['missing_fixtures_count']} missing fixture opportunities")
+        else:
+            print("✅ No missing fixture opportunities found")
+            logger.info("No missing fixture opportunities found")
 
 
 def _scaffold(args: argparse.Namespace) -> None:
@@ -520,10 +599,10 @@ def main(argv: list[str] | None = None) -> None:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    # Configure structured logging
+    # Configure structured logging with specified format
     configure_logging(
         level=args.log_level.upper(),
-        format_type="structured",
+        format_type=args.log_format,
         enable_console=True
     )
     
