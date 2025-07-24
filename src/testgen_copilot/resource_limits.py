@@ -111,6 +111,8 @@ class CrossPlatformTimeoutHandler:
             signal.alarm(self.timeout_seconds)
         else:
             # Use thread-based timeout (Windows and other platforms)
+            # Note: This approach is limited - it can only check for timeout
+            # at specific points, not interrupt arbitrary operations
             def timeout_callback():
                 self.timed_out = True
             
@@ -560,6 +562,15 @@ class BatchProcessor:
         return processed_files
 
 
+def _parse_ast_worker(content: str, filename: str, result_queue) -> None:
+    """Worker function for multiprocessing AST parsing."""
+    try:
+        tree = ast.parse(content, filename=filename)
+        result_queue.put(("success", tree))
+    except Exception as e:
+        result_queue.put(("error", e))
+
+
 def safe_parse_ast_with_timeout(
     content: str, 
     filename: str, 
@@ -575,21 +586,73 @@ def safe_parse_ast_with_timeout(
     })
     
     try:
-        # Use cross-platform timeout handler for all platforms
-        with CrossPlatformTimeoutHandler(timeout_seconds):
-            start_time = time.time()
-            tree = ast.parse(content, filename=filename)
-            parse_time = time.time() - start_time
-            
-            logger.debug("AST parsing completed successfully", {
-                "filename": filename,
-                "parse_time_ms": round(parse_time * 1000, 2),
-                "ast_node_count": len(list(ast.walk(tree))),
+        # Use signal-based timeout on Unix platforms
+        if hasattr(signal, 'SIGALRM'):
+            with CrossPlatformTimeoutHandler(timeout_seconds):
+                start_time = time.time()
+                tree = ast.parse(content, filename=filename)
+                parse_time = time.time() - start_time
+                
+                logger.debug("AST parsing completed successfully", {
+                    "filename": filename,
+                    "parse_time_ms": round(parse_time * 1000, 2),
+                    "ast_node_count": len(list(ast.walk(tree))),
                 "platform": sys.platform,
-                "timeout_method": "signal" if hasattr(signal, 'SIGALRM') else "threading"
+                "timeout_method": "signal"
             })
             
             return tree
+        else:
+            # Use multiprocessing-based timeout on Windows and other platforms
+            import multiprocessing
+            
+            start_time = time.time()
+            result_queue = multiprocessing.Queue()
+            process = multiprocessing.Process(
+                target=_parse_ast_worker, 
+                args=(content, filename, result_queue)
+            )
+            
+            process.start()
+            process.join(timeout=timeout_seconds)
+            
+            if process.is_alive():
+                # Process timed out
+                process.terminate()
+                process.join(timeout=1.0)
+                if process.is_alive():
+                    process.kill()
+                    process.join()
+                
+                unit = "second" if timeout_seconds == 1 else "seconds"
+                logger.error("AST parsing timed out", {
+                    "filename": filename,
+                    "timeout_seconds": timeout_seconds,
+                    "content_length": len(content),
+                    "error_type": "parse_timeout",
+                    "platform": sys.platform,
+                    "timeout_method": "multiprocessing"
+                })
+                raise TimeoutError(f"AST parsing timed out after {timeout_seconds} {unit}")
+            
+            # Get result from queue
+            if not result_queue.empty():
+                result_type, result = result_queue.get()
+                if result_type == "success":
+                    parse_time = time.time() - start_time
+                    logger.debug("AST parsing completed successfully", {
+                        "filename": filename,
+                        "parse_time_ms": round(parse_time * 1000, 2),
+                        "ast_node_count": len(list(ast.walk(result))),
+                        "platform": sys.platform,
+                        "timeout_method": "multiprocessing"
+                    })
+                    return result
+                elif result_type == "error":
+                    raise result
+            else:
+                # Process completed but no result - likely an error
+                raise RuntimeError(f"AST parsing process completed without result for {filename}")
             
     except TimeoutError as e:
         logger.error("AST parsing timed out", {
