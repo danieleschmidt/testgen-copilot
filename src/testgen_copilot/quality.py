@@ -9,6 +9,7 @@ from pathlib import Path
 from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .logging_config import get_quality_logger
 from .ast_utils import safe_parse_ast, ASTParsingError
+from .cache import cached_operation, analysis_cache
 
 
 class TestQualityScorer:
@@ -45,6 +46,8 @@ class TestQualityScorer:
                     result = safe_parse_ast(path, raise_on_syntax_error=False)
                     if result is None:
                         # safe_parse_ast already logged the syntax error
+                        continue
+                    
                     try:
                         content = safe_read_file(path)
                     except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
@@ -109,6 +112,8 @@ class TestQualityScorer:
                     result = safe_parse_ast(path, raise_on_syntax_error=False)
                     if result is None:
                         # safe_parse_ast already logged the syntax error
+                        continue
+                    
                     try:
                         content = safe_read_file(path)
                     except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
