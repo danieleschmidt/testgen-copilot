@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
+from .cache import cached_operation, analysis_cache
 from .logging_config import get_coverage_logger
 from .resource_limits import ResourceMonitor, ResourceLimits
 from .ast_utils import safe_parse_ast, ASTParsingError
+from .streaming import FileStreamProcessor, StreamingProgress, create_progress_reporter
 
 @dataclass
 class CoverageResult:
@@ -254,19 +256,17 @@ class CoverageAnalyzer:
             return set()
 
     @staticmethod
+    @cached_operation("functions_in_file", analysis_cache)
     def _functions_in_file(path: Path) -> list[str]:
         """Return all function and method names defined in ``path``."""
         logger = get_coverage_logger()
         
         try:
             tree, content = safe_parse_ast(path)
-            content = safe_read_file(path)
         except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-            # Errors are already logged by safe_read_file with structured context
+            # Errors are already logged by safe_parse_ast with structured context
             raise
         
-        try:
-            tree = safe_parse_ast(content, path)
         except ASTParsingError as e:
             logger.error("Cannot parse source file", {
                 "file_path": str(path),
@@ -419,3 +419,108 @@ class CoverageAnalyzer:
         })
         
         return results
+
+
+class StreamingCoverageAnalyzer:
+    """Streaming coverage analyzer for processing large projects efficiently."""
+    
+    def __init__(self, batch_size: int = 25, show_progress: bool = True):
+        self.batch_size = batch_size
+        self.show_progress = show_progress
+        self.logger = get_coverage_logger()
+        
+        # Create progress reporter if requested
+        if show_progress:
+            self.progress_callback = create_progress_reporter(interval_seconds=1.0)
+        else:
+            self.progress_callback = None
+        
+        self.stream_processor = FileStreamProcessor(
+            batch_size=batch_size,
+            progress_callback=self.progress_callback
+        )
+    
+    def analyze_project(
+        self, 
+        source_files: List[Path], 
+        tests_dir: Path,
+        target_coverage: float = 80.0
+    ) -> List[CoverageResult]:
+        """Analyze coverage for multiple source files using streaming.
+        
+        Args:
+            source_files: List of source files to analyze
+            tests_dir: Directory containing test files
+            target_coverage: Target coverage percentage
+            
+        Returns:
+            List of CoverageResult objects
+        """
+        self.logger.info("Starting streaming coverage analysis", {
+            "source_files_count": len(source_files),
+            "tests_dir": str(tests_dir),
+            "target_coverage": target_coverage,
+            "batch_size": self.batch_size
+        })
+        
+        def analyze_single_coverage(source_path: Path) -> Optional[CoverageResult]:
+            """Analyze coverage for a single source file."""
+            try:
+                analyzer = CoverageAnalyzer()
+                coverage_percent = analyzer.analyze(source_path, tests_dir)
+                
+                # Get uncovered functions if coverage is below target
+                uncovered_functions = set()
+                if coverage_percent < target_coverage:
+                    uncovered_functions = analyzer.uncovered_functions(source_path, tests_dir)
+                
+                return CoverageResult(
+                    source_file=source_path,
+                    tests_dir=tests_dir,
+                    coverage_percentage=coverage_percent,
+                    target_coverage=target_coverage,
+                    uncovered_functions=uncovered_functions
+                )
+                
+            except Exception as e:
+                self.logger.error("Failed to analyze coverage", {
+                    "source_file": str(source_path),
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
+                })
+                return None
+        
+        # Process files in batches
+        all_results = []
+        total_files = len(source_files)
+        processed_files = 0
+        
+        for batch_result in self.stream_processor.process_files(source_files, analyze_single_coverage):
+            # Collect non-None results
+            batch_coverage_results = [result for result in batch_result.results if result is not None]
+            all_results.extend(batch_coverage_results)
+            
+            processed_files += len(batch_result.items)
+            
+            # Log batch summary
+            self.logger.debug("Coverage analysis batch completed", {
+                "batch_id": batch_result.batch_id,
+                "files_in_batch": len(batch_result.items),
+                "successful_analyses": len(batch_coverage_results),
+                "errors": batch_result.error_count,
+                "progress": f"{processed_files}/{total_files}"
+            })
+        
+        # Calculate summary statistics
+        if all_results:
+            total_coverage = sum(r.coverage_percentage for r in all_results) / len(all_results)
+            files_below_target = sum(1 for r in all_results if r.coverage_percentage < target_coverage)
+            
+            self.logger.info("Streaming coverage analysis completed", {
+                "total_files": len(all_results),
+                "average_coverage": round(total_coverage, 2),
+                "files_below_target": files_below_target,
+                "target_coverage": target_coverage
+            })
+        
+        return all_results

@@ -13,12 +13,23 @@ import time
 
 from .logging_config import get_generator_logger
 
-# Try to import psutil for better memory monitoring, fall back to resource module
+# Try to import psutil for better memory monitoring, fall back to platform-specific methods
 try:
     import psutil
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
+
+# Windows-specific memory monitoring
+try:
+    if sys.platform.startswith('win'):
+        import ctypes
+        from ctypes import wintypes
+        HAS_WINDOWS_API = True
+    else:
+        HAS_WINDOWS_API = False
+except ImportError:
+    HAS_WINDOWS_API = False
 
 
 # Configuration constants
@@ -28,14 +39,30 @@ MAX_MEMORY_MB = 512  # maximum memory usage in MB
 MIN_MEMORY_AVAILABLE_MB = 100  # minimum available memory required
 
 
-class TimeoutError(Exception):
-    """Raised when an operation exceeds its timeout."""
-    pass
+# Use built-in TimeoutError class from Python 3.3+
 
 
 class ResourceMemoryError(Exception):
     """Raised when memory usage exceeds limits."""
     pass
+
+
+class ResourceLimits:
+    """Configuration class for resource limits and thresholds."""
+    
+    def __init__(
+        self,
+        memory_threshold_percent: int = 80,
+        max_batch_size: int = MAX_PROJECT_FILES,
+        max_memory_mb: int = MAX_MEMORY_MB,
+        min_memory_available_mb: int = MIN_MEMORY_AVAILABLE_MB,
+        ast_parse_timeout: int = AST_PARSE_TIMEOUT
+    ):
+        self.memory_threshold_percent = memory_threshold_percent
+        self.max_batch_size = max_batch_size
+        self.max_memory_mb = max_memory_mb
+        self.min_memory_available_mb = min_memory_available_mb
+        self.ast_parse_timeout = ast_parse_timeout
 
 
 class TimeoutHandler:
@@ -77,7 +104,8 @@ class CrossPlatformTimeoutHandler:
         if self.use_signals:
             # Use signal-based timeout (Unix/Linux/macOS)
             def timeout_handler(signum, frame):
-                raise TimeoutError(f"Operation timed out after {self.timeout_seconds} seconds")
+                unit = "second" if self.timeout_seconds == 1 else "seconds"
+                raise TimeoutError(f"Operation timed out after {self.timeout_seconds} {unit}")
             
             self.old_handler = signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(self.timeout_seconds)
@@ -104,12 +132,14 @@ class CrossPlatformTimeoutHandler:
             
             # Check if we timed out during the operation
             if self.timed_out:
-                raise TimeoutError(f"Operation timed out after {self.timeout_seconds} seconds")
+                unit = "second" if self.timeout_seconds == 1 else "seconds"
+                raise TimeoutError(f"Operation timed out after {self.timeout_seconds} {unit}")
                 
     def check_timeout(self):
         """Check if timeout has occurred (for thread-based timeout only)."""
         if not self.use_signals and self.timed_out:
-            raise TimeoutError(f"Operation timed out after {self.timeout_seconds} seconds")
+            unit = "second" if self.timeout_seconds == 1 else "seconds"
+            raise TimeoutError(f"Operation timed out after {self.timeout_seconds} {unit}")
 
 
 class MemoryMonitor:
@@ -120,64 +150,299 @@ class MemoryMonitor:
         self.logger = get_generator_logger()
         
     def get_current_memory_mb(self) -> float:
-        """Get current memory usage in MB."""
+        """Get current memory usage in MB with cross-platform support."""
         try:
+            # First try psutil (most reliable across platforms)
             if HAS_PSUTIL:
                 process = psutil.Process()
                 memory_info = process.memory_info()
                 memory_mb = memory_info.rss / 1024 / 1024  # Convert bytes to MB
+                self.logger.debug("Memory usage retrieved via psutil", {
+                    "memory_mb": round(memory_mb, 2),
+                    "method": "psutil"
+                })
                 return round(memory_mb, 2)
-            else:
-                # Fall back to resource module (Unix-only)
-                if hasattr(resource, 'RUSAGE_SELF'):
-                    usage = resource.getrusage(resource.RUSAGE_SELF)
-                    # On Linux, ru_maxrss is in KB; on macOS, it's in bytes
-                    if sys.platform == 'darwin':
-                        memory_mb = usage.ru_maxrss / 1024 / 1024
-                    else:
-                        memory_mb = usage.ru_maxrss / 1024
-                    return round(memory_mb, 2)
+            
+            # Windows-specific fallback using Windows API
+            elif HAS_WINDOWS_API and sys.platform.startswith('win'):
+                return self._get_windows_memory_usage()
+            
+            # Unix/Linux fallback using resource module
+            elif hasattr(resource, 'RUSAGE_SELF'):
+                usage = resource.getrusage(resource.RUSAGE_SELF)
+                # On Linux, ru_maxrss is in KB; on macOS, it's in bytes
+                if sys.platform == 'darwin':
+                    memory_mb = usage.ru_maxrss / 1024 / 1024
                 else:
-                    return 0.0  # Unable to get memory info on this platform
+                    memory_mb = usage.ru_maxrss / 1024
+                
+                self.logger.debug("Memory usage retrieved via resource module", {
+                    "memory_mb": round(memory_mb, 2),
+                    "method": "resource_module",
+                    "platform": sys.platform
+                })
+                return round(memory_mb, 2)
+            
+            else:
+                self.logger.warning("No memory monitoring method available for this platform", {
+                    "platform": sys.platform,
+                    "has_psutil": HAS_PSUTIL,
+                    "has_windows_api": HAS_WINDOWS_API
+                })
+                return 0.0  # Unable to get memory info on this platform
+                
         except Exception as e:
             self.logger.warning("Failed to get memory usage", {
                 "error_type": type(e).__name__,
                 "error_message": str(e),
-                "has_psutil": HAS_PSUTIL
+                "has_psutil": HAS_PSUTIL,
+                "platform": sys.platform
+            })
+            return 0.0
+    
+    def _get_windows_memory_usage(self) -> float:
+        """Get current memory usage on Windows using Windows API."""
+        try:
+            # Define Windows API structures and functions
+            class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+                _fields_ = [
+                    ("cb", wintypes.DWORD),
+                    ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", ctypes.c_size_t),
+                    ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                    ("PagefileUsage", ctypes.c_size_t),
+                    ("PeakPagefileUsage", ctypes.c_size_t),
+                ]
+            
+            # Get handle to current process
+            kernel32 = ctypes.windll.kernel32
+            psapi = ctypes.windll.psapi
+            
+            current_process = kernel32.GetCurrentProcess()
+            process_memory = PROCESS_MEMORY_COUNTERS()
+            process_memory.cb = ctypes.sizeof(PROCESS_MEMORY_COUNTERS)
+            
+            # Get memory information
+            if psapi.GetProcessMemoryInfo(current_process, ctypes.byref(process_memory), process_memory.cb):
+                memory_mb = process_memory.WorkingSetSize / 1024 / 1024
+                self.logger.debug("Memory usage retrieved via Windows API", {
+                    "memory_mb": round(memory_mb, 2),
+                    "method": "windows_api"
+                })
+                return round(memory_mb, 2)
+            else:
+                self.logger.warning("Windows API call failed to get process memory info")
+                return 0.0
+                
+        except Exception as e:
+            self.logger.warning("Failed to get Windows memory usage", {
+                "error_type": type(e).__name__,
+                "error_message": str(e)
             })
             return 0.0
     
     def get_available_memory_mb(self) -> float:
-        """Get available system memory in MB."""
+        """Get available system memory in MB with cross-platform support."""
         try:
+            # First try psutil (most reliable across platforms)
             if HAS_PSUTIL:
                 memory = psutil.virtual_memory()
                 available_mb = memory.available / 1024 / 1024
+                self.logger.debug("Available memory retrieved via psutil", {
+                    "available_mb": round(available_mb, 2),
+                    "method": "psutil"
+                })
                 return round(available_mb, 2)
+            
+            # Windows-specific fallback using Windows API
+            elif HAS_WINDOWS_API and sys.platform.startswith('win'):
+                return self._get_windows_available_memory()
+            
+            # Linux fallback using /proc/meminfo
+            elif os.path.exists('/proc/meminfo'):
+                return self._get_linux_available_memory()
+            
+            # macOS fallback using vm_stat
+            elif sys.platform == 'darwin':
+                return self._get_macos_available_memory()
+            
             else:
-                # Fall back to reading /proc/meminfo on Linux
-                if os.path.exists('/proc/meminfo'):
-                    with open('/proc/meminfo', 'r') as f:
-                        for line in f:
-                            if line.startswith('MemAvailable:'):
-                                available_kb = int(line.split()[1])
-                                return round(available_kb / 1024, 2)
-                    # If MemAvailable not found, try MemFree
-                    with open('/proc/meminfo', 'r') as f:
-                        for line in f:
-                            if line.startswith('MemFree:'):
-                                free_kb = int(line.split()[1])
-                                return round(free_kb / 1024, 2)
+                self.logger.warning("No available memory monitoring method for this platform", {
+                    "platform": sys.platform,
+                    "has_psutil": HAS_PSUTIL,
+                    "has_windows_api": HAS_WINDOWS_API
+                })
+                return 1000.0  # Conservative fallback
                 
-                # Conservative fallback
-                return 1000.0
         except Exception as e:
             self.logger.warning("Failed to get available memory", {
                 "error_type": type(e).__name__,
                 "error_message": str(e),
-                "has_psutil": HAS_PSUTIL
+                "has_psutil": HAS_PSUTIL,
+                "platform": sys.platform
             })
             return 1000.0  # Conservative fallback
+    
+    def _get_windows_available_memory(self) -> float:
+        """Get available memory on Windows using Windows API."""
+        try:
+            class MEMORYSTATUSEX(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", wintypes.DWORD),
+                    ("dwMemoryLoad", wintypes.DWORD),
+                    ("ullTotalPhys", ctypes.c_uint64),
+                    ("ullAvailPhys", ctypes.c_uint64),
+                    ("ullTotalPageFile", ctypes.c_uint64),
+                    ("ullAvailPageFile", ctypes.c_uint64),
+                    ("ullTotalVirtual", ctypes.c_uint64),
+                    ("ullAvailVirtual", ctypes.c_uint64),
+                    ("ullAvailExtendedVirtual", ctypes.c_uint64),
+                ]
+            
+            kernel32 = ctypes.windll.kernel32
+            memory_status = MEMORYSTATUSEX()
+            memory_status.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+            
+            if kernel32.GlobalMemoryStatusEx(ctypes.byref(memory_status)):
+                available_mb = memory_status.ullAvailPhys / 1024 / 1024
+                self.logger.debug("Available memory retrieved via Windows API", {
+                    "available_mb": round(available_mb, 2),
+                    "method": "windows_api"
+                })
+                return round(available_mb, 2)
+            else:
+                self.logger.warning("Windows API call failed to get memory status")
+                return 1000.0
+                
+        except Exception as e:
+            self.logger.warning("Failed to get Windows available memory", {
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
+            return 1000.0
+    
+    def _get_linux_available_memory(self) -> float:
+        """Get available memory on Linux using /proc/meminfo."""
+        try:
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    if line.startswith('MemAvailable:'):
+                        available_kb = int(line.split()[1])
+                        available_mb = available_kb / 1024
+                        self.logger.debug("Available memory retrieved via /proc/meminfo", {
+                            "available_mb": round(available_mb, 2),
+                            "method": "proc_meminfo"
+                        })
+                        return round(available_mb, 2)
+                
+                # If MemAvailable not found, try MemFree (older kernels)
+                f.seek(0)
+                for line in f:
+                    if line.startswith('MemFree:'):
+                        free_kb = int(line.split()[1])
+                        free_mb = free_kb / 1024
+                        self.logger.debug("Free memory retrieved via /proc/meminfo (fallback)", {
+                            "available_mb": round(free_mb, 2),
+                            "method": "proc_meminfo_free"
+                        })
+                        return round(free_mb, 2)
+                        
+            return 1000.0  # Fallback if parsing fails
+            
+        except Exception as e:
+            self.logger.warning("Failed to get Linux available memory", {
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
+            return 1000.0
+    
+    def _get_macos_available_memory(self) -> float:
+        """Get available memory on macOS using vm_stat."""
+        try:
+            import subprocess
+            
+            # Run vm_stat command
+            result = subprocess.run(['vm_stat'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                lines = result.stdout.strip().split('\n')
+                page_size = 4096  # Default page size on macOS
+                free_pages = 0
+                
+                for line in lines:
+                    if 'page size of' in line:
+                        # Extract page size if specified
+                        try:
+                            page_size = int(line.split()[-2])
+                        except (ValueError, IndexError):
+                            pass
+                    elif line.startswith('Pages free:'):
+                        try:
+                            free_pages = int(line.split()[-1].rstrip('.'))
+                        except (ValueError, IndexError):
+                            pass
+                
+                if free_pages > 0:
+                    available_mb = (free_pages * page_size) / 1024 / 1024
+                    self.logger.debug("Available memory retrieved via vm_stat", {
+                        "available_mb": round(available_mb, 2),
+                        "method": "vm_stat",
+                        "free_pages": free_pages,
+                        "page_size": page_size
+                    })
+                    return round(available_mb, 2)
+            
+            return 1000.0  # Fallback
+            
+        except Exception as e:
+            self.logger.warning("Failed to get macOS available memory", {
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
+            return 1000.0
+    
+    def get_current_usage_percent(self) -> Optional[float]:
+        """Get current memory usage as percentage of available system memory."""
+        try:
+            if HAS_PSUTIL:
+                # Use psutil for most accurate percentage calculation
+                memory = psutil.virtual_memory()
+                percent = memory.percent
+                self.logger.debug("Memory usage percentage retrieved via psutil", {
+                    "usage_percent": percent,
+                    "method": "psutil"
+                })
+                return percent
+            else:
+                # Calculate manually using our cross-platform methods
+                current_mb = self.get_current_memory_mb()
+                available_mb = self.get_available_memory_mb()
+                
+                if current_mb > 0 and available_mb > 0:
+                    # Estimate total memory (this is approximate)
+                    total_mb = available_mb + current_mb
+                    percent = (current_mb / total_mb) * 100
+                    
+                    self.logger.debug("Memory usage percentage calculated manually", {
+                        "usage_percent": round(percent, 2),
+                        "current_mb": current_mb,
+                        "total_mb": total_mb,
+                        "method": "manual_calculation"
+                    })
+                    return round(percent, 2)
+                else:
+                    self.logger.warning("Cannot calculate memory percentage - insufficient data")
+                    return None
+                    
+        except Exception as e:
+            self.logger.warning("Failed to get memory usage percentage", {
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
+            return None
     
     def is_memory_exceeded(self) -> bool:
         """Check if current memory usage exceeds limits."""
@@ -310,33 +575,18 @@ def safe_parse_ast_with_timeout(
     })
     
     try:
-        # Only use timeout on Unix-like systems (signal.SIGALRM not available on Windows)
-        if hasattr(signal, 'SIGALRM'):
-            with TimeoutHandler(timeout_seconds):
-                start_time = time.time()
-                tree = ast.parse(content, filename=filename)
-                parse_time = time.time() - start_time
-                
-                logger.debug("AST parsing completed successfully", {
-                    "filename": filename,
-                    "parse_time_ms": round(parse_time * 1000, 2),
-                    "ast_node_count": len(list(ast.walk(tree)))
-                })
-                
-                return tree
-        else:
-            # Fallback for Windows - no timeout protection
-            logger.debug("Timeout protection not available on this platform", {
-                "platform": sys.platform,
-                "filename": filename
-            })
+        # Use cross-platform timeout handler for all platforms
+        with CrossPlatformTimeoutHandler(timeout_seconds):
             start_time = time.time()
             tree = ast.parse(content, filename=filename)
             parse_time = time.time() - start_time
             
-            logger.debug("AST parsing completed (no timeout)", {
+            logger.debug("AST parsing completed successfully", {
                 "filename": filename,
-                "parse_time_ms": round(parse_time * 1000, 2)
+                "parse_time_ms": round(parse_time * 1000, 2),
+                "ast_node_count": len(list(ast.walk(tree))),
+                "platform": sys.platform,
+                "timeout_method": "signal" if hasattr(signal, 'SIGALRM') else "threading"
             })
             
             return tree
@@ -443,3 +693,77 @@ def validate_test_content(content: str) -> bool:
             "validation_result": "validation_error"
         })
         return False
+
+
+class ResourceMonitor:
+    """Comprehensive resource monitoring and validation class."""
+    
+    def __init__(self, limits: Optional[ResourceLimits] = None):
+        self.limits = limits or ResourceLimits()
+        self.memory_monitor = MemoryMonitor()
+        self.batch_processor = BatchProcessor()
+        self.logger = get_generator_logger()
+    
+    def check_memory_usage(self) -> bool:
+        """Check if current memory usage is within limits."""
+        try:
+            # Use memory monitor to check against thresholds
+            current_usage = self.memory_monitor.get_current_usage_percent()
+            
+            if current_usage is None:
+                # If we can't determine usage, assume it's okay but log warning
+                self.logger.warning("Could not determine memory usage, proceeding with caution")
+                return True
+            
+            # Check against our threshold
+            within_limits = current_usage < self.limits.memory_threshold_percent
+            
+            self.logger.debug("Memory usage check", {
+                "current_usage_percent": current_usage,
+                "threshold_percent": self.limits.memory_threshold_percent,
+                "within_limits": within_limits
+            })
+            
+            if not within_limits:
+                self.logger.warning("Memory usage exceeds threshold", {
+                    "current_usage_percent": current_usage,
+                    "threshold_percent": self.limits.memory_threshold_percent
+                })
+            
+            return within_limits
+            
+        except Exception as e:
+            self.logger.error("Error checking memory usage", {
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            })
+            # If we can't check, assume it's okay but proceed with caution
+            return True
+    
+    def validate_test_content(self, content: str, filename: str) -> bool:
+        """Validate generated test content for safety and correctness."""
+        self.logger.debug("Validating test content", {
+            "filename": filename,
+            "content_length": len(content)
+        })
+        
+        # Use the existing validate_test_content function
+        return validate_test_content(content)
+    
+    def validate_batch_size(self, batch_size: int) -> bool:
+        """Validate if batch size is within acceptable limits."""
+        within_limits = batch_size <= self.limits.max_batch_size
+        
+        self.logger.debug("Batch size validation", {
+            "batch_size": batch_size,
+            "max_batch_size": self.limits.max_batch_size,
+            "within_limits": within_limits
+        })
+        
+        if not within_limits:
+            self.logger.warning("Batch size exceeds maximum limit", {
+                "batch_size": batch_size,
+                "max_batch_size": self.limits.max_batch_size
+            })
+        
+        return within_limits

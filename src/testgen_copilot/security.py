@@ -8,7 +8,8 @@ from typing import List
 
 from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .logging_config import get_security_logger
-from .ast_utils import safe_parse_ast, ASTParsingError
+from .ast_utils import ASTParsingError
+from .security_rules import SecurityRulesManager
 
 
 @dataclass
@@ -38,18 +39,33 @@ class SecurityReport:
 class SecurityScanner:
     """Simple static analyzer for insecure code patterns."""
 
-    _dangerous_calls = {
-        "eval": "Use of eval() can lead to code execution vulnerabilities",
-        "exec": "Use of exec() can lead to code execution vulnerabilities",
-        "os.system": "os.system() can be unsafe; prefer subprocess without shell=True",
-        "subprocess.call": "subprocess.call with shell=True can be unsafe",
-        "subprocess.Popen": "subprocess.Popen with shell=True can be unsafe",
-        "subprocess.run": "subprocess.run with shell=True can be unsafe",
-        "pickle.load": "Deserializing with pickle can be unsafe with untrusted data",
-        "pickle.loads": "Deserializing with pickle can be unsafe with untrusted data",
-        "yaml.load": "yaml.load is unsafe; use yaml.safe_load instead",
-        "tempfile.mktemp": "tempfile.mktemp is insecure; use NamedTemporaryFile",
-    }
+    def __init__(self, config_path: str = None):
+        """Initialize scanner with optional custom configuration path."""
+        self.rules_manager = SecurityRulesManager(config_path)
+        self._dangerous_calls = None
+        self._shell_required_patterns = None
+        self._dynamic_check_patterns = None
+    
+    @property
+    def dangerous_calls(self) -> dict:
+        """Get dangerous calls dictionary, loading rules if needed."""
+        if self._dangerous_calls is None:
+            self._dangerous_calls = self.rules_manager.get_dangerous_calls_dict()
+        return self._dangerous_calls
+    
+    @property
+    def shell_required_patterns(self) -> list:
+        """Get patterns that require shell=True checking."""
+        if self._shell_required_patterns is None:
+            self._shell_required_patterns = self.rules_manager.get_rules_requiring_shell()
+        return self._shell_required_patterns
+    
+    @property
+    def dynamic_check_patterns(self) -> list:
+        """Get patterns that need dynamic argument checking."""
+        if self._dynamic_check_patterns is None:
+            self._dynamic_check_patterns = self.rules_manager.get_rules_checking_dynamic_args()
+        return self._dynamic_check_patterns
 
     def scan_file(self, path: str | Path) -> SecurityReport:
         logger = get_security_logger()
@@ -79,15 +95,6 @@ class SecurityScanner:
                 logger.error(f"File I/O error during security scan: {file_path}: {e}")
                 return SecurityReport(file_path, [SecurityIssue(0, f"File I/O error: {e}")])
             
-            try:
-                tree = safe_parse_ast(content, file_path)
-            except ASTParsingError as e:
-                logger.warning("Skipping file due to parsing error", {
-                    "file_path": str(file_path),
-                    "error_message": str(e)
-                })
-                return SecurityReport(file_path, [SecurityIssue(e.line_number or 0, f"Syntax error: {e}")])
-            
             issues: List[SecurityIssue] = []
             
             try:
@@ -96,14 +103,20 @@ class SecurityScanner:
                         name = self._full_name(node.func)
                         if not name:
                             continue
-                        msg = self._dangerous_calls.get(name)
+                        msg = self.dangerous_calls.get(name)
                         if msg:
-                            if "subprocess" in name:
+                            # Check if this pattern requires shell=True
+                            if name in self.shell_required_patterns:
                                 if not self._has_shell_true(node):
                                     continue
                             issues.append(SecurityIssue(node.lineno, msg))
 
-                        if name == "os.system" or ("subprocess" in name and self._has_shell_true(node)):
+                        # Check for dynamic arguments in patterns that need it
+                        if name in self.dynamic_check_patterns:
+                            # For subprocess calls, also check if shell=True
+                            if "subprocess" in name and not self._has_shell_true(node):
+                                continue
+                            
                             if node.args and self._is_non_constant(node.args[0]):
                                 issues.append(
                                     SecurityIssue(node.lineno, "Possible shell injection with dynamic command")

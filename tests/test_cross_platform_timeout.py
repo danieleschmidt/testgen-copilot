@@ -13,7 +13,6 @@ sys.path.insert(0, 'src')
 
 from testgen_copilot.resource_limits import (
     CrossPlatformTimeoutHandler, 
-    TimeoutError,
     safe_parse_ast_with_timeout
 )
 
@@ -84,34 +83,29 @@ class TestCrossPlatformTimeout:
         except TimeoutError as e:
             error_msg = str(e)
             assert str(timeout_seconds) in error_msg, "Error should include timeout duration"
-            assert "timeout" in error_msg.lower(), "Error should mention timeout"
+            assert "timed out" in error_msg.lower(), "Error should mention timeout"
 
     def test_cross_platform_timeout_works_on_windows(self):
         """Test that timeout works even when signal.SIGALRM is not available."""
         # Mock signal module to simulate Windows environment
-        with patch('signal.SIGALRM', None):
-            with patch('hasattr') as mock_hasattr:
-                # Make hasattr(signal, 'SIGALRM') return False
-                def mock_hasattr_impl(obj, name):
-                    if name == 'SIGALRM':
-                        return False
-                    return hasattr(obj, name)
-                
-                mock_hasattr.side_effect = mock_hasattr_impl
-                
-                # Should still work with threading-based timeout
-                timeout_seconds = 1
-                start_time = time.time()
-                
-                try:
-                    with CrossPlatformTimeoutHandler(timeout_seconds):
-                        time.sleep(2)  # Operation longer than timeout
-                        assert False, "Should have raised TimeoutError"
-                except TimeoutError:
-                    end_time = time.time()
-                    actual_duration = end_time - start_time
-                    # Allow some tolerance for timing
-                    assert 0.8 <= actual_duration <= 1.5, f"Should timeout around {timeout_seconds}s even without signals"
+        with patch('testgen_copilot.resource_limits.signal') as mock_signal:
+            # Remove SIGALRM from the mock signal module to simulate Windows
+            mock_signal.SIGALRM = None
+            del mock_signal.SIGALRM
+            
+            # Should still work with threading-based timeout
+            timeout_seconds = 1
+            start_time = time.time()
+            
+            try:
+                with CrossPlatformTimeoutHandler(timeout_seconds):
+                    time.sleep(2)  # Operation longer than timeout
+                    assert False, "Should have raised TimeoutError"
+            except TimeoutError:
+                end_time = time.time()
+                actual_duration = end_time - start_time
+                # Allow some tolerance for timing
+                assert 0.8 <= actual_duration <= 1.5, f"Should timeout around {timeout_seconds}s even without signals"
 
     def test_cross_platform_timeout_threading_safety(self):
         """Test that timeout handler is thread-safe."""

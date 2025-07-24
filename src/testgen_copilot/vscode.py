@@ -19,11 +19,13 @@ def scaffold_extension(path: str | Path) -> Path:
 
     (dest / "src").mkdir(parents=True, exist_ok=True)
 
+    from .version import get_package_version
+    
     package_data = {
         "name": "testgen-copilot",
         "displayName": "TestGen Copilot",
         "publisher": "testgen",
-        "version": "0.0.1",
+        "version": get_package_version(),
         "engines": {"vscode": "^1.60.0"},
         "activationEvents": [
             "onCommand:testgen.generateTests",

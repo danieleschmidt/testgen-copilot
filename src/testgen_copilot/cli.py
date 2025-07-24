@@ -535,9 +535,11 @@ def main(argv: list[str] | None = None) -> None:
         "log_level": args.log_level,
         "arguments": vars(args)
     }):
+        from .version import get_package_version
+        
         logger.info("Starting TestGen Copilot CLI", {
             "command": args.command,
-            "version": "0.0.1",  # Could be extracted from package metadata
+            "version": get_package_version(),
             "log_level": args.log_level
         })
         
