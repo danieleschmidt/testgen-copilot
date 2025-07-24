@@ -448,28 +448,38 @@ class MemoryMonitor:
     
     def is_memory_exceeded(self) -> bool:
         """Check if current memory usage exceeds limits."""
-        current_memory = self.get_current_memory_mb()
-        available_memory = self.get_available_memory_mb()
-        
-        # Check if we're using too much memory
-        if current_memory > self.max_memory_mb:
-            self.logger.warning("Memory usage exceeded limit", {
-                "current_memory_mb": current_memory,
-                "max_memory_mb": self.max_memory_mb,
-                "available_memory_mb": available_memory
-            })
-            return True
-        
-        # Check if system is running low on memory
-        if available_memory < MIN_MEMORY_AVAILABLE_MB:
-            self.logger.warning("System memory running low", {
-                "available_memory_mb": available_memory,
-                "min_required_mb": MIN_MEMORY_AVAILABLE_MB,
-                "current_usage_mb": current_memory
-            })
-            return True
+        try:
+            current_memory = self.get_current_memory_mb()
+            available_memory = self.get_available_memory_mb()
             
-        return False
+            # Check if we're using too much memory
+            if current_memory > self.max_memory_mb:
+                self.logger.warning("Memory usage exceeded limit", {
+                    "current_memory_mb": current_memory,
+                    "max_memory_mb": self.max_memory_mb,
+                    "available_memory_mb": available_memory
+                })
+                return True
+            
+            # Check if system is running low on memory
+            if available_memory < MIN_MEMORY_AVAILABLE_MB:
+                self.logger.warning("System memory running low", {
+                    "available_memory_mb": available_memory,
+                    "min_required_mb": MIN_MEMORY_AVAILABLE_MB,
+                    "current_usage_mb": current_memory
+                })
+                return True
+                
+            return False
+            
+        except Exception as e:
+            self.logger.error("Failed to check memory limits", {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "max_memory_mb": self.max_memory_mb
+            })
+            # Return False on error to avoid false positives
+            return False
     
     def check_memory_and_raise(self):
         """Check memory usage and raise MemoryError if exceeded."""

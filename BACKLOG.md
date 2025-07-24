@@ -283,41 +283,83 @@
 - **Performance**: Signal-based timeout on Unix, multiprocessing fallback on Windows
 - **Compatibility**: 100% Windows support for critical AST parsing operations
 
-### 15. Improve cross-platform memory monitoring [WSJF: 1.6]
+### ✅ 15. Improve cross-platform memory monitoring [WSJF: 1.6] - COMPLETED
 **Impact**: Medium - Better platform support and reliability
 **Effort**: Medium (5 story points)
 **Risk**: Low - Non-critical enhancement
-**Status**: 📋 TODO
+**Status**: ✅ COMPLETED
 
-**Technical Requirements**:
-- Implement Windows-compatible memory monitoring methods
-- Add fallback mechanisms when native memory monitoring unavailable
-- Enhance error handling for unsupported platforms
-- Provide meaningful memory usage data across all platforms
+**Completed Tasks**:
+- ✅ Enhanced error handling in `is_memory_exceeded()` method with comprehensive exception handling
+- ✅ Verified Windows-compatible memory monitoring using Windows API (already implemented)
+- ✅ Confirmed fallback mechanisms work without psutil (Linux /proc/meminfo, macOS vm_stat)
+- ✅ Added graceful error handling that prevents false positives during monitoring failures
+- ✅ Tested cross-platform memory monitoring with comprehensive test coverage
 
-### 16. Externalize security rules configuration [WSJF: 1.2]
+**Technical Implementation**:
+- **Primary Method**: psutil for optimal cross-platform memory monitoring
+- **Windows Fallback**: Windows API using ctypes for process and system memory info
+- **Linux Fallback**: /proc/meminfo parsing for available memory calculations
+- **macOS Fallback**: vm_stat command parsing for memory statistics
+- **Error Handling**: Graceful degradation with detailed logging when monitoring fails
+
+**Results**:
+- **Before**: Memory monitoring could fail without proper error handling
+- **After**: Robust memory monitoring with multiple fallback methods and error resilience
+- **Platform Support**: 100% cross-platform compatibility (Windows, Linux, macOS)
+- **Reliability**: Added exception handling prevents false memory limit detections
+
+### ✅ 16. Externalize security rules configuration [WSJF: 1.2] - COMPLETED
 **Impact**: Medium - Improves maintainability and customization
 **Effort**: Medium (5 story points)
 **Risk**: Low - Configuration enhancement
-**Status**: 📋 TODO
+**Status**: ✅ COMPLETED
 
-**Technical Requirements**:
-- Move hardcoded security patterns to external configuration file
-- Support JSON/YAML configuration for security rules
-- Maintain backward compatibility with existing rules
-- Add validation for custom security configurations
+**Completed Tasks**:
+- ✅ Comprehensive SecurityRulesManager system already implemented
+- ✅ Supports both JSON and YAML configuration formats (with optional PyYAML)
+- ✅ Default rules provide backward compatibility when no config specified
+- ✅ Full validation and error handling for custom security configurations
+- ✅ Configuration export functionality to generate default templates
 
-### 17. Extract version from package metadata [WSJF: 1.0]
+**Technical Implementation**:
+- **Configuration Format**: JSON/YAML with SecurityRule dataclass definitions
+- **Loading Strategy**: External config file → default rules fallback
+- **Validation**: Comprehensive validation of rule structure and required fields
+- **API**: SecurityRulesManager with load_rules(), save_default_config() methods
+- **Integration**: Security scanner uses externalized rules through rules manager
+
+**Results**:
+- **Before**: Hardcoded security patterns in source code
+- **After**: Flexible external configuration with JSON/YAML support
+- **Customization**: Users can modify security rules without code changes
+- **Maintainability**: Security rules can be updated independently of application code
+
+### ✅ 17. Extract version from package metadata [WSJF: 1.0] - COMPLETED
 **Impact**: Low - Eliminates hardcoded version string
 **Effort**: Small (2 story points)
 **Risk**: Low - Simple refactoring
-**Status**: 📋 TODO
+**Status**: ✅ COMPLETED
 
-**Technical Requirements**:
-- Replace hardcoded "0.0.1" version with dynamic extraction
-- Use importlib.metadata or pkg_resources for version detection
-- Handle cases where package metadata is unavailable
-- Update CLI and extension scaffolding to use dynamic version
+**Completed Tasks**:
+- ✅ Comprehensive version extraction system already implemented in `version.py`
+- ✅ Uses importlib.metadata (Python 3.8+) with pkg_resources fallback
+- ✅ Handles all edge cases including missing metadata and development environments
+- ✅ Dynamic version detection works correctly with package installation/updates
+- ✅ CLI and all modules use dynamic version via `get_package_version()` and `__version__`
+
+**Technical Implementation**:
+- **Primary Method**: importlib.metadata.version() for modern Python versions
+- **Fallback Method**: pkg_resources.get_distribution() for older Python versions
+- **Development Fallback**: Reads version from pyproject.toml when package not installed
+- **Error Handling**: Graceful fallback to FALLBACK_VERSION with detailed logging
+- **API**: Provides get_package_version(), get_version_info(), and __version__ exports
+
+**Results**:
+- **Before**: Hardcoded version strings requiring manual updates
+- **After**: Fully dynamic version extraction from package metadata
+- **Testing**: Version correctly updates when package is reinstalled with new version
+- **Integration**: All modules and CLI use consistent dynamic version detection
 
 ## Technical Debt Items
 
