@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-from .file_utils import safe_read_file, FileSizeError
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .logging_config import get_security_logger
 from .ast_utils import safe_parse_ast, ASTParsingError
 
@@ -56,9 +56,13 @@ class SecurityScanner:
         file_path = Path(path)
         
         try:
-            # Use safe file reading with comprehensive error handling
+            # Use safe_parse_ast for consolidated error handling
             try:
-                content = safe_read_file(file_path)
+                result = safe_parse_ast(file_path, raise_on_syntax_error=False)
+                if result is None:
+                    # Syntax error occurred - safe_parse_ast already logged it
+                    return SecurityReport(file_path, [SecurityIssue(0, "Syntax error in file")])
+                tree, content = result
             except FileNotFoundError as e:
                 logger.warning(f"File not found for security scan: {file_path}")
                 return SecurityReport(file_path, [SecurityIssue(0, "File not found")])

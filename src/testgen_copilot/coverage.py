@@ -10,11 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
-from .file_utils import safe_read_file, FileSizeError
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .logging_config import get_coverage_logger
 from .resource_limits import ResourceMonitor, ResourceLimits
 from .ast_utils import safe_parse_ast, ASTParsingError
-
 
 @dataclass
 class CoverageResult:
@@ -260,6 +259,7 @@ class CoverageAnalyzer:
         logger = get_coverage_logger()
         
         try:
+            tree, content = safe_parse_ast(path)
             content = safe_read_file(path)
         except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
             # Errors are already logged by safe_read_file with structured context
@@ -300,6 +300,7 @@ class CoverageAnalyzer:
         
         for test_file in test_files:
             try:
+                result = safe_parse_ast(test_file, raise_on_syntax_error=False)
                 try:
                     content = test_file.read_text()
                 except (OSError, PermissionError) as e:
@@ -317,6 +318,10 @@ class CoverageAnalyzer:
                         "error_message": str(e)
                     })
                     continue
+                tree, content = result
+            except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+                logger.warning(f"Cannot read test file {test_file}: {e}")
+                continue
                 
                 # Track aliases from ``from x import y as z`` so calls to ``z`` are
                 # associated with ``y`` when checking coverage.

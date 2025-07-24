@@ -6,7 +6,7 @@ import ast
 import logging
 from pathlib import Path
 
-from .file_utils import safe_read_file, FileSizeError
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .logging_config import get_quality_logger
 from .ast_utils import safe_parse_ast, ASTParsingError
 
@@ -42,6 +42,9 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
+                    result = safe_parse_ast(path, raise_on_syntax_error=False)
+                    if result is None:
+                        # safe_parse_ast already logged the syntax error
                     try:
                         content = safe_read_file(path)
                     except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
@@ -56,6 +59,7 @@ class TestQualityScorer:
                             "error_message": str(e)
                         })
                         continue
+                    tree, content = result
                     
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:
@@ -102,6 +106,9 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
+                    result = safe_parse_ast(path, raise_on_syntax_error=False)
+                    if result is None:
+                        # safe_parse_ast already logged the syntax error
                     try:
                         content = safe_read_file(path)
                     except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
@@ -116,6 +123,7 @@ class TestQualityScorer:
                             "error_message": str(e)
                         })
                         continue
+                    tree, content = result
                     
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:
@@ -308,9 +316,7 @@ class TestQualityScorer:
             
             for path in test_files:
                 try:
-                    content = safe_read_file(path)
-                    tree = safe_parse_ast(content, path)
-                    
+                    tree, content = safe_parse_ast(path)
                     test_functions = self._find_test_functions(tree)
                     for func_info in test_functions:
                         total_functions += 1

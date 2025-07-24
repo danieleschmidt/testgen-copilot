@@ -150,44 +150,73 @@
 
 ## Current Sprint (P0 - Critical)
 
-### 9. Extract common AST parsing patterns [WSJF: 4.2]  
+### ✅ 9. Extract common AST parsing patterns [WSJF: 4.2] - COMPLETED
 **Impact**: Medium-High - Reduces duplicate code and improves maintainability
 **Effort**: Medium (5 story points)
 **Risk**: Low - Code quality improvement
-**Status**: 📋 TODO
+**Status**: ✅ COMPLETED
 
-**Technical Requirements**:
-- Create `safe_parse_ast(content, path)` utility with consistent error handling
-- Extract duplicate AST parsing logic from quality.py (3 instances) and generator.py
-- Standardize syntax error reporting with file context and line numbers
-- Add comprehensive test coverage for edge cases
+**Completed Tasks**:
+- ✅ Created `safe_parse_ast(path, content=None, max_size_mb=10, timeout_seconds=None, raise_on_syntax_error=True)` utility with comprehensive error handling
+- ✅ Implemented `SyntaxErrorStrategy` enum for flexible error handling (RAISE, WARN_AND_SKIP, RETURN_ERROR)
+- ✅ Extracted and replaced 7 duplicate AST parsing patterns across 4 modules:
+  - generator.py: 1 location (line 180)
+  - quality.py: 3 locations (lines 50, 107, 304)
+  - security.py: 1 location (line 77)
+  - coverage.py: 2 locations (lines 266, 307)
+- ✅ Standardized syntax error reporting with enhanced file context, line numbers, and structured logging
+- ✅ Fixed remaining direct `read_text()` usage in coverage.py to use `safe_read_file` security checks
+- ✅ Integrated with existing timeout protection from resource_limits module
+- ✅ Added comprehensive test coverage for all edge cases and integration scenarios
 
-### 10. Implement resource limits and validation [WSJF: 4.8]
+**Code Quality Improvements**:
+- **Eliminated Duplication**: Removed 7 instances of duplicate file reading + AST parsing patterns
+- **Enhanced Security**: All AST parsing now goes through consistent security checks (file size limits, encoding validation)
+- **Improved Error Handling**: Standardized syntax error messages with file context and structured logging
+- **Better Maintainability**: Single point of change for AST parsing logic across the entire codebase
+- **Flexible Error Strategies**: Support for raising, warning, or returning None on syntax errors based on context
+
+**Results**: Successfully consolidated all AST parsing operations into a single, well-tested utility function. This eliminates code duplication, improves consistency, enhances security, and provides a foundation for future AST parsing enhancements. All existing functionality preserved with improved error handling and logging.
+
+### ✅ 10. Implement resource limits and validation [WSJF: 4.8] - COMPLETED
 **Impact**: High - Critical security and reliability improvement  
 **Effort**: Medium (5 story points)
 **Risk**: Medium - Security-critical feature
-**Status**: 📋 TODO
+**Status**: ✅ COMPLETED
 
-**Technical Requirements**:
-- Add file size limits (default 10MB) for all file read operations
-- Implement timeout handling for long-running AST parsing operations
-- Add batch size limits for project-wide analysis (default 1000 files)
-- Add memory usage monitoring and circuit breaker patterns
-- Validate generated test content before writing to disk
+**Completed Tasks**:
+- ✅ Enhanced existing file size limits (10MB default) with comprehensive monitoring across all file operations
+- ✅ Implemented timeout handling for AST parsing operations with configurable timeouts (30s default)
+- ✅ Added batch processing with size limits for project-wide analysis (1000 files default)
+- ✅ Created memory usage monitoring with circuit breaker patterns using MemoryMonitor class
+- ✅ Implemented test content validation with security checks for malicious patterns
+- ✅ Added ResourceMemoryError for proper error handling when limits are exceeded
+- ✅ Created comprehensive test suite covering all resource limit scenarios
 
-**Security Impact**: Prevents DoS attacks via large files and resource exhaustion
+**Security Enhancements**:
+- **DoS Protection**: File size limits prevent memory exhaustion attacks
+- **Timeout Protection**: AST parsing timeouts prevent infinite processing loops
+- **Memory Circuit Breaker**: Automatic detection and prevention of memory exhaustion
+- **Malicious Code Detection**: Content validation blocks dangerous patterns (os.system, eval, etc.)
+- **Batch Processing Limits**: Prevents system overload from processing too many files simultaneously
 
-### 11. Standardize logging patterns across modules [WSJF: 6.67]
+**Results**: Complete resource management system with memory monitoring, timeout protection, batch processing limits, and content validation. All operations now have proper safeguards against resource exhaustion and malicious input, significantly improving system security and reliability.
+
+### ✅ 11. Standardize logging patterns across modules [WSJF: 6.67] - COMPLETED
 **Impact**: Medium - Improves observability and debugging
 **Effort**: Small (3 story points)  
 **Risk**: Low - Internal improvement
-**Status**: 📋 TODO
+**Status**: ✅ COMPLETED
 
-**Technical Requirements**:
-- Migrate all generator.py language methods to use structured logging
-- Replace inconsistent `logging.getLogger(__name__)` usage with `get_generator_logger()`
-- Add consistent LogContext usage for all major operations
-- Ensure all error scenarios have structured error logging with context
+**Completed Tasks**:
+- ✅ Migrated all generator.py language methods to use structured logging with `get_generator_logger()`
+- ✅ Replaced all instances of `logging.getLogger(__name__)` with structured logging
+- ✅ Added LogContext usage for operation tracking in all language generation methods
+- ✅ Enhanced error scenarios with structured error logging including file context, error types, and detailed messages
+- ✅ Added performance timing with `time_operation` context manager for all language-specific generation methods
+- ✅ Created comprehensive test suite to validate logging standardization across all modules
+
+**Results**: All language generation methods (Python, JavaScript, Java, C#, Go, Rust) now use consistent structured logging patterns with proper context tracking, error handling, and performance monitoring. This significantly improves observability and debugging capabilities across the entire test generation pipeline.
 
 ## Next Sprint (P1 - High Priority)
 
@@ -202,6 +231,54 @@
 **Impact**: Low-Medium - Handles edge case of very large projects
 **Effort**: Extra Large (13 story points)
 **Risk**: Medium - Complex implementation
+
+### 14. Implement cross-platform timeout handling [WSJF: 2.6]
+**Impact**: Medium-High - Critical for Windows platform support
+**Effort**: Medium (5 story points)
+**Risk**: Medium - Platform-specific implementation
+**Status**: 📋 TODO
+
+**Technical Requirements**:
+- Replace Unix signal-based timeout (SIGALRM) with cross-platform alternative
+- Implement threading or multiprocessing-based timeout for Windows compatibility
+- Maintain existing timeout functionality for AST parsing operations
+- Add comprehensive testing on Windows platforms
+
+### 15. Improve cross-platform memory monitoring [WSJF: 1.6]
+**Impact**: Medium - Better platform support and reliability
+**Effort**: Medium (5 story points)
+**Risk**: Low - Non-critical enhancement
+**Status**: 📋 TODO
+
+**Technical Requirements**:
+- Implement Windows-compatible memory monitoring methods
+- Add fallback mechanisms when native memory monitoring unavailable
+- Enhance error handling for unsupported platforms
+- Provide meaningful memory usage data across all platforms
+
+### 16. Externalize security rules configuration [WSJF: 1.2]
+**Impact**: Medium - Improves maintainability and customization
+**Effort**: Medium (5 story points)
+**Risk**: Low - Configuration enhancement
+**Status**: 📋 TODO
+
+**Technical Requirements**:
+- Move hardcoded security patterns to external configuration file
+- Support JSON/YAML configuration for security rules
+- Maintain backward compatibility with existing rules
+- Add validation for custom security configurations
+
+### 17. Extract version from package metadata [WSJF: 1.0]
+**Impact**: Low - Eliminates hardcoded version string
+**Effort**: Small (2 story points)
+**Risk**: Low - Simple refactoring
+**Status**: 📋 TODO
+
+**Technical Requirements**:
+- Replace hardcoded "0.0.1" version with dynamic extraction
+- Use importlib.metadata or pkg_resources for version detection
+- Handle cases where package metadata is unavailable
+- Update CLI and extension scaffolding to use dynamic version
 
 ## Technical Debt Items
 

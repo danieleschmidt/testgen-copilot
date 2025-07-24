@@ -9,7 +9,7 @@ import re
 from typing import Iterable, List
 
 from .logging_config import get_generator_logger, LogContext
-from .file_utils import safe_read_file, FileSizeError
+from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .resource_limits import ResourceMonitor, ResourceLimits
 from .ast_utils import safe_parse_ast, extract_functions
 
@@ -198,10 +198,8 @@ class TestGenerator:
         logger = get_generator_logger()
         
         try:
-            content = safe_read_file(path)
-            # Use common AST parsing utility for consistent error handling
-            tree = safe_parse_ast(content, path)
-            functions = extract_functions(tree)
+            tree, content = safe_parse_ast(path)
+            functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
             
             logger.debug("Parsed functions from source file", {
                 "source_file": str(path),
@@ -212,8 +210,8 @@ class TestGenerator:
             
             return functions
             
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-            # File reading errors are already logged by safe_read_file
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError, SyntaxError) as e:
+            # Errors are already logged by safe_parse_ast with structured context
             raise
         # ASTParsingError from safe_parse_ast will bubble up with proper context
 
@@ -393,44 +391,64 @@ class TestGenerator:
     def _generate_javascript_tests(self, source_path: Path, out_dir: Path) -> Path:
         logger = get_generator_logger()
         
-        try:
-            names = self._parse_js_functions(source_path)
-            lines: List[str] = [
-                f"import {{ {', '.join(names)} }} from './{source_path.stem}';",
-                "",
-            ]
-            for name in names:
-                lines.append(f"test('{name} works', () => {{")
-                lines.append(f"  const result = {name}();")
-                lines.append("  expect(result).toBeDefined();")
-                lines.append("});\n")
+        with logger.time_operation("javascript_test_generation", {"source_file": str(source_path)}):
+            try:
+                names = self._parse_js_functions(source_path)
+                logger.debug("Parsed JavaScript functions", {
+                    "function_count": len(names),
+                    "function_names": names,
+                    "source_file": str(source_path)
+                })
+                
+                lines: List[str] = [
+                    f"import {{ {', '.join(names)} }} from './{source_path.stem}';",
+                    "",
+                ]
+                for name in names:
+                    lines.append(f"test('{name} works', () => {{")
+                    lines.append(f"  const result = {name}();")
+                    lines.append("  expect(result).toBeDefined();")
+                    lines.append("});\n")
 
-            try:
-                out_dir.mkdir(parents=True, exist_ok=True)
-            except (OSError, PermissionError) as e:
-                raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
-            
-            out_file = out_dir / f"{source_path.stem}.test.js"
-            
-            try:
-                out_file.write_text("\n".join(lines).rstrip() + "\n")
-            except (OSError, PermissionError) as e:
-                raise PermissionError(f"Cannot write test file {out_file}: {e}")
-            
-            logger.info("Generated JavaScript tests", {
-                "output_file": str(out_file),
-                "function_count": len(names),
-                "language": "javascript"
-            })
-            return out_file
-            
-        except Exception as e:
-            logger.error("Failed to generate JavaScript tests", {
-                "source_file": str(source_path),
-                "error_type": type(e).__name__,
-                "error_message": str(e)
-            })
-            raise
+                # Ensure output directory exists
+                try:
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot create output directory", {
+                        "output_dir": str(out_dir),
+                        "error_type": "permission_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
+                
+                out_file = out_dir / f"{source_path.stem}.test.js"
+                
+                # Write test file with error handling
+                try:
+                    out_file.write_text("\n".join(lines).rstrip() + "\n")
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot write test file", {
+                        "output_file": str(out_file),
+                        "error_type": "write_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot write test file {out_file}: {e}")
+                
+                logger.info("JavaScript tests generated successfully", {
+                    "output_file": str(out_file),
+                    "function_count": len(names),
+                    "test_content_length": len("\n".join(lines))
+                })
+                
+                return out_file
+                
+            except Exception as e:
+                logger.error("Failed to generate JavaScript tests", {
+                    "source_file": str(source_path),
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
+                })
+                raise
 
     def _parse_js_functions(self, path: Path) -> List[str]:
         logger = get_generator_logger()
@@ -504,10 +522,10 @@ class TestGenerator:
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot write test file {out_file}: {e}")
             
-            logger.info("Generated Java tests", {
+            logger.info("Java tests generated successfully", {
                 "output_file": str(out_file),
                 "method_count": len(methods),
-                "language": "java"
+                "test_content_length": len("\n".join(lines))
             })
             return out_file
             
@@ -585,10 +603,10 @@ class TestGenerator:
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot write test file {out_file}: {e}")
             
-            logger.info("Generated C# tests", {
+            logger.info("C# tests generated successfully", {
                 "output_file": str(out_file),
                 "method_count": len(methods),
-                "language": "csharp"
+                "test_content_length": len("\n".join(lines))
             })
             return out_file
             
@@ -636,47 +654,169 @@ class TestGenerator:
     # Go generation
     # ------------------------------------------------------------------
     def _generate_go_tests(self, source_path: Path, out_dir: Path) -> Path:
-        funcs = self._parse_go_functions(source_path)
-        lines: List[str] = ["package main", "", 'import "testing"', ""]
-        for f_name in funcs:
-            lines.append(f"func Test{f_name.capitalize()}(t *testing.T) {{")
-            lines.append(f"    result := {f_name}()")
-            lines.append("    if result != nil {")
-            lines.append("        t.Errorf(\"Expected nil, got %v\", result)")
-            lines.append("    }")
-            lines.append("}\n")
+        logger = get_generator_logger()
+        
+        with logger.time_operation("go_test_generation", {"source_file": str(source_path)}):
+            try:
+                funcs = self._parse_go_functions(source_path)
+                logger.debug("Parsed Go functions", {
+                    "function_count": len(funcs),
+                    "function_names": funcs,
+                    "source_file": str(source_path)
+                })
+                
+                lines: List[str] = ["package main", "", 'import "testing"', ""]
+                for f_name in funcs:
+                    lines.append(f"func Test{f_name.capitalize()}(t *testing.T) {{")
+                    lines.append(f"    result := {f_name}()")
+                    lines.append("    if result != nil {")
+                    lines.append("        t.Errorf(\"Expected nil, got %v\", result)")
+                    lines.append("    }")
+                    lines.append("}\n")
 
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"{source_path.stem}_test.go"
-        out_file.write_text("\n".join(lines).rstrip() + "\n")
-        return out_file
+                # Ensure output directory exists
+                try:
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot create output directory", {
+                        "output_dir": str(out_dir),
+                        "error_type": "permission_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
+                
+                out_file = out_dir / f"{source_path.stem}_test.go"
+                
+                # Write test file with error handling
+                try:
+                    out_file.write_text("\n".join(lines).rstrip() + "\n")
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot write test file", {
+                        "output_file": str(out_file),
+                        "error_type": "write_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot write test file {out_file}: {e}")
+                
+                logger.info("Go tests generated successfully", {
+                    "output_file": str(out_file),
+                    "function_count": len(funcs),
+                    "test_content_length": len("\n".join(lines))
+                })
+                
+                return out_file
+                
+            except Exception as e:
+                logger.error("Failed to generate Go tests", {
+                    "source_file": str(source_path),
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
+                })
+                raise
 
     def _parse_go_functions(self, path: Path) -> List[str]:
-        text = safe_read_file(path)
-        return re.findall(r"func\s+(\w+)\s*\(", text) or ["FuncUnderTest"]
+        logger = get_generator_logger()
+        
+        try:
+            text = safe_read_file(path)
+            try:
+                funcs = re.findall(r"func\s+(\w+)\s*\(", text) or ["FuncUnderTest"]
+                logger.debug(f"Parsed {len(funcs)} Go functions from {path}")
+                return funcs
+            except re.error as e:
+                logger.warning(f"Regex parsing failed for Go functions: {e}")
+                return ["FuncUnderTest"]
+                
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # File reading errors are already logged by safe_read_file
+            raise
+        except Exception as e:
+            logger.error(f"Failed to parse Go functions from {path}: {e}")
+            raise
 
     # ------------------------------------------------------------------
     # Rust generation
     # ------------------------------------------------------------------
     def _generate_rust_tests(self, source_path: Path, out_dir: Path) -> Path:
-        funcs = self._parse_rust_functions(source_path)
-        lines: List[str] = ["#[cfg(test)]", "mod tests {", "    use super::*;", ""]
-        for f_name in funcs:
-            lines.append("    #[test]")
-            lines.append(f"    fn {f_name}_test() {{")
-            lines.append(f"        let result = {f_name}();")
-            lines.append("        assert!(result.is_ok());")
-            lines.append("    }\n")
-        lines.append("}")
+        logger = get_generator_logger()
+        
+        with logger.time_operation("rust_test_generation", {"source_file": str(source_path)}):
+            try:
+                funcs = self._parse_rust_functions(source_path)
+                logger.debug("Parsed Rust functions", {
+                    "function_count": len(funcs),
+                    "function_names": funcs,
+                    "source_file": str(source_path)
+                })
+                
+                lines: List[str] = ["#[cfg(test)]", "mod tests {", "    use super::*;", ""]
+                for f_name in funcs:
+                    lines.append("    #[test]")
+                    lines.append(f"    fn {f_name}_test() {{")
+                    lines.append(f"        let result = {f_name}();")
+                    lines.append("        assert!(result.is_ok());")
+                    lines.append("    }\n")
+                lines.append("}")
 
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"{source_path.stem}_test.rs"
-        out_file.write_text("\n".join(lines).rstrip() + "\n")
-        return out_file
+                # Ensure output directory exists
+                try:
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot create output directory", {
+                        "output_dir": str(out_dir),
+                        "error_type": "permission_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
+                
+                out_file = out_dir / f"{source_path.stem}_test.rs"
+                
+                # Write test file with error handling
+                try:
+                    out_file.write_text("\n".join(lines).rstrip() + "\n")
+                except (OSError, PermissionError) as e:
+                    logger.error("Cannot write test file", {
+                        "output_file": str(out_file),
+                        "error_type": "write_error",
+                        "error_message": str(e)
+                    })
+                    raise PermissionError(f"Cannot write test file {out_file}: {e}")
+                
+                logger.info("Rust tests generated successfully", {
+                    "output_file": str(out_file),
+                    "function_count": len(funcs),
+                    "test_content_length": len("\n".join(lines))
+                })
+                
+                return out_file
+                
+            except Exception as e:
+                logger.error("Failed to generate Rust tests", {
+                    "source_file": str(source_path),
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
+                })
+                raise
 
     def _parse_rust_functions(self, path: Path) -> List[str]:
-        text = safe_read_file(path)
-        return re.findall(r"fn\s+(\w+)\s*\(", text) or ["func_under_test"]
+        logger = get_generator_logger()
+        
+        try:
+            text = safe_read_file(path)
+            try:
+                funcs = re.findall(r"fn\s+(\w+)\s*\(", text) or ["func_under_test"]
+                logger.debug(f"Parsed {len(funcs)} Rust functions from {path}")
+                return funcs
+            except re.error as e:
+                logger.warning(f"Regex parsing failed for Rust functions: {e}")
+                return ["func_under_test"]
+                
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # File reading errors are already logged by safe_read_file
+            raise
+        except Exception as e:
+            logger.error(f"Failed to parse Rust functions from {path}: {e}")
+            raise
 
     # ------------------------------------------------------------------
     # Assertion generation helpers
