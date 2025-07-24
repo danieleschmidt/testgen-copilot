@@ -11,6 +11,9 @@
 - Enhanced `safe_parse_ast_with_timeout` with multiprocessing fallback for Windows systems
 - Updated cross-platform timeout tests to handle threading limitations correctly
 - Maintained Unix signal-based timeout for optimal performance on Linux/macOS
+- Enhanced cross-platform memory monitoring with improved error handling
+- Added comprehensive exception handling to prevent false memory limit detections
+- Verified memory monitoring fallbacks work correctly across all platforms
 
 ## [0.2.0] - 2025-06-29
 ### Added
