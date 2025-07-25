@@ -48,20 +48,6 @@ class TestQualityScorer:
                         # safe_parse_ast already logged the syntax error
                         continue
                     
-                    try:
-                        content = safe_read_file(path)
-                    except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-                        logger.warning(f"Cannot read test file {path}: {e}")
-                        continue
-                    
-                    try:
-                        tree = safe_parse_ast(content, path)
-                    except ASTParsingError as e:
-                        logger.warning("Skipping test file due to parsing error", {
-                            "file_path": str(path),
-                            "error_message": str(e)
-                        })
-                        continue
                     tree, content = result
                     
                     test_functions = self._find_test_functions(tree)
