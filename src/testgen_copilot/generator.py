@@ -11,7 +11,7 @@ from typing import Iterable, List
 from .logging_config import get_generator_logger, LogContext
 from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .resource_limits import ResourceMonitor, ResourceLimits
-from .ast_utils import safe_parse_ast, extract_functions
+from .ast_utils import extract_functions, ASTParsingError
 
 
 @dataclass
@@ -210,10 +210,21 @@ class TestGenerator:
             
             return functions
             
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError, SyntaxError) as e:
-            # Errors are already logged by safe_parse_ast with structured context
-            raise
-        # ASTParsingError from safe_parse_ast will bubble up with proper context
+        except SyntaxError as e:
+            # Convert SyntaxError to ASTParsingError for consistent error handling
+            raise ASTParsingError(
+                f"Syntax error in source file: {e}",
+                file_path=path,
+                line_number=e.lineno,
+                original_error=e
+            )
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # Convert other errors to ASTParsingError for consistent interface
+            raise ASTParsingError(
+                f"Error parsing source file: {e}",
+                file_path=path,
+                original_error=e
+            )
 
     def _build_test_file(
         self, source_path: Path, functions: Iterable[ast.FunctionDef]

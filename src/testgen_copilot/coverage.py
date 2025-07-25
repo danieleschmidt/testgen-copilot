@@ -14,7 +14,7 @@ from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .cache import cached_operation, analysis_cache
 from .logging_config import get_coverage_logger
 from .resource_limits import ResourceMonitor, ResourceLimits
-from .ast_utils import safe_parse_ast, ASTParsingError
+from .ast_utils import ASTParsingError
 from .streaming import FileStreamProcessor, StreamingProgress, create_progress_reporter
 
 @dataclass
@@ -263,15 +263,15 @@ class CoverageAnalyzer:
         
         try:
             tree, content = safe_parse_ast(path)
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-            # Errors are already logged by safe_parse_ast with structured context
-            raise
-        
-        except ASTParsingError as e:
-            logger.error("Cannot parse source file", {
+        except SyntaxError as e:
+            logger.error("Cannot parse source file due to syntax error", {
                 "file_path": str(path),
+                "line_number": e.lineno,
                 "error_message": str(e)
             })
+            raise
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            # Errors are already logged by safe_parse_ast with structured context
             raise
         
         functions = [
@@ -301,27 +301,11 @@ class CoverageAnalyzer:
         for test_file in test_files:
             try:
                 result = safe_parse_ast(test_file, raise_on_syntax_error=False)
-                try:
-                    content = test_file.read_text()
-                except (OSError, PermissionError) as e:
-                    logger.warning(f"Cannot read test file {test_file}: {e}")
-                    continue
-                except UnicodeDecodeError as e:
-                    logger.warning(f"Encoding error in test file {test_file}: {e}")
+                if result is None:
+                    # safe_parse_ast returns None on syntax errors when raise_on_syntax_error=False
                     continue
                 
-                try:
-                    tree = safe_parse_ast(content, test_file)
-                except ASTParsingError as e:
-                    logger.warning("Skipping test file due to parsing error", {
-                        "file_path": str(test_file),
-                        "error_message": str(e)
-                    })
-                    continue
                 tree, content = result
-            except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
-                logger.warning(f"Cannot read test file {test_file}: {e}")
-                continue
                 
                 # Track aliases from ``from x import y as z`` so calls to ``z`` are
                 # associated with ``y`` when checking coverage.
@@ -342,10 +326,23 @@ class CoverageAnalyzer:
                         elif isinstance(node, ast.Attribute):
                             if isinstance(node.ctx, ast.Load) and node.attr in names:
                                 covered.add(node.attr)
+                        elif isinstance(node, ast.Call):
+                            # Handle function calls like a()
+                            if isinstance(node.func, ast.Name):
+                                target = alias_map.get(node.func.id, node.func.id)
+                                if target in names:
+                                    covered.add(target)
+                            elif isinstance(node.func, ast.Attribute):
+                                # Handle method calls like obj.method()
+                                if node.func.attr in names:
+                                    covered.add(node.func.attr)
                 except Exception as e:
                     logger.warning(f"Error analyzing AST in {test_file}: {e}")
                     continue
                     
+            except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+                logger.warning(f"Cannot read test file {test_file}: {e}")
+                continue
             except Exception as e:
                 logger.warning(f"Failed to process test file {test_file}: {e}")
                 continue

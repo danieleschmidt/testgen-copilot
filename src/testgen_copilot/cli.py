@@ -480,11 +480,19 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
             logger.warning("Coverage below target:")
             print("Coverage below target:")
             for mod, cov, missing in failures:
-                logger.warning("  %s: %.1f%%", mod, cov)
+                logger.warning(f"  {mod}: {cov:.1f}%", {
+                    "module": mod,
+                    "coverage": cov,
+                    "analysis_type": "coverage_target"
+                })
                 print(f"  {mod}: {cov:.1f}%")
                 if args.show_missing and missing:
                     names = ", ".join(sorted(missing))
-                    logger.warning("    Missing: %s", names)
+                    logger.warning(f"    Missing: {names}", {
+                        "module": mod,
+                        "missing_functions": names,
+                        "analysis_type": "coverage_missing"
+                    })
                     print(f"    Missing: {names}")
             parser.exit(status=1, message="Coverage target not met\n")
         logger.info("Coverage target satisfied")
@@ -497,18 +505,27 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
         scorer = TestQualityScorer()
         score = scorer.score(tests_dir)
         if score < args.quality_target:
-            logger.warning("Test quality: %.1f%%", score)
+            logger.warning(f"Test quality: {score:.1f}%", {
+                "quality_score": score,
+                "analysis_type": "quality_target"
+            })
             print(f"Test quality: {score:.1f}%")
             lacking = scorer.low_quality_tests(tests_dir)
             if lacking:
                 names = ", ".join(sorted(lacking))
-                logger.warning("  Missing asserts in: %s", names)
+                logger.warning(f"  Missing asserts in: {names}", {
+                    "missing_test_functions": names,
+                    "analysis_type": "quality_missing"
+                })
                 print(f"  Missing asserts in: {names}")
             parser.exit(status=1, message="Quality target not met\n")
         logger.info("Quality target satisfied")
         print("Quality target satisfied")
 
-    logger.info("Generated tests -> %s", output_path)
+    logger.info(f"Generated tests -> {output_path}", {
+        "output_path": str(output_path),
+        "operation": "test_generation_complete"
+    })
     print(f"Generated tests -> {output_path}")
 
 
@@ -528,11 +545,19 @@ def _analyze(args: argparse.Namespace) -> None:
             logger.warning("Coverage below target:")
             print("Coverage below target:")
             for mod, cov, missing in failures:
-                logger.warning("  %s: %.1f%%", mod, cov)
+                logger.warning(f"  {mod}: {cov:.1f}%", {
+                    "module": mod,
+                    "coverage": cov,
+                    "analysis_type": "coverage_target_analyze"
+                })
                 print(f"  {mod}: {cov:.1f}%")
                 if args.show_missing and missing:
                     names = ", ".join(sorted(missing))
-                    logger.warning("    Missing: %s", names)
+                    logger.warning(f"    Missing: {names}", {
+                        "module": mod,
+                        "missing_functions": names,
+                        "analysis_type": "coverage_missing_analyze"
+                    })
                     print(f"    Missing: {names}")
             raise SystemExit(1)
         logger.info("Coverage target satisfied")
@@ -545,12 +570,18 @@ def _analyze(args: argparse.Namespace) -> None:
         scorer = TestQualityScorer()
         score = scorer.score(tests_dir)
         if score < args.quality_target:
-            logger.warning("Test quality: %.1f%%", score)
+            logger.warning(f"Test quality: {score:.1f}%", {
+                "quality_score": score,
+                "analysis_type": "quality_target_analyze"
+            })
             print(f"Test quality: {score:.1f}%")
             lacking = scorer.low_quality_tests(tests_dir)
             if lacking:
                 names = ", ".join(sorted(lacking))
-                logger.warning("  Missing asserts in: %s", names)
+                logger.warning(f"  Missing asserts in: {names}", {
+                    "missing_test_functions": names,
+                    "analysis_type": "quality_missing_analyze"
+                })
                 print(f"  Missing asserts in: {names}")
             raise SystemExit(1)
         logger.info("Quality target satisfied")
