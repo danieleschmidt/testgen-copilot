@@ -63,7 +63,12 @@ class TestSafeReadFile:
         
         with patch("pathlib.Path.stat") as mock_stat:
             # Mock file size larger than default 10MB limit
-            mock_stat.return_value.st_size = 11 * 1024 * 1024  # 11MB
+            from stat import S_IFREG
+            mock_stat_result = type('MockStat', (), {
+                'st_size': 11 * 1024 * 1024,  # 11MB
+                'st_mode': S_IFREG  # Regular file mode
+            })()
+            mock_stat.return_value = mock_stat_result
             
             with pytest.raises(FileSizeError) as exc_info:
                 safe_read_file(test_file)
@@ -78,7 +83,12 @@ class TestSafeReadFile:
         
         with patch("pathlib.Path.stat") as mock_stat:
             # Mock file size larger than custom 1MB limit
-            mock_stat.return_value.st_size = 2 * 1024 * 1024  # 2MB
+            from stat import S_IFREG
+            mock_stat_result = type('MockStat', (), {
+                'st_size': 2 * 1024 * 1024,  # 2MB
+                'st_mode': S_IFREG  # Regular file mode
+            })()
+            mock_stat.return_value = mock_stat_result
             
             with pytest.raises(FileSizeError) as exc_info:
                 safe_read_file(test_file, max_size_mb=1)

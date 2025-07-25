@@ -8,6 +8,7 @@ from unittest.mock import patch, mock_open
 
 from testgen_copilot.generator import TestGenerator, GenerationConfig
 from testgen_copilot.security import SecurityScanner
+from testgen_copilot.ast_utils import ASTParsingError
 from testgen_copilot.coverage import CoverageAnalyzer
 from testgen_copilot.quality import TestQualityScorer
 
@@ -38,7 +39,7 @@ class TestGeneratorErrorHandling:
         
         # Mock file read to raise PermissionError
         with patch.object(Path, 'read_text', side_effect=PermissionError("Access denied")):
-            with pytest.raises(PermissionError, match="Cannot read source file"):
+            with pytest.raises(PermissionError, match="Permission denied reading"):
                 generator.generate_tests(source_file, tmp_path)
 
     def test_generate_tests_invalid_encoding(self, tmp_path):
@@ -50,7 +51,7 @@ class TestGeneratorErrorHandling:
         with open(source_file, 'wb') as f:
             f.write(b'\xff\xfe\x00\x00invalid')
         
-        with pytest.raises(ValueError, match="invalid text encoding"):
+        with pytest.raises(ValueError, match="Invalid text encoding"):
             generator.generate_tests(source_file, tmp_path)
 
     def test_generate_tests_syntax_error(self, tmp_path):
@@ -59,7 +60,7 @@ class TestGeneratorErrorHandling:
         source_file = tmp_path / "source.py"
         source_file.write_text("def invalid syntax here")
         
-        with pytest.raises(SyntaxError, match="Cannot parse.*syntax error"):
+        with pytest.raises(ASTParsingError, match="Syntax error in source file"):
             generator.generate_tests(source_file, tmp_path)
 
     def test_generate_tests_readonly_output_dir(self, tmp_path):
@@ -307,7 +308,7 @@ class TestIntegrationErrorHandling:
         invalid_file = tmp_path / "invalid.py"
         invalid_file.write_text("def broken syntax")
         
-        with pytest.raises(SyntaxError):
+        with pytest.raises(ASTParsingError):
             generator.generate_tests(invalid_file, tmp_path)
 
     def test_scanner_handles_mixed_file_conditions(self, tmp_path):
