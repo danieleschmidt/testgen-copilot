@@ -69,7 +69,12 @@ def test_divide_parameterized(num, denom, expected):
         
         # Mock file size to be larger than default limit
         with patch("pathlib.Path.stat") as mock_stat:
-            mock_stat.return_value.st_size = 11 * 1024 * 1024  # 11MB
+            from stat import S_IFREG
+            mock_stat_result = type('MockStat', (), {
+                'st_size': 11 * 1024 * 1024,  # 11MB
+                'st_mode': S_IFREG  # Regular file mode
+            })()
+            mock_stat.return_value = mock_stat_result
             
             generator = TestGenerator(GenerationConfig(language="python"))
             
@@ -118,7 +123,8 @@ def test_divide_parameterized(num, denom, expected):
             mock_read.side_effect = FileSizeError("File too large")
             
             # Should handle the error gracefully and not crash
-            result = analyzer.analyze_coverage(str(src_dir), str(tests_dir))
+            # Note: analyze() expects single file, not directory
+            result = analyzer.analyze(bad_file, tests_dir)
             # Coverage should be 0% due to file read error
             assert result == 0.0
 
@@ -154,7 +160,7 @@ def test_divide_parameterized(num, denom, expected):
             # Should return a security report with the error
             report = scanner.scan_file(str(test_file))
             
-            assert report.file_path == test_file
+            assert report.path == test_file
             assert len(report.issues) == 1
             assert "too large" in report.issues[0].message.lower()
 
@@ -176,7 +182,7 @@ def test_divide_parameterized(num, denom, expected):
         security_report = scanner.scan_file(str(sample_python_file))
         
         # Should have scanned successfully
-        assert security_report.file_path == sample_python_file
+        assert security_report.path == sample_python_file
         # Should have minimal issues for this simple code
         assert len(security_report.issues) <= 2  # Might have input validation warnings
         
@@ -189,7 +195,7 @@ def test_divide_parameterized(num, denom, expected):
         
         # Analyze coverage
         analyzer = CoverageAnalyzer()
-        coverage = analyzer.analyze_coverage(str(sample_python_file.parent), str(tests_dir))
+        coverage = analyzer.analyze(sample_python_file, tests_dir)
         
         # Should have some coverage
         assert coverage >= 0
@@ -201,7 +207,12 @@ def test_divide_parameterized(num, denom, expected):
         
         # Mock large file size
         with patch("pathlib.Path.stat") as mock_stat:
-            mock_stat.return_value.st_size = 12 * 1024 * 1024  # 12MB
+            from stat import S_IFREG
+            mock_stat_result = type('MockStat', (), {
+                'st_size': 12 * 1024 * 1024,  # 12MB
+                'st_mode': S_IFREG  # Regular file mode
+            })()
+            mock_stat.return_value = mock_stat_result
             
             # TestGenerator should reject large files
             generator = TestGenerator(GenerationConfig(language="python"))
@@ -216,7 +227,7 @@ def test_divide_parameterized(num, denom, expected):
             # CoverageAnalyzer should handle large files gracefully
             analyzer = CoverageAnalyzer()
             # Should not crash, might return 0% coverage
-            result = analyzer.analyze_coverage(str(large_file.parent), str(tmp_path / "tests"))
+            result = analyzer.analyze(large_file, tmp_path / "tests")
             assert isinstance(result, (int, float))
             
             # TestQualityScorer should handle large files gracefully
