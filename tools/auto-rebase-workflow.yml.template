@@ -1,0 +1,34 @@
+# This file should be manually placed in .github/workflows/auto-rebase.yml
+# GitHub App lacks workflow permissions - requires manual setup
+
+name: auto-rebase
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  rebase:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+          
+      - name: Configure git
+        run: |
+          git config --global rerere.enabled true
+          git config --global rerere.autoupdate true
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Attempt auto-rebase
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          git rebase origin/${{ github.base_ref }} || echo "::error::Manual merge required"
+          
+      - name: Push if successful
+        if: success()
+        run: git push origin HEAD:${{ github.head_ref }}

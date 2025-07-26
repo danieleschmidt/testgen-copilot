@@ -1,0 +1,19 @@
+# Git merge attributes for automatic conflict resolution
+
+# Safe overwrite – keep incoming side
+package-lock.json merge=theirs
+poetry.lock      merge=theirs
+*.snap           merge=theirs
+
+# Line-union for documentation
+*.md             merge=union
+CHANGELOG.md     merge=union
+
+# Binary files should not be merged
+*.png            merge=lock
+*.jpg            merge=lock
+*.jpeg           merge=lock
+*.gif            merge=lock
+*.pdf            merge=lock
+*.zip            merge=lock
+*.tar.gz         merge=lock
