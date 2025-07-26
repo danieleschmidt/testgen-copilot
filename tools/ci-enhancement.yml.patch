@@ -1,0 +1,26 @@
+# CI Enhancement for Rerere Audit
+# Apply this patch to .github/workflows/ci.yml to add rerere auditing
+
+# Add after the "Upload coverage" step:
+
+      - name: Audit rerere cache
+        run: |
+          git config rerere.enabled true
+          echo "## Rerere Audit Report" > rerere-audit.md
+          echo "Date: $(date)" >> rerere-audit.md
+          echo "" >> rerere-audit.md
+          if git rerere status 2>/dev/null | grep -q .; then
+            echo "### Recorded Conflict Resolutions:" >> rerere-audit.md
+            git rerere status >> rerere-audit.md
+            echo "" >> rerere-audit.md
+            echo "### Resolution Diffs:" >> rerere-audit.md
+            git rerere diff >> rerere-audit.md
+          else
+            echo "No rerere cache entries found." >> rerere-audit.md
+          fi
+          
+      - name: Upload rerere audit
+        uses: actions/upload-artifact@v3
+        with:
+          name: rerere-audit
+          path: rerere-audit.md
