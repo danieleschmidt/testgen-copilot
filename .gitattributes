@@ -1,0 +1,31 @@
+# Merge conflict resolution strategies
+
+# Lock files - prefer incoming version
+package-lock.json merge=theirs
+poetry.lock merge=theirs
+Pipfile.lock merge=theirs
+yarn.lock merge=theirs
+
+# Test snapshots - prefer incoming version
+*.snap merge=theirs
+
+# Documentation - use line union merge
+*.md merge=union
+CHANGELOG.md merge=union
+README.md merge=union
+
+# Binary files - require manual resolution
+*.svg merge=lock
+*.png merge=lock
+*.jpg merge=lock
+*.jpeg merge=lock
+*.gif merge=lock
+*.pdf merge=lock
+*.zip merge=lock
+*.tar.gz merge=lock
+
+# Configuration files - manual resolution
+*.env merge=manual
+.env* merge=manual
+config.yml merge=manual
+config.yaml merge=manual

@@ -1,0 +1,29 @@
+# CodeQL configuration for enhanced security scanning
+
+name: "CodeQL Config"
+
+queries:
+  - uses: security-and-quality
+  - uses: security-experimental
+
+paths-ignore:
+  - "**/__pycache__/**"
+  - "**/node_modules/**"
+  - "**/venv/**"
+  - "**/env/**"
+  - "**/.git/**"
+  - "**/tests/fixtures/**"
+
+paths:
+  - "src/**"
+  - "scripts/**"
+
+# Custom query filters
+query-filters:
+  - exclude:
+      id: py/unused-import
+  - exclude:
+      id: py/syntax-error
+
+# Increase timeout for complex analysis
+timeout: 20m
