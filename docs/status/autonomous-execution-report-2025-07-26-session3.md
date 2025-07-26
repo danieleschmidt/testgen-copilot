@@ -36,10 +36,10 @@ Successfully implemented a comprehensive autonomous backlog management system fo
    - Comprehensive error handling and recovery
 
 5. **Infrastructure & Security**
-   - Enhanced CI/CD pipeline with supply chain security
-   - SBOM generation and vulnerability scanning
-   - Container signing with Sigstore Cosign
    - Git rerere and merge drivers for conflict resolution
+   - Automation scope configuration and security controls
+   - Enhanced CI/CD pipeline design (requires manual GitHub workflow setup)
+   - Security scanning framework with multiple fallback options
 
 ## Key Features
 
