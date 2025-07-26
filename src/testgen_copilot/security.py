@@ -10,6 +10,7 @@ from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .logging_config import get_security_logger
 from .ast_utils import ASTParsingError
 from .security_rules import SecurityRulesManager
+from .cache import cached_operation, analysis_cache
 
 
 @dataclass
@@ -67,6 +68,7 @@ class SecurityScanner:
             self._dynamic_check_patterns = self.rules_manager.get_rules_checking_dynamic_args()
         return self._dynamic_check_patterns
 
+    @cached_operation("security_scan_file", analysis_cache)
     def scan_file(self, path: str | Path) -> SecurityReport:
         logger = get_security_logger()
         file_path = Path(path)

@@ -163,6 +163,7 @@ class ParallelCoverageAnalyzer:
 class CoverageAnalyzer:
     """Estimate coverage of tests over a source file."""
 
+    @cached_operation("coverage_analyze", analysis_cache)
     def analyze(self, source_path: str | Path, tests_dir: str | Path) -> float:
         """Return the percentage of source functions referenced in tests."""
         logger = get_coverage_logger()

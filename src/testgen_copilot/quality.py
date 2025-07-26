@@ -275,6 +275,7 @@ class TestQualityScorer:
         
         return loop_count
     
+    @cached_operation("quality_detailed_metrics", analysis_cache)
     def get_detailed_quality_metrics(self, tests_dir: str | Path) -> dict:
         """Return detailed quality metrics including parameterized test analysis."""
         logger = get_quality_logger()
