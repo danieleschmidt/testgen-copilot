@@ -510,14 +510,23 @@ class TestGenerator:
             class_name = source_path.stem.capitalize() + "Test"
             lines: List[str] = [
                 "import org.junit.jupiter.api.Test;",
+                "import org.junit.jupiter.api.Assertions.*;",
                 f"class {class_name} {{",
                 "",
             ]
             for m in methods:
                 lines.append("    @Test")
                 lines.append(f"    void {m}() {{")
-                lines.append(f"        {m}();")
-                lines.append("        // Verify method executes without throwing")
+                # Generate proper assertions based on return type
+                if "String" in m or "get" in m.lower():
+                    lines.append(f"        String result = {m}();")
+                    lines.append("        assertNotNull(result);")
+                elif "int" in m or "add" in m.lower() or "calculate" in m.lower():
+                    lines.append(f"        int result = {m}();")
+                    lines.append("        assertTrue(result >= 0);")
+                else:
+                    lines.append(f"        {m}();")
+                    lines.append("        // Verify method executes without throwing")
                 lines.append("    }\n")
             lines.append("}")
 

@@ -43,6 +43,10 @@ def _analyze_single_file(args: Tuple[Path, Path, float]) -> Optional[CoverageRes
         analyzer = CoverageAnalyzer()
         coverage_pct = analyzer.analyze(source_path, tests_dir)
         
+        # If coverage is 0 and file doesn't exist, return None
+        if not source_path.exists():
+            return None
+            
         if coverage_pct < target:
             uncovered = analyzer.uncovered_functions(source_path, tests_dir)
             
@@ -60,13 +64,8 @@ def _analyze_single_file(args: Tuple[Path, Path, float]) -> Optional[CoverageRes
                 )
             except Exception as e:
                 logger.error(f"Failed to calculate function counts for {source_path}: {e}")
-                return CoverageResult(
-                    file_path=str(source_path),
-                    coverage_percentage=coverage_pct,
-                    uncovered_functions=uncovered,
-                    total_functions=0,
-                    covered_functions=0
-                )
+                # If we can't calculate functions, return None instead of partial result
+                return None
         return None
         
     except Exception as e:

@@ -107,7 +107,7 @@ class TestQualityScorer:
                         continue
                     
                     try:
-                        tree = safe_parse_ast(content, path)
+                        tree = ast_safe_parse_ast(content, path)
                     except ASTParsingError as e:
                         logger.warning("Skipping test file due to parsing error", {
                             "file_path": str(path),
