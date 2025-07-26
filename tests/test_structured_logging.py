@@ -261,6 +261,37 @@ class TestStructuredLogger:
         
         assert sampled_count < total_count
 
+    def test_datetime_timezone_aware(self):
+        """Test that timestamp uses timezone-aware datetime instead of deprecated utcnow()."""
+        import warnings
+        import datetime
+        
+        output = StringIO()
+        handler = logging.StreamHandler(output)
+        formatter = StructuredFormatter(use_json=True)
+        handler.setFormatter(formatter)
+        
+        logger = StructuredLogger("test.datetime")
+        logger.logger.handlers = [handler]
+        logger.logger.setLevel(logging.INFO)
+        logger.logger.propagate = False
+        
+        # Capture warnings to ensure no deprecation warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            logger.info("Testing timezone aware datetime")
+            
+            # Check that no deprecation warnings were raised
+            datetime_warnings = [warning for warning in w 
+                               if "datetime.datetime.utcnow" in str(warning.message)]
+            assert len(datetime_warnings) == 0, f"Found deprecation warnings: {[str(w.message) for w in datetime_warnings]}"
+        
+        # Verify the timestamp format is correct
+        log_output = output.getvalue()
+        assert "timestamp" in log_output
+        # Should contain Z suffix for UTC timezone
+        assert "Z" in log_output
+
 
 def main():
     """Run structured logging tests."""
@@ -280,6 +311,7 @@ def main():
         test_instance.test_performance_metrics_collection,
         test_instance.test_correlation_id_tracking,
         test_instance.test_log_filtering_and_sampling,
+        test_instance.test_datetime_timezone_aware,
     ]
     
     passed = 0
