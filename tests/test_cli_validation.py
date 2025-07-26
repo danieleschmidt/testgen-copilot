@@ -148,7 +148,7 @@ class TestCLIValidation:
             result = _validate_config_schema(invalid_config)
             assert False, "Should have rejected unknown key __import__"
         except ValueError as e:
-            assert "Unknown config option" in str(e)
+            assert "Dangerous config option detected" in str(e)
         finally:
             config_path.unlink()
 

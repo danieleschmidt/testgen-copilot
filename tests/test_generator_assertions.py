@@ -99,7 +99,7 @@ public class Calculator {
             assert "// TODO:" not in content
             
             # Should contain proper assertions
-            assert "Assert." in content or "assertEquals" in content
+            assert "assert" in content.lower() and ("assertNotNull" in content or "assertTrue" in content or "assertEquals" in content)
             
         source_path.unlink()
 

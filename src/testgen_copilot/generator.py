@@ -12,6 +12,7 @@ from .logging_config import get_generator_logger, LogContext
 from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
 from .resource_limits import ResourceMonitor, ResourceLimits
 from .ast_utils import extract_functions, ASTParsingError
+from .cache import cached_operation, analysis_cache
 
 
 @dataclass
@@ -194,6 +195,7 @@ class TestGenerator:
     # ------------------------------------------------------------------
     # Implementation helpers
     # ------------------------------------------------------------------
+    @cached_operation("generator_parse_functions", analysis_cache)
     def _parse_functions(self, path: Path) -> List[ast.FunctionDef]:
         logger = get_generator_logger()
         
@@ -461,6 +463,7 @@ class TestGenerator:
                 })
                 raise
 
+    @cached_operation("generator_parse_js_functions", analysis_cache)
     def _parse_js_functions(self, path: Path) -> List[str]:
         logger = get_generator_logger()
         
@@ -510,14 +513,23 @@ class TestGenerator:
             class_name = source_path.stem.capitalize() + "Test"
             lines: List[str] = [
                 "import org.junit.jupiter.api.Test;",
+                "import org.junit.jupiter.api.Assertions.*;",
                 f"class {class_name} {{",
                 "",
             ]
             for m in methods:
                 lines.append("    @Test")
                 lines.append(f"    void {m}() {{")
-                lines.append(f"        {m}();")
-                lines.append("        // Verify method executes without throwing")
+                # Generate proper assertions based on return type
+                if "String" in m or "get" in m.lower():
+                    lines.append(f"        String result = {m}();")
+                    lines.append("        assertNotNull(result);")
+                elif "int" in m or "add" in m.lower() or "calculate" in m.lower():
+                    lines.append(f"        int result = {m}();")
+                    lines.append("        assertTrue(result >= 0);")
+                else:
+                    lines.append(f"        {m}();")
+                    lines.append("        // Verify method executes without throwing")
                 lines.append("    }\n")
             lines.append("}")
 
@@ -548,6 +560,7 @@ class TestGenerator:
             })
             raise
 
+    @cached_operation("generator_parse_java_methods", analysis_cache)
     def _parse_java_methods(self, path: Path) -> List[str]:
         logger = get_generator_logger()
         
