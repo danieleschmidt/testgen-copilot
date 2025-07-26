@@ -18,8 +18,9 @@
 | ~~Extract common AST parsing patterns~~ | 7 | 8 | 6 | 5 | 4.2 | P0 | ✅ DONE |
 | ~~Implement resource limits and validation~~ | 8 | 7 | 9 | 5 | 4.8 | P0 | ✅ DONE |
 | ~~Standardize logging patterns across modules~~ | 6 | 7 | 7 | 3 | 6.67 | P0 | ✅ DONE |
-| Implement caching layer for performance | 7 | 4 | 5 | 8 | 2.0 | P1 | 📋 TODO |
-| Implement streaming for large project analysis | 5 | 3 | 7 | 13 | 1.15 | P2 | 📋 TODO |
+| ~~Implement caching layer for performance~~ | 7 | 4 | 5 | 8 | 2.0 | P1 | ✅ DONE |
+| ~~Implement streaming for large project analysis~~ | 5 | 3 | 7 | 13 | 1.15 | P2 | ✅ DONE |
+| ~~Fix deprecated datetime.utcnow() usage~~ | 5 | 6 | 4 | 5 | 3.0 | P1 | ✅ DONE |
 
 ## COMPLETED WORK
 

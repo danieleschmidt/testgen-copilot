@@ -7,7 +7,7 @@ import logging
 import time
 import uuid
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
@@ -26,7 +26,7 @@ class StructuredFormatter(logging.Formatter):
         
         # Build base log entry
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(UTC).isoformat() + 'Z',
             'level': record.levelname,
             'module': record.name,
             'message': record.getMessage(),
