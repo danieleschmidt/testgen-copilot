@@ -17,6 +17,8 @@ dev = [
 
 [project.scripts]
 testgen = "testgen_copilot.cli:main"
+testgen-autonomous = "testgen_copilot.autonomous_manager:main"
+testgen-metrics = "testgen_copilot.metrics_collector:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

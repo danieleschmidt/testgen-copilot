@@ -19,6 +19,10 @@ from .cache import (
     LRUCache, CacheEntry, cached_operation, get_cache_stats, clear_all_caches,
     ast_cache, file_content_cache, analysis_cache
 )
+from .autonomous_backlog import BacklogManager, BacklogItem, TaskType, TaskStatus, RiskTier
+from .autonomous_execution import TDDExecutor, SecurityChecker, ExecutionResult, ExecutionPhase
+from .autonomous_manager import AutonomousManager
+from .metrics_collector import MetricsCollector, DORAMetrics, CIMetrics, OperationalMetrics
 
 __all__ = [
     "identity",
@@ -73,4 +77,18 @@ __all__ = [
     "get_package_version",
     "get_version_info",
     "__version__",
+    "BacklogManager",
+    "BacklogItem", 
+    "TaskType",
+    "TaskStatus",
+    "RiskTier",
+    "TDDExecutor",
+    "SecurityChecker",
+    "ExecutionResult",
+    "ExecutionPhase",
+    "AutonomousManager",
+    "MetricsCollector",
+    "DORAMetrics",
+    "CIMetrics",
+    "OperationalMetrics",
 ]
