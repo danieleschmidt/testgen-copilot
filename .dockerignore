@@ -1,0 +1,97 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Development
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation build
+docs/_build/
+site/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env
+
+# Cache directories
+.cache/
+.testgen_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+logs/
+profiles/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Security
+*.key
+*.pem
+.secrets
+.env.local
+.env.production
+
+# CI/CD
+.github/
+.circleci/
+.travis.yml
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Package management
+Pipfile*
+poetry.lock
+uv.lock
+
+# IDE
+*.sublime-*
+.vscode/settings.json
+.vscode/launch.json
+
+# Node.js (if present)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Large files
+*.zip
+*.tar.gz
+*.7z
+
+# Generated files
+security-report.json
+coverage.xml
+benchmark-results/
