@@ -1,0 +1,283 @@
+# Prometheus Alert Rules for TestGen Copilot Assistant
+# Defines alerts for various system and application conditions
+
+groups:
+  # ==========================================================================
+  # Application Health Alerts
+  # ==========================================================================
+  - name: testgen.health
+    interval: 30s
+    rules:
+      - alert: TestGenServiceDown
+        expr: up{job="testgen-copilot"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: testgen-copilot
+        annotations:
+          summary: "TestGen Copilot service is down"
+          description: "TestGen Copilot service has been down for more than 1 minute"
+          runbook_url: "https://docs.testgen.dev/runbooks/service-down"
+
+      - alert: TestGenHealthCheckFailing
+        expr: testgen_health_check_status != 1
+        for: 2m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "TestGen health check failing"
+          description: "Health check for {{ $labels.check_name }} has been failing for 2 minutes"
+
+      - alert: TestGenHighErrorRate
+        expr: |
+          (
+            rate(testgen_requests_total{status=~"5.."}[5m]) / 
+            rate(testgen_requests_total[5m])
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the past 5 minutes"
+
+  # ==========================================================================
+  # Performance Alerts
+  # ==========================================================================
+  - name: testgen.performance
+    interval: 30s
+    rules:
+      - alert: TestGenHighLatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(testgen_request_duration_seconds_bucket[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "High latency detected"
+          description: "95th percentile latency is {{ $value }}s for the past 5 minutes"
+
+      - alert: TestGenHighCPUUsage
+        expr: |
+          (
+            rate(process_cpu_seconds_total{job="testgen-copilot"}[5m]) * 100
+          ) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% for the past 5 minutes"
+
+      - alert: TestGenHighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="testgen-copilot"} / 1024 / 1024
+          ) > 1024
+        for: 5m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}MB"
+
+  # ==========================================================================
+  # Test Generation Alerts
+  # ==========================================================================
+  - name: testgen.generation
+    interval: 1m
+    rules:
+      - alert: TestGenGenerationFailures
+        expr: |
+          (
+            rate(testgen_generation_failures_total[10m]) / 
+            rate(testgen_generation_attempts_total[10m])
+          ) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "High test generation failure rate"
+          description: "{{ $value | humanizePercentage }} of test generations are failing"
+
+      - alert: TestGenSlowGeneration
+        expr: |
+          histogram_quantile(0.95, 
+            rate(testgen_generation_duration_seconds_bucket[10m])
+          ) > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "Slow test generation"
+          description: "95th percentile generation time is {{ $value }}s"
+
+      - alert: TestGenLowCoverage
+        expr: testgen_coverage_percentage < 70
+        for: 1m
+        labels:
+          severity: info
+          service: testgen-copilot
+        annotations:
+          summary: "Low test coverage detected"
+          description: "Test coverage is {{ $value }}% for {{ $labels.project }}"
+
+  # ==========================================================================
+  # Security Alerts
+  # ==========================================================================
+  - name: testgen.security
+    interval: 1m
+    rules:
+      - alert: TestGenSecurityVulnerabilities
+        expr: testgen_security_vulnerabilities_high > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: testgen-copilot
+        annotations:
+          summary: "High severity security vulnerabilities detected"
+          description: "{{ $value }} high severity vulnerabilities found in {{ $labels.project }}"
+
+      - alert: TestGenAuthenticationFailures
+        expr: rate(testgen_auth_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "High authentication failure rate"
+          description: "{{ $value }} authentication failures per second"
+
+      - alert: TestGenSuspiciousActivity
+        expr: rate(testgen_suspicious_requests_total[5m]) > 2
+        for: 1m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} suspicious requests per second from {{ $labels.source_ip }}"
+
+  # ==========================================================================
+  # Infrastructure Alerts
+  # ==========================================================================
+  - name: testgen.infrastructure
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute"
+
+      - alert: RedisHighMemoryUsage
+        expr: |
+          (
+            redis_memory_used_bytes / redis_memory_max_bytes
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: DiskSpaceRunningLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"} / 
+            node_filesystem_size_bytes{mountpoint="/"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Disk space running low"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+  # ==========================================================================
+  # Business Logic Alerts
+  # ==========================================================================
+  - name: testgen.business
+    interval: 5m
+    rules:
+      - alert: TestGenLowUsage
+        expr: rate(testgen_requests_total[1h]) < 0.1
+        for: 30m
+        labels:
+          severity: info
+          service: testgen-copilot
+        annotations:
+          summary: "Low usage detected"
+          description: "Less than {{ $value }} requests per second over the past hour"
+
+      - alert: TestGenApiQuotaExceeded
+        expr: testgen_api_quota_usage_percentage > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "API quota nearly exceeded"
+          description: "{{ $value }}% of API quota used for {{ $labels.api_provider }}"
+
+      - alert: TestGenQueueBacklog
+        expr: testgen_queue_size > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "Large queue backlog"
+          description: "{{ $value }} items in processing queue"
+
+  # ==========================================================================
+  # Development and CI/CD Alerts
+  # ==========================================================================
+  - name: testgen.development
+    interval: 1m
+    rules:
+      - alert: TestGenBuildFailures
+        expr: rate(testgen_build_failures_total[30m]) > 0.1
+        for: 5m
+        labels:
+          severity: info
+          service: testgen-copilot
+        annotations:
+          summary: "Frequent build failures"
+          description: "{{ $value }} build failures per second over the past 30 minutes"
+
+      - alert: TestGenDeploymentFailure
+        expr: testgen_deployment_status != 1
+        for: 1m
+        labels:
+          severity: critical
+          service: testgen-copilot
+        annotations:
+          summary: "Deployment failure"
+          description: "Deployment to {{ $labels.environment }} has failed"
+
+      - alert: TestGenTestFailures
+        expr: testgen_test_failure_rate > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: testgen-copilot
+        annotations:
+          summary: "High test failure rate"
+          description: "{{ $value | humanizePercentage }} of tests are failing"

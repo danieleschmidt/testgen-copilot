@@ -1,0 +1,378 @@
+# Comprehensive Security Scanning Pipeline
+# Runs multiple security tools and generates reports
+
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scan daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of security scan'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - secrets
+          - dependencies
+          - code-analysis
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ==========================================================================
+  # Secret Scanning
+  # ==========================================================================
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'secrets' || github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: Run GitLeaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: Detect hardcoded secrets
+        run: |
+          # Custom secret detection patterns
+          echo "Scanning for hardcoded secrets..."
+          
+          # Look for potential API keys
+          grep -r -E "(api[_-]?key|secret[_-]?key|access[_-]?token)" --include="*.py" --include="*.js" --include="*.yml" . || true
+          
+          # Look for potential passwords
+          grep -r -E "(password|passwd|pwd)" --include="*.py" --include="*.js" . | grep -v "# pragma: allowlist secret" || true
+          
+          # Look for potential database URLs
+          grep -r -E "(mongodb://|mysql://|postgresql://)" --include="*.py" --include="*.js" --include="*.yml" . || true
+
+  # ==========================================================================
+  # Dependency Vulnerability Scanning
+  # ==========================================================================
+  dependency-scan:
+    name: Dependency Scanning
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'dependencies' || github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety pip-audit cyclonedx-bom
+
+      - name: Run Safety check
+        run: |
+          pip install -e .
+          safety check --json --output safety-report.json
+          safety check --short-report
+
+      - name: Run pip-audit
+        run: |
+          pip-audit --format=json --output=pip-audit-report.json
+          pip-audit --format=cyclone-dx --output=pip-audit-cyclone.json
+
+      - name: Generate SBOM
+        run: |
+          cyclonedx-py -o sbom.json
+          cyclonedx-py -o sbom.xml --format xml
+
+      - name: Upload dependency scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-scan-results
+          path: |
+            safety-report.json
+            pip-audit-report.json
+            pip-audit-cyclone.json
+            sbom.json
+            sbom.xml
+
+  # ==========================================================================
+  # Static Code Analysis
+  # ==========================================================================
+  code-analysis:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'code-analysis' || github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install analysis tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit[toml] semgrep pylint
+
+      - name: Run Bandit security analysis
+        run: |
+          bandit -r src/ -f json -o bandit-report.json
+          bandit -r src/ -f txt -o bandit-report.txt
+          bandit -r src/ -f csv -o bandit-report.csv
+
+      - name: Run Semgrep analysis
+        run: |
+          semgrep --config=auto --json --output=semgrep-report.json src/
+          semgrep --config=p/security-audit --json --output=semgrep-security.json src/
+          semgrep --config=p/secrets --json --output=semgrep-secrets.json src/
+
+      - name: Run PyLint security checks
+        run: |
+          pylint src/ --load-plugins=pylint.extensions.security --output-format=json > pylint-security.json || true
+
+      - name: Upload code analysis results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-analysis-results
+          path: |
+            bandit-report.*
+            semgrep-*.json
+            pylint-security.json
+
+  # ==========================================================================
+  # Container Security Scanning
+  # ==========================================================================
+  container-scan:
+    name: Container Security
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t testgen-copilot:security-scan .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'testgen-copilot:security-scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          format: 'sarif'
+          output: 'trivy-config.sarif'
+
+      - name: Run Grype vulnerability scanner
+        uses: anchore/scan-action@v3
+        with:
+          image: 'testgen-copilot:security-scan'
+          format: 'sarif'
+          output-file: 'grype-results.sarif'
+
+      - name: Upload container scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: |
+            trivy-results.sarif
+            trivy-config.sarif
+            grype-results.sarif
+
+  # ==========================================================================
+  # License Compliance
+  # ==========================================================================
+  license-scan:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install license checking tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-licenses licensecheck
+
+      - name: Check Python package licenses
+        run: |
+          pip install -e .
+          pip-licenses --format=json --output-file=python-licenses.json
+          pip-licenses --format=csv --output-file=python-licenses.csv
+          pip-licenses --format=html --output-file=python-licenses.html
+
+      - name: Check for license compatibility
+        run: |
+          # Define allowed licenses
+          ALLOWED_LICENSES="MIT,Apache-2.0,BSD-3-Clause,ISC,LGPL-3.0,MPL-2.0"
+          
+          # Check if any packages use disallowed licenses
+          pip-licenses --format=plain | grep -v -E "(MIT|Apache|BSD|ISC|LGPL|MPL)" || echo "All licenses are compliant"
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-reports
+          path: |
+            python-licenses.*
+
+  # ==========================================================================
+  # Security Report Generation
+  # ==========================================================================
+  security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [secret-scan, dependency-scan, code-analysis, container-scan, license-scan]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate comprehensive security report
+        run: |
+          cat > security-report.md << 'EOF'
+          # Security Scan Report
+          
+          **Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit**: ${{ github.sha }}
+          **Branch**: ${{ github.ref_name }}
+          
+          ## Summary
+          
+          This report contains the results of comprehensive security scanning including:
+          - Secret detection
+          - Dependency vulnerability analysis
+          - Static code analysis
+          - Container security scanning
+          - License compliance checking
+          
+          ## Scan Results
+          
+          ### Secret Scanning
+          - TruffleHog: ${{ needs.secret-scan.result }}
+          - GitLeaks: ${{ needs.secret-scan.result }}
+          
+          ### Dependency Scanning
+          - Safety: ${{ needs.dependency-scan.result }}
+          - pip-audit: ${{ needs.dependency-scan.result }}
+          
+          ### Code Analysis
+          - Bandit: ${{ needs.code-analysis.result }}
+          - Semgrep: ${{ needs.code-analysis.result }}
+          
+          ### Container Security
+          - Trivy: ${{ needs.container-scan.result }}
+          - Grype: ${{ needs.container-scan.result }}
+          
+          ### License Compliance
+          - License Check: ${{ needs.license-scan.result }}
+          
+          ## Recommendations
+          
+          1. Review all high and critical severity findings
+          2. Update dependencies with known vulnerabilities
+          3. Fix any detected secrets or sensitive data exposure
+          4. Ensure all licenses are compatible with project requirements
+          
+          ## Next Steps
+          
+          - Address critical and high severity issues immediately
+          - Create tickets for medium severity issues
+          - Consider implementing additional security controls
+          - Schedule regular security reviews
+          
+          ---
+          
+          🚀 Generated with [Claude Code](https://claude.ai/code)
+          
+          Co-Authored-By: Claude <noreply@anthropic.com>
+          EOF
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.md
+
+      - name: Comment on PR with security summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read security report
+            const report = fs.readFileSync('security-report.md', 'utf8');
+            
+            // Create comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🔒 Security Scan Results\n\n${report}`
+            });
+
+      - name: Fail on critical security issues
+        run: |
+          # Check if any critical issues were found
+          CRITICAL_ISSUES=0
+          
+          # Check Bandit results for high severity issues
+          if [ -f "code-analysis-results/bandit-report.json" ]; then
+            HIGH_ISSUES=$(jq '.results[] | select(.issue_severity == "HIGH") | length' code-analysis-results/bandit-report.json 2>/dev/null || echo "0")
+            CRITICAL_ISSUES=$((CRITICAL_ISSUES + HIGH_ISSUES))
+          fi
+          
+          # Check Safety results
+          if [ -f "dependency-scan-results/safety-report.json" ]; then
+            SAFETY_ISSUES=$(jq '.vulnerabilities | length' dependency-scan-results/safety-report.json 2>/dev/null || echo "0")
+            CRITICAL_ISSUES=$((CRITICAL_ISSUES + SAFETY_ISSUES))
+          fi
+          
+          echo "Critical security issues found: $CRITICAL_ISSUES"
+          
+          if [ $CRITICAL_ISSUES -gt 0 ]; then
+            echo "❌ Critical security issues detected. Please address before merging."
+            exit 1
+          else
+            echo "✅ No critical security issues detected."
+          fi
