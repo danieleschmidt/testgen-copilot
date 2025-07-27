@@ -1,0 +1,2 @@
+MIT License - TestGen Copilot Assistant
+Copyright (c) 2024 TestGen Team

