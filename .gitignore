@@ -192,3 +192,52 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# TestGen Copilot specific
+.testgen/
+.testgen.config.json
+testgen.log
+*.testgen
+
+# Development containers
+.devcontainer/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Security
+secrets.env
+.secrets/
+
+# Monitoring and metrics
+metrics/
+logs/
+*.log
+
+# Performance profiling
+*.prof
+profiling/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Build artifacts
+*.whl
+*.tar.gz
+
+# Local configuration
+local.env
+.env.local
