@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # Main TestGen Copilot service
+  testgen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        VERSION: ${VERSION:-0.1.0}
+    image: testgen-copilot:latest
+    container_name: testgen-copilot
+    environment:
+      - TESTGEN_LOG_LEVEL=${TESTGEN_LOG_LEVEL:-INFO}
+      - TESTGEN_CACHE_DIR=/app/cache
+      - TESTGEN_CONFIG_PATH=/app/config
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+      - ./config:/app/config
+      # Mount source code for analysis
+      - ${SOURCE_PATH:-./src}:/workspace:ro
+    working_dir: /workspace
+    command: ["--help"]
+    restart: unless-stopped
+
+  # Development service
+  testgen-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    image: testgen-copilot:dev
+    container_name: testgen-copilot-dev
+    environment:
+      - TESTGEN_DEV_MODE=true
+      - TESTGEN_LOG_LEVEL=DEBUG
+    volumes:
+      - .:/workspace
+      - testgen-cache:/workspace/.cache
+      - testgen-logs:/workspace/logs
+    working_dir: /workspace
+    ports:
+      - "8000:8000"  # For potential web interface
+      - "8888:8888"  # For Jupyter Lab
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+
+  # Testing service
+  testgen-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+    image: testgen-copilot:test
+    container_name: testgen-copilot-test
+    environment:
+      - PYTEST_ADDOPTS=--tb=short -v --cov=src/testgen_copilot --cov-report=xml
+    volumes:
+      - .:/workspace
+      - testgen-test-results:/workspace/test-results
+    working_dir: /workspace
+    command: ["pytest", "tests/"]
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: testgen-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    profiles:
+      - cache
+
+  # PostgreSQL for data storage (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: testgen-postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-testgen}
+      - POSTGRES_USER=${POSTGRES_USER:-testgen}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-testgen}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    profiles:
+      - database
+
+  # Prometheus for metrics (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: testgen-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana for dashboards (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: testgen-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Jaeger for tracing (optional)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: testgen-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped
+    profiles:
+      - tracing
+
+volumes:
+  testgen-cache:
+    driver: local
+  testgen-logs:
+    driver: local
+  testgen-test-results:
+    driver: local
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  default:
+    name: testgen-network
+    driver: bridge
