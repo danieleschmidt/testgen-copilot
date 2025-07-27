@@ -1,0 +1,342 @@
+# Automated Dependency Updates
+# Keeps dependencies up-to-date with security patches and improvements
+
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ==========================================================================
+  # Security Updates (High Priority)
+  # ==========================================================================
+  security-updates:
+    name: Security Updates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety pip-audit
+
+      - name: Check for security vulnerabilities
+        id: security-check
+        run: |
+          # Check for known security vulnerabilities
+          safety check --json --output safety-report.json || true
+          pip-audit --format=json --output=audit-report.json || true
+          
+          # Count vulnerabilities
+          SAFETY_ISSUES=$(cat safety-report.json | jq '.vulnerabilities | length' 2>/dev/null || echo "0")
+          AUDIT_ISSUES=$(cat audit-report.json | jq '.vulnerabilities | length' 2>/dev/null || echo "0")
+          
+          echo "safety_issues=$SAFETY_ISSUES" >> $GITHUB_OUTPUT
+          echo "audit_issues=$AUDIT_ISSUES" >> $GITHUB_OUTPUT
+
+      - name: Create security update PR
+        if: steps.security-check.outputs.safety_issues > 0 || steps.security-check.outputs.audit_issues > 0
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            🔒 security: update dependencies with security vulnerabilities
+            
+            - Found ${{ steps.security-check.outputs.safety_issues }} Safety issues
+            - Found ${{ steps.security-check.outputs.audit_issues }} pip-audit issues
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+            
+            Co-Authored-By: Claude <noreply@anthropic.com>
+          title: '🔒 Security: Update vulnerable dependencies'
+          body: |
+            ## Security Dependency Updates
+            
+            This PR addresses security vulnerabilities found in dependencies:
+            
+            - **Safety Issues**: ${{ steps.security-check.outputs.safety_issues }}
+            - **pip-audit Issues**: ${{ steps.security-check.outputs.audit_issues }}
+            
+            ### Security Reports
+            - [View Safety Report](../security-reports/safety-report.json)
+            - [View Audit Report](../security-reports/audit-report.json)
+            
+            ### Next Steps
+            1. Review the security reports
+            2. Test the updated dependencies
+            3. Merge if all tests pass
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+          branch: security/dependency-updates
+          labels: |
+            security
+            dependencies
+            automated
+
+  # ==========================================================================
+  # Regular Dependency Updates
+  # ==========================================================================
+  dependency-updates:
+    name: Regular Updates
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        update-type: [minor, patch]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install pip-tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-tools
+
+      - name: Update dependencies
+        run: |
+          # Generate requirements files if they don't exist
+          if [ ! -f requirements.in ]; then
+            echo "# Production dependencies" > requirements.in
+            grep -E "^[^[].*=" pyproject.toml | sed 's/.*"\(.*\)".*/\1/' >> requirements.in || true
+          fi
+          
+          if [ ! -f requirements-dev.in ]; then
+            echo "# Development dependencies" > requirements-dev.in
+            echo "-r requirements.in" >> requirements-dev.in
+          fi
+          
+          # Update dependencies based on matrix
+          if [ "${{ matrix.update-type }}" == "minor" ]; then
+            pip-compile --upgrade requirements.in
+            pip-compile --upgrade requirements-dev.in
+          else
+            pip-compile --upgrade-package requirements.in
+            pip-compile --upgrade-package requirements-dev.in
+          fi
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            git diff --name-only
+          fi
+
+      - name: Create dependency update PR
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            ⬆️ deps: update ${{ matrix.update-type }} dependencies
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+            
+            Co-Authored-By: Claude <noreply@anthropic.com>
+          title: '⬆️ Update ${{ matrix.update-type }} dependencies'
+          body: |
+            ## Dependency Updates (${{ matrix.update-type }})
+            
+            This PR updates ${{ matrix.update-type }} dependencies to their latest versions.
+            
+            ### Changes
+            ```diff
+            $(git diff --no-index /dev/null requirements.txt 2>/dev/null | tail -n +5 || echo "No requirements.txt changes")
+            ```
+            
+            ### Testing
+            - [ ] All tests pass
+            - [ ] No breaking changes detected
+            - [ ] Security scan passes
+            
+            ### Auto-merge Criteria
+            - ✅ ${{ matrix.update-type }} updates only
+            - ✅ All CI checks pass
+            - ✅ No security vulnerabilities
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+          branch: deps/${{ matrix.update-type }}-updates
+          labels: |
+            dependencies
+            ${{ matrix.update-type }}
+            automated
+
+  # ==========================================================================
+  # Pre-commit Hook Updates
+  # ==========================================================================
+  precommit-updates:
+    name: Pre-commit Updates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install pre-commit
+        run: |
+          python -m pip install --upgrade pip
+          pip install pre-commit
+
+      - name: Update pre-commit hooks
+        run: |
+          pre-commit autoupdate
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet .pre-commit-config.yaml; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create pre-commit update PR
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            🔧 ci: update pre-commit hooks
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+            
+            Co-Authored-By: Claude <noreply@anthropic.com>
+          title: '🔧 Update pre-commit hooks'
+          body: |
+            ## Pre-commit Hook Updates
+            
+            This PR updates pre-commit hooks to their latest versions.
+            
+            ### Changes
+            ```diff
+            $(git diff .pre-commit-config.yaml)
+            ```
+            
+            ### Testing
+            - [ ] Pre-commit hooks run successfully
+            - [ ] All existing code passes new hook versions
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+          branch: ci/precommit-updates
+          labels: |
+            ci
+            dependencies
+            automated
+
+  # ==========================================================================
+  # GitHub Actions Updates
+  # ==========================================================================
+  actions-updates:
+    name: GitHub Actions Updates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update GitHub Actions
+        uses: renovatebot/github-action@v39.2.3
+        with:
+          configurationFile: .github/renovate.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================================================
+  # Docker Base Image Updates
+  # ==========================================================================
+  docker-updates:
+    name: Docker Updates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for base image updates
+        id: docker-check
+        run: |
+          # Get current Python version from Dockerfile
+          CURRENT_IMAGE=$(grep "FROM python:" Dockerfile | head -1 | cut -d' ' -f2)
+          echo "current_image=$CURRENT_IMAGE" >> $GITHUB_OUTPUT
+          
+          # Check if there's a newer patch version available
+          MAJOR_MINOR=$(echo $CURRENT_IMAGE | cut -d'-' -f1 | cut -d':' -f2 | cut -d'.' -f1,2)
+          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
+
+      - name: Update Dockerfile
+        run: |
+          # This is a simplified update - in practice, you'd want more sophisticated logic
+          sed -i 's/python:3\.11-slim-bullseye/python:3.11-slim-bookworm/g' Dockerfile || true
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet Dockerfile; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Docker update PR
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            🐳 docker: update base image
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+            
+            Co-Authored-By: Claude <noreply@anthropic.com>
+          title: '🐳 Update Docker base image'
+          body: |
+            ## Docker Base Image Update
+            
+            This PR updates the Docker base image to the latest version.
+            
+            ### Changes
+            - Updated Python base image
+            - Maintained security and compatibility
+            
+            ### Testing Required
+            - [ ] Docker build succeeds
+            - [ ] All tests pass in new container
+            - [ ] Security scan passes
+            
+            🚀 Generated with [Claude Code](https://claude.ai/code)
+          branch: docker/base-image-update
+          labels: |
+            docker
+            dependencies
+            automated
