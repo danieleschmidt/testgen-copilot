@@ -1,0 +1,105 @@
+# Prometheus configuration for TestGen Copilot Assistant
+# Monitors application metrics, performance, and health
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'testgen-copilot'
+    replica: 'prometheus-1'
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # TestGen Copilot Application
+  - job_name: 'testgen-copilot'
+    static_configs:
+      - targets: ['testgen:8000']
+    scrape_interval: 10s
+    metrics_path: /metrics
+    scrape_timeout: 5s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: testgen:8000
+
+  # Redis monitoring
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # Docker metrics
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['docker-exporter:9323']
+    scrape_interval: 30s
+
+  # Application-specific metrics
+  - job_name: 'testgen-metrics'
+    static_configs:
+      - targets: ['testgen:8000']
+    scrape_interval: 15s
+    metrics_path: /api/metrics
+    params:
+      format: ['prometheus']
+    metric_relabel_configs:
+      # Drop high cardinality metrics
+      - source_labels: [__name__]
+        regex: 'testgen_request_duration_seconds_bucket'
+        target_label: __tmp_drop
+        replacement: 'yes'
+      - source_labels: [__tmp_drop]
+        regex: 'yes'
+        action: drop
+
+  # Health check endpoints
+  - job_name: 'health-checks'
+    static_configs:
+      - targets: 
+          - 'testgen:8000'
+          - 'redis:6379'
+    scrape_interval: 30s
+    metrics_path: /health
+    params:
+      format: ['json']
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "http://remote-storage:8086/api/v1/prom/write?db=prometheus"
+    queue_config:
+      max_samples_per_send: 1000
+      max_shards: 200
+      capacity: 2500
+
+# Remote read configuration
+remote_read:
+  - url: "http://remote-storage:8086/api/v1/prom/read?db=prometheus"
+    read_recent: true
