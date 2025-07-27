@@ -1,0 +1,169 @@
+# Enhanced Security CI Workflow Template
+# 
+# NOTE: This file cannot be automatically created in .github/workflows/ 
+# due to GitHub App permissions. Please manually copy this to:
+# .github/workflows/security-enhanced-ci.yml
+
+name: Enhanced Security CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 2 * * *'  # Daily SBOM generation
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write  # For OIDC token signing
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+          
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-xdist coverage ruff bandit
+          pip install -e .
+          
+      - name: Dependency Check with NVD Cache
+        uses: dependency-check/Dependency-Check_Action@main
+        id: depcheck
+        with:
+          project: 'testgen-copilot'
+          path: '.'
+          format: 'ALL'
+          args: >
+            --enableRetired
+            --enableExperimental
+            --nvdApiKey ${{ secrets.NVD_API_KEY }}
+            --nvdMaxRetryCount 10
+            --nvdValidForHours 4
+            
+      - name: Upload Dependency Check Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+          
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom.spdx.json
+          
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+          
+      - name: SBOM Vulnerability Scan
+        uses: anchore/scan-action@v3
+        with:
+          path: sbom.spdx.json
+          fail-build: true
+          severity-cutoff: high
+          
+      - name: CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"
+          
+      - name: Security scan with bandit
+        run: |
+          bandit -r src -f json -o bandit-report.json || true
+          bandit -r src
+          
+      - name: Upload Bandit Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  auto-rebase:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config rerere.enabled true
+          git config rerere.autoupdate true
+          
+      - name: Attempt Auto-rebase
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if git rebase origin/${{ github.base_ref }}; then
+            git push --force-with-lease origin ${{ github.head_ref }}
+            echo "✅ Auto-rebase successful"
+          else
+            git rebase --abort
+            echo "❌ Auto-rebase failed - manual intervention required"
+            gh pr comment ${{ github.event.number }} \
+              --body "🔄 Auto-rebase failed. Please resolve conflicts manually and push."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  metrics-collection:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [security-scan]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          
+      - name: Collect Metrics
+        run: |
+          python -m testgen_copilot.metrics_collector
+          
+      - name: Upload Metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: execution-metrics
+          path: docs/status/

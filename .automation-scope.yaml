@@ -1,0 +1,35 @@
+# Automation Scope Configuration
+# Defines what operations the autonomous backlog management system is allowed to perform
+
+repository_operations:
+  allowed_paths:
+    - "./"  # All paths under repo root
+    - "src/**"
+    - "tests/**"
+    - "docs/**"
+    - "scripts/**"
+  
+  restricted_paths:
+    - ".git/**"
+    - ".github/workflows/**"  # GitHub workflows require manual approval
+    - "*.key"
+    - "*.pem"
+    - "*.env"
+    - ".env*"
+
+external_operations:
+  # Currently no external operations whitelisted
+  allowed_apis: []
+  allowed_urls: []
+
+security_constraints:
+  max_file_size_mb: 10
+  max_batch_size: 1000
+  timeout_seconds: 30
+  memory_limit_mb: 512
+
+automation_limits:
+  max_prs_per_day: 5
+  max_branch_age_hours: 24
+  max_loc_per_pr: 200
+  ci_failure_rate_threshold: 0.30  # If >30% failures, reduce to 2 PRs/day
