@@ -1,0 +1,19 @@
+{
+  "name": "testgen-copilot",
+  "version": "0.0.1",
+  "description": "CLI tool for automated test generation",
+  "scripts": {
+    "dev": "make install-dev",
+    "test": "make test",
+    "lint": "make lint",
+    "format": "make format",
+    "build": "make build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/terragonlabs/testgen-copilot.git"
+  },
+  "keywords": ["testing", "python", "cli", "automation"],
+  "author": "Terragon Labs",
+  "license": "MIT"
+}
