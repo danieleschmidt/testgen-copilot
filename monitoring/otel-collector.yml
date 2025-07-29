@@ -1,0 +1,163 @@
+# OpenTelemetry Collector Configuration
+# Comprehensive telemetry data collection, processing, and export
+
+receivers:
+  # OTLP receivers for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'testgen-copilot'
+          static_configs:
+            - targets: ['localhost:8000']
+          scrape_interval: 30s
+          metrics_path: /metrics
+
+  # Host metrics receiver
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      disk: {}
+      filesystem: {}
+      memory: {}
+      network: {}
+      process: {}
+      paging: {}
+
+  # Docker stats receiver
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 30s
+    timeout: 10s
+
+processors:
+  # Batch processor for better performance
+  batch:
+    send_batch_size: 1024
+    timeout: 10s
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Resource processor to add metadata
+  resource:
+    attributes:
+      - key: service.name
+        value: testgen-copilot
+        action: upsert
+      - key: service.version
+        value: 0.0.1
+        action: upsert
+      - key: deployment.environment
+        value: development
+        action: upsert
+
+  # Attributes processor for trace enhancement
+  attributes:
+    actions:
+      - key: http.url
+        action: delete
+      - key: http.user_agent
+        action: hash
+
+  # Probabilistic sampler for trace sampling
+  probabilistic_sampler:
+    sampling_percentage: 10.0
+
+  # Tail sampler for intelligent trace sampling
+  tail_sampling:
+    decision_wait: 30s
+    num_traces: 50000
+    expected_new_traces_per_sec: 10
+    policies:
+      - name: errors
+        type: status_code
+        status_code: {status_codes: [ERROR]}
+      - name: slow
+        type: latency
+        latency: {threshold_ms: 1000}
+      - name: random
+        type: probabilistic
+        probabilistic: {sampling_percentage: 1.0}
+
+exporters:
+  # Jaeger exporter for traces
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+  # Prometheus exporter for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    const_labels:
+      environment: development
+
+  # Elasticsearch exporter for logs
+  elasticsearch:
+    endpoints: ["http://elasticsearch:9200"]
+    index: "testgen-copilot-logs"
+    mapping:
+      mode: ecs
+
+  # OTLP exporter for forwarding to other collectors
+  otlp:
+    endpoint: http://localhost:4317
+    tls:
+      insecure: true
+
+  # Logging exporter for debugging
+  logging:
+    loglevel: debug
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # Performance profiling extension
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # zPages extension for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, attributes, tail_sampling, batch]
+      exporters: [jaeger, logging]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics, docker_stats]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus, logging]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [elasticsearch, logging]
+
+  telemetry:
+    logs:
+      level: "info"
+    metrics:
+      address: 0.0.0.0:8888
