@@ -1,0 +1,64 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "@testgen/security-team"
+    assignees:
+      - "@testgen/maintainers"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "security"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      development-dependencies:
+        patterns:
+          - "pytest*"
+          - "black"
+          - "ruff"
+          - "mypy*"
+          - "bandit*"
+          - "pre-commit"
+      ai-dependencies:
+        patterns:
+          - "openai"
+          - "anthropic"
+          - "tiktoken"
+      security-dependencies:
+        patterns:
+          - "*security*"
+          - "*crypto*"
+          - "*auth*"
+    
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "@testgen/security-team"
+    labels:
+      - "docker"
+      - "security"
+    
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "@testgen/devops-team"
+    labels:
+      - "github-actions"
+      - "ci-cd"
