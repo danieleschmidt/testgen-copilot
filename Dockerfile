@@ -4,7 +4,7 @@
 # =============================================================================
 # Build Stage - Compile dependencies and prepare application
 # =============================================================================
-FROM python:3.11-slim-bullseye as builder
+FROM python:3.13-slim-bullseye as builder
 
 # Set build arguments
 ARG BUILD_DATE
@@ -42,7 +42,7 @@ RUN pip install --upgrade pip setuptools wheel && \
 # =============================================================================
 # Runtime Stage - Minimal production image
 # =============================================================================
-FROM python:3.11-slim-bullseye as runtime
+FROM python:3.13-slim-bullseye as runtime
 
 # Set build metadata
 LABEL org.opencontainers.image.title="TestGen Copilot Assistant" \
