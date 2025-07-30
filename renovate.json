@@ -1,0 +1,147 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate configuration for automated dependency management",
+  "extends": [
+    "config:base",
+    "security:openssf-scorecard",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":combinePatchMinorReleases",
+    ":ignoreUnstable",
+    ":prImmediately",
+    ":updateNotScheduled",
+    ":automergeDisabled",
+    ":ignoreModulesAndTests",
+    ":maintainLockFilesWeekly",
+    ":autodetectPinVersions"
+  ],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 4,
+  "stabilityDays": 3,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"]
+  },
+  "osvVulnerabilityAlerts": true,
+  "rebaseWhen": "conflicted",
+  "assignees": ["@terragonlabs/maintainers"],
+  "reviewers": ["@terragonlabs/security-team"],
+  "labels": ["dependencies", "automated"],
+  "commitMessagePrefix": "deps:",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "semanticCommits": "enabled",
+  "packageRules": [
+    {
+      "description": "Python dependencies",
+      "matchManagers": ["pip_requirements", "pip_setup", "pipenv", "poetry"],
+      "groupName": "python dependencies",
+      "schedule": ["before 6am on monday"],
+      "stabilityDays": 3,
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Security-related packages - immediate updates",
+      "matchPackagePatterns": ["*security*", "*crypto*", "*auth*", "bandit", "safety"],
+      "schedule": ["at any time"],
+      "stabilityDays": 0,
+      "minimumReleaseAge": "0 days",
+      "labels": ["dependencies", "security", "priority-high"]
+    },
+    {
+      "description": "Development dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": ["pytest*", "black", "ruff", "mypy*", "pre-commit"],
+      "groupName": "dev dependencies",
+      "schedule": ["before 6am on monday"],
+      "stabilityDays": 7
+    },
+    {
+      "description": "AI/ML dependencies",
+      "matchPackageNames": ["openai", "anthropic", "tiktoken"],
+      "groupName": "ai dependencies",
+      "schedule": ["before 6am on monday"],
+      "stabilityDays": 7,
+      "labels": ["dependencies", "ai-ml"]
+    },
+    {
+      "description": "Major version updates - require manual review",
+      "matchUpdateTypes": ["major"],
+      "schedule": ["before 6am on first day of month"],
+      "stabilityDays": 14,
+      "labels": ["dependencies", "major-update", "review-required"],
+      "prPriority": -10
+    },
+    {
+      "description": "Docker base images",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["python"],
+      "schedule": ["before 6am on monday"],
+      "stabilityDays": 7,
+      "labels": ["dependencies", "docker", "security"]
+    },
+    {
+      "description": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "schedule": ["before 6am on monday"],
+      "stabilityDays": 3,
+      "labels": ["dependencies", "ci-cd"]
+    }
+  ],
+  "regexManagers": [
+    {
+      "description": "Update Python version in Dockerfile",
+      "fileMatch": ["(^|/)Dockerfile$", "docker/.*\\.dockerfile$"],
+      "matchStrings": ["FROM python:(?<currentValue>.*?)-"],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "python",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update version in pyproject.toml",
+      "fileMatch": ["^pyproject\\.toml$"],
+      "matchStrings": ["version = \"(?<currentValue>.*?)\""],
+      "datasourceTemplate": "pypi",
+      "depNameTemplate": "testgen_copilot"
+    }
+  ],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/.git/**",
+    "**/test/**",
+    "**/tests/**",
+    "docs/**",
+    "**/*.md"
+  ],
+  "ignoreDeps": [
+    "python"
+  ],
+  "enabledManagers": [
+    "pip_requirements",
+    "pip_setup",
+    "docker-compose",
+    "dockerfile",
+    "github-actions"
+  ],
+  "postUpdateOptions": [
+    "pythonPoetryMassage"
+  ],
+  "python": {
+    "additionalBranchPrefix": "deps/python/",
+    "rangeStrategy": "pin"
+  },
+  "docker": {
+    "additionalBranchPrefix": "deps/docker/",
+    "rangeStrategy": "pin"
+  }
+}
