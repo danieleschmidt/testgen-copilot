@@ -129,13 +129,30 @@ docker-compose-down: ## Stop services with docker-compose
 # Documentation
 # =============================================================================
 
-docs: ## Generate documentation
-	@echo "Documentation generation not yet implemented"
-	@echo "TODO: Add Sphinx or MkDocs setup"
+docs-install: ## Install documentation dependencies
+	pip install -r docs/requirements.txt
 
-docs-serve: ## Serve documentation locally
-	@echo "Documentation serving not yet implemented"
-	@echo "TODO: Add local documentation server"
+docs-clean: ## Clean documentation build artifacts
+	rm -rf docs/_build/
+	rm -rf docs/_static/
+	mkdir -p docs/_static
+
+docs-apidoc: ## Generate API documentation
+	sphinx-apidoc -o docs/api src/testgen_copilot --force --module-first
+
+docs: docs-clean docs-apidoc ## Generate documentation
+	cd docs && sphinx-build -b html . _build/html
+	@echo "Documentation built successfully!"
+	@echo "Open docs/_build/html/index.html in your browser"
+
+docs-serve: docs ## Serve documentation locally with auto-reload
+	cd docs && sphinx-autobuild . _build/html --host 0.0.0.0 --port 8000
+
+docs-linkcheck: ## Check documentation for broken links
+	cd docs && sphinx-build -b linkcheck . _build/linkcheck
+
+docs-pdf: ## Generate PDF documentation
+	cd docs && sphinx-build -b latexpdf . _build/pdf
 
 # =============================================================================
 # Development Utilities

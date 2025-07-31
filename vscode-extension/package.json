@@ -1,0 +1,208 @@
+{
+  "name": "testgen-copilot",
+  "displayName": "TestGen Copilot Assistant",
+  "description": "AI-powered test generation and security analysis for Python projects",
+  "version": "0.0.1",
+  "publisher": "terragon-labs",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Testing",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "python",
+    "testing",
+    "ai",
+    "security",
+    "automation",
+    "copilot"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onCommand:testgen.generateTests",
+    "onCommand:testgen.generateTestsFromActiveFile",
+    "onCommand:testgen.runSecurityScan",
+    "onCommand:testgen.showCoverage",
+    "onCommand:testgen.openSettings"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "testgen.generateTests",
+        "title": "Generate Tests with TestGen",
+        "category": "TestGen",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "testgen.generateTestsFromActiveFile",
+        "title": "Generate Tests for Active File",
+        "category": "TestGen",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "testgen.runSecurityScan",
+        "title": "Run Security Scan",
+        "category": "TestGen",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "testgen.showCoverage",
+        "title": "Show Coverage Report",
+        "category": "TestGen",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "testgen.openSettings",
+        "title": "Open TestGen Settings",
+        "category": "TestGen",
+        "icon": "$(gear)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "testgen.generateTestsFromActiveFile",
+          "when": "resourceExtname == .py",
+          "group": "testgen@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "testgen.generateTestsFromActiveFile",
+          "when": "resourceExtname == .py",
+          "group": "testgen@1"
+        },
+        {
+          "command": "testgen.runSecurityScan",
+          "when": "resourceExtname == .py",
+          "group": "testgen@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "testgen.generateTests",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "testgen.generateTestsFromActiveFile",
+          "when": "editorLangId == python"
+        },
+        {
+          "command": "testgen.runSecurityScan",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "testgen.showCoverage",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TestGen Copilot",
+      "properties": {
+        "testgen.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to Python executable"
+        },
+        "testgen.enableRealTimeSuggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time test generation suggestions"
+        },
+        "testgen.securityScanLevel": {
+          "type": "string",
+          "enum": ["basic", "standard", "comprehensive"],
+          "default": "standard",
+          "description": "Security scanning sensitivity level"
+        },
+        "testgen.outputDirectory": {
+          "type": "string",
+          "default": "tests",
+          "description": "Directory for generated test files"
+        },
+        "testgen.aiModel": {
+          "type": "string",
+          "enum": ["gpt-4", "gpt-3.5-turbo", "claude-3"],
+          "default": "gpt-4",
+          "description": "AI model for test generation"
+        },
+        "testgen.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show TestGen actions in code lens"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "testgen.generateTestsFromActiveFile",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus && editorLangId == python"
+      },
+      {
+        "command": "testgen.runSecurityScan",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "editorTextFocus && editorLangId == python"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "testgenExplorer",
+          "name": "TestGen Copilot",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "testgen",
+          "title": "TestGen Copilot",
+          "icon": "$(beaker)"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4",
+    "@vscode/test-electron": "^2.2.0",
+    "vsce": "^2.15.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terragonlabs/testgen-copilot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/terragonlabs/testgen-copilot/issues"
+  },
+  "homepage": "https://github.com/terragonlabs/testgen-copilot#readme",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  }
+}
