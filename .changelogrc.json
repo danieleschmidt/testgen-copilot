@@ -1,0 +1,150 @@
+{
+  "type": "conventional",
+  "preset": "angular",
+  "releaseCommitMessageFormat": "chore(release): bump version to {{currentTag}}",
+  "infile": "CHANGELOG.md",
+  "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n",
+  "types": [
+    {
+      "type": "feat",
+      "section": "✨ Features",
+      "hidden": false
+    },
+    {
+      "type": "fix",
+      "section": "🐛 Bug Fixes",
+      "hidden": false
+    },
+    {
+      "type": "perf",
+      "section": "⚡ Performance Improvements",
+      "hidden": false
+    },
+    {
+      "type": "revert",
+      "section": "⏪ Reverts",
+      "hidden": false
+    },
+    {
+      "type": "docs",
+      "section": "📚 Documentation",
+      "hidden": false
+    },
+    {
+      "type": "style",
+      "section": "💎 Styles",
+      "hidden": true
+    },
+    {
+      "type": "refactor",
+      "section": "♻️ Code Refactoring",
+      "hidden": false
+    },
+    {
+      "type": "test",
+      "section": "✅ Tests",
+      "hidden": false
+    },
+    {
+      "type": "build",
+      "section": "🔧 Build System",
+      "hidden": false
+    },
+    {
+      "type": "ci",
+      "section": "🔄 Continuous Integration",
+      "hidden": false
+    },
+    {
+      "type": "chore",
+      "section": "🏗️ Chores",
+      "hidden": true
+    },
+    {
+      "type": "security",
+      "section": "🔒 Security",
+      "hidden": false
+    }
+  ],
+  "commitUrlFormat": "https://github.com/terragonlabs/testgen-copilot/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/terragonlabs/testgen-copilot/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/terragonlabs/testgen-copilot/issues/{{id}}",
+  "userUrlFormat": "https://github.com/{{user}}",
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}\n\n🚀 Generated with [Claude Code](https://claude.ai/code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+  "bumpFiles": [
+    {
+      "filename": "pyproject.toml",
+      "updater": "standard-version-updater-toml"
+    },
+    {
+      "filename": "src/testgen_copilot/version.py",
+      "updater": {
+        "readVersion": "def get_version():\\s*return ['\"]([^'\"]*)['\"]",
+        "writeVersion": "def get_version():\\n    return \"{{version}}\""
+      }
+    },
+    {
+      "filename": "package.json",
+      "type": "json"
+    },
+    {
+      "filename": "vscode-extension/package.json",
+      "type": "json"
+    }
+  ],
+  "packageFiles": [
+    {
+      "filename": "pyproject.toml",
+      "type": "toml"
+    },
+    {
+      "filename": "package.json",
+      "type": "json"
+    }
+  ],
+  "skip": {
+    "bump": false,
+    "changelog": false,
+    "commit": false,
+    "tag": false
+  },
+  "scripts": {
+    "prerelease": "npm run test && npm run lint",
+    "postrelease": "echo \"Release completed successfully!\""
+  },
+  "tagPrefix": "v",
+  "releaseAs": "patch",
+  "preMajor": false,
+  "commitAll": true,
+  "sign": false,
+  "verifyConditions": [
+    "@semantic-release/changelog",
+    "@semantic-release/npm",
+    "@semantic-release/github"
+  ],
+  "prepare": [
+    "@semantic-release/changelog",
+    "@semantic-release/npm",
+    {
+      "path": "@semantic-release/git",
+      "assets": [
+        "CHANGELOG.md",
+        "pyproject.toml",
+        "package.json",
+        "vscode-extension/package.json",
+        "src/testgen_copilot/version.py"
+      ],
+      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+    }
+  ],
+  "publish": [
+    "@semantic-release/npm",
+    "@semantic-release/github"
+  ],
+  "success": [
+    "@semantic-release/github"
+  ],
+  "fail": [
+    "@semantic-release/github"
+  ]
+}

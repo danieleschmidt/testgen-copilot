@@ -1,0 +1,97 @@
+# Container Registry Configuration
+# This file defines multi-registry publishing strategy for TestGen Copilot
+
+registries:
+  github:
+    enabled: true
+    registry: ghcr.io
+    namespace: terragonlabs
+    image_name: testgen-copilot
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    tags:
+      - type: ref,event=branch
+      - type: ref,event=pr
+      - type: semver,pattern={{version}}
+      - type: semver,pattern={{major}}.{{minor}}
+      - type: semver,pattern={{major}}
+      - type: raw,value=latest,enable={{is_default_branch}}
+    
+  dockerhub:
+    enabled: true
+    registry: docker.io
+    namespace: terragonlabs
+    image_name: testgen-copilot
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    tags:
+      - type: semver,pattern={{version}}
+      - type: semver,pattern={{major}}.{{minor}}
+      - type: semver,pattern={{major}}
+      - type: raw,value=latest,enable={{is_default_branch}}
+    
+  aws_ecr:
+    enabled: false
+    registry: "{{ env.AWS_ACCOUNT_ID }}.dkr.ecr.{{ env.AWS_REGION }}.amazonaws.com"
+    namespace: ""
+    image_name: testgen-copilot
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    tags:
+      - type: semver,pattern={{version}}
+      - type: raw,value=latest,enable={{is_default_branch}}
+
+build_matrix:
+  base_images:
+    - name: alpine
+      dockerfile: Dockerfile
+      context: .
+      target: production
+    - name: debian
+      dockerfile: docker/debian.dockerfile
+      context: .
+      target: production
+    - name: security-scan
+      dockerfile: docker/security-scan.dockerfile
+      context: .
+      target: scanner
+
+security:
+  vulnerability_scanning:
+    enabled: true
+    tools:
+      - trivy
+      - grype
+    fail_on: critical
+    
+  sbom_generation:
+    enabled: true
+    format: spdx-json
+    
+  image_signing:
+    enabled: true
+    keyless: true
+    
+  provenance_attestation:
+    enabled: true
+
+automation:
+  auto_update_base_images:
+    enabled: true
+    schedule: "0 2 * * 1"
+    
+  security_patch_automation:
+    enabled: true
+    auto_merge: false
+    
+  registry_cleanup:
+    enabled: true
+    retention_policy:
+      keep_last: 10
+      keep_tags:
+        - latest
+        - "v*.*.*"
+      cleanup_schedule: "0 3 * * 0"
