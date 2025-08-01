@@ -1,0 +1,245 @@
+# Advanced Security Rules for TestGen Copilot
+# Custom security analysis patterns and compliance checks
+
+# =============================================================================
+# Code Security Patterns
+# =============================================================================
+security_patterns:
+  # Input validation patterns
+  input_validation:
+    - pattern: "request\\.(?:args|form|json)\\[.*\\]"
+      severity: medium
+      message: "Direct access to request data without validation"
+      suggestion: "Use proper input validation and sanitization"
+    
+    - pattern: "eval\\(.*\\)"
+      severity: critical
+      message: "Use of eval() can lead to code injection"
+      suggestion: "Use ast.literal_eval() or avoid dynamic evaluation"
+    
+    - pattern: "exec\\(.*\\)"
+      severity: critical  
+      message: "Use of exec() can lead to code injection"
+      suggestion: "Avoid dynamic code execution"
+
+  # Authentication and authorization
+  auth_patterns:
+    - pattern: "password\\s*=\\s*['\"].*['\"]"
+      severity: high
+      message: "Hardcoded password detected"
+      suggestion: "Use environment variables or secure vault"
+    
+    - pattern: "api_key\\s*=\\s*['\"].*['\"]"
+      severity: high
+      message: "Hardcoded API key detected"
+      suggestion: "Use environment variables or secure vault"
+    
+    - pattern: "secret\\s*=\\s*['\"].*['\"]"
+      severity: high
+      message: "Hardcoded secret detected"
+      suggestion: "Use environment variables or secure vault"
+
+  # SQL injection patterns
+  sql_patterns:
+    - pattern: "execute\\(['\"].*%s.*['\"]"
+      severity: high
+      message: "Potential SQL injection vulnerability"
+      suggestion: "Use parameterized queries"
+    
+    - pattern: "cursor\\.execute\\(.*\\+.*\\)"
+      severity: high
+      message: "String concatenation in SQL query"
+      suggestion: "Use parameterized queries"
+
+  # File system security
+  file_patterns:
+    - pattern: "open\\(.*input.*\\)"
+      severity: medium
+      message: "File operation with user input"
+      suggestion: "Validate and sanitize file paths"
+    
+    - pattern: "subprocess\\..*shell=True"
+      severity: high
+      message: "Shell injection vulnerability"
+      suggestion: "Avoid shell=True or sanitize input"
+
+# =============================================================================
+# Dependency Security Checks
+# =============================================================================
+dependency_security:
+  # Known vulnerable packages
+  vulnerable_patterns:
+    - package: "pillow"
+      version_pattern: "<8.3.2"
+      severity: critical
+      cve: "CVE-2021-34552"
+    
+    - package: "requests"
+      version_pattern: "<2.31.0"
+      severity: high
+      cve: "CVE-2023-32681"
+    
+    - package: "urllib3"
+      version_pattern: "<1.26.17"
+      severity: medium
+      cve: "CVE-2023-43804"
+
+  # Suspicious dependency patterns
+  suspicious_dependencies:
+    - pattern: ".*\\.tar\\.gz#egg=.*"
+      severity: medium
+      message: "Direct installation from URL"
+      suggestion: "Use verified package sources"
+
+# =============================================================================
+# Secret Detection Rules
+# =============================================================================
+secret_detection:
+  patterns:
+    - name: "AWS Access Key"
+      pattern: "AKIA[0-9A-Z]{16}"
+      severity: critical
+    
+    - name: "GitHub Token" 
+      pattern: "ghp_[0-9a-zA-Z]{36}"
+      severity: critical
+    
+    - name: "OpenAI API Key"
+      pattern: "sk-[0-9a-zA-Z]{48}"
+      severity: critical
+    
+    - name: "Anthropic API Key"
+      pattern: "sk-ant-api[0-9]{2}-[0-9a-zA-Z\\-_]{93}-[0-9a-zA-Z\\-_]{6}AA"
+      severity: critical
+
+  # File patterns to exclude
+  exclude_patterns:
+    - ".git/"
+    - "node_modules/"
+    - ".venv/"
+    - "__pycache__/"
+    - "*.pyc"
+    - "tests/fixtures/"
+    - "docs/"
+
+# =============================================================================
+# Code Quality Security Rules
+# =============================================================================
+quality_security:
+  # Complexity thresholds that indicate security risks
+  complexity_thresholds:
+    cyclomatic_complexity: 15
+    cognitive_complexity: 20
+    nesting_depth: 5
+  
+  # Security-critical functions that need extra scrutiny
+  critical_functions:
+    - "authenticate"
+    - "authorize"
+    - "validate_token"
+    - "decrypt"
+    - "verify_signature"
+    - "sanitize_input"
+    - "execute_command"
+
+# =============================================================================
+# Compliance Rules
+# =============================================================================
+compliance:
+  # OWASP Top 10 checks
+  owasp_checks:
+    - id: "A01_2021"
+      name: "Broken Access Control"
+      patterns:
+        - "admin.*=.*True"
+        - "is_admin.*=.*request"
+    
+    - id: "A02_2021"
+      name: "Cryptographic Failures"
+      patterns:
+        - "md5\\("
+        - "sha1\\("
+        - "DES"
+    
+    - id: "A03_2021" 
+      name: "Injection"
+      patterns:
+        - "eval\\("
+        - "exec\\("
+        - "\\+.*WHERE"
+
+  # NIST Secure Development requirements
+  nist_requirements:
+    - requirement: "Input Validation"
+      check_pattern: "validate_input|sanitize|escape"
+      files: ["*.py"]
+    
+    - requirement: "Error Handling"
+      check_pattern: "try:|except:|logging\\."
+      files: ["*.py"]
+    
+    - requirement: "Secure Communication"
+      check_pattern: "https:|ssl_context|verify=True"
+      files: ["*.py"]
+
+# =============================================================================
+# AI/LLM Specific Security
+# =============================================================================
+ai_security:
+  # LLM-specific vulnerabilities
+  llm_patterns:
+    - pattern: "prompt.*\\+.*user_input"
+      severity: high
+      message: "Potential prompt injection vulnerability"
+      suggestion: "Sanitize user input before adding to prompts"
+    
+    - pattern: "openai\\..*\\(.*input.*\\)"
+      severity: medium
+      message: "Direct user input to LLM API"
+      suggestion: "Validate and sanitize input"
+    
+    - pattern: "anthropic\\..*\\(.*input.*\\)"
+      severity: medium
+      message: "Direct user input to LLM API"  
+      suggestion: "Validate and sanitize input"
+
+  # Model security checks
+  model_security:
+    - check: "api_key_exposure"
+      pattern: "api_key.*print|log.*api_key"
+      severity: critical
+    
+    - check: "model_output_validation"
+      pattern: "response\\.content.*eval|exec"
+      severity: high
+
+# =============================================================================
+# Container Security Rules
+# =============================================================================
+container_security:
+  dockerfile_rules:
+    - rule: "avoid_root_user"
+      pattern: "USER root"
+      severity: medium
+      suggestion: "Use non-root user"
+    
+    - rule: "pin_base_image"
+      pattern: "FROM.*:latest"
+      severity: low
+      suggestion: "Pin base image to specific version"
+    
+    - rule: "minimize_layers"
+      pattern: "RUN.*&&.*&&.*&&"
+      severity: low
+      suggestion: "Combine RUN commands to reduce layers"
+
+  compose_rules:
+    - rule: "no_privileged_containers"
+      pattern: "privileged:\\s*true"
+      severity: high
+      suggestion: "Avoid privileged containers"
+    
+    - rule: "no_host_network"
+      pattern: "network_mode:\\s*host"
+      severity: medium  
+      suggestion: "Use custom network instead of host"
