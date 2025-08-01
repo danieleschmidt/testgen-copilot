@@ -1,0 +1,261 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://testgen-copilot.com/schemas/config.schema.json",
+  "title": "TestGen-Copilot Configuration",
+  "description": "Configuration schema for TestGen-Copilot test generation",
+  "type": "object",
+  "properties": {
+    "language": {
+      "type": "string",
+      "enum": ["python", "javascript", "typescript", "java", "csharp", "go", "rust"],
+      "description": "Primary programming language for the project"
+    },
+    "test_framework": {
+      "type": "string",
+      "description": "Testing framework to use for generated tests",
+      "anyOf": [
+        {
+          "enum": ["pytest", "unittest", "nose2"],
+          "description": "Python testing frameworks"
+        },
+        {
+          "enum": ["jest", "mocha", "jasmine", "vitest"],
+          "description": "JavaScript/TypeScript testing frameworks"
+        },
+        {
+          "enum": ["junit5", "testng", "mockito"],
+          "description": "Java testing frameworks"
+        },
+        {
+          "enum": ["nunit", "mstest", "xunit"],
+          "description": "C# testing frameworks"
+        },
+        {
+          "enum": ["testing", "testify"],
+          "description": "Go testing frameworks"
+        },
+        {
+          "enum": ["builtin"],
+          "description": "Rust testing framework"
+        }
+      ]
+    },
+    "coverage_target": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 85,
+      "description": "Target code coverage percentage"
+    },
+    "quality_target": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 90,
+      "description": "Target test quality score percentage"
+    },
+    "security_rules": {
+      "type": "object",
+      "description": "Security scanning configuration",
+      "properties": {
+        "sql_injection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SQL injection detection"
+        },
+        "xss_vulnerabilities": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable XSS vulnerability detection"
+        },
+        "authentication_bypass": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable authentication bypass detection"
+        },
+        "data_exposure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable data exposure detection"
+        },
+        "command_injection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable command injection detection"
+        },
+        "path_traversal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable path traversal detection"
+        },
+        "insecure_randomness": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable insecure randomness detection"
+        },
+        "hardcoded_secrets": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable hardcoded secrets detection"
+        }
+      },
+      "additionalProperties": false
+    },
+    "test_patterns": {
+      "type": "object",
+      "description": "Test generation patterns configuration",
+      "properties": {
+        "edge_cases": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate edge case tests"
+        },
+        "error_handling": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate error handling tests"
+        },
+        "mocking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use mocking in generated tests"
+        },
+        "integration_scenarios": {
+          "type": "boolean",
+          "default": false,
+          "description": "Generate integration test scenarios"
+        },
+        "performance_tests": {
+          "type": "boolean",
+          "default": false,
+          "description": "Generate performance benchmark tests"
+        },
+        "parameterized_tests": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate parameterized tests where applicable"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "description": "Output formatting configuration",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["standard", "minimal", "verbose"],
+          "default": "standard",
+          "description": "Output format style"
+        },
+        "include_docstrings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include docstrings in generated tests"
+        },
+        "add_comments": {
+          "type": "boolean",
+          "default": true,
+          "description": "Add explanatory comments to generated tests"
+        },
+        "line_length": {
+          "type": "number",
+          "minimum": 60,
+          "maximum": 120,
+          "default": 88,
+          "description": "Maximum line length for generated code"
+        }
+      },
+      "additionalProperties": false
+    },
+    "llm_config": {
+      "type": "object",
+      "description": "LLM provider configuration",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "local"],
+          "default": "openai",
+          "description": "LLM provider to use"
+        },
+        "model": {
+          "type": "string",
+          "description": "Specific model to use (e.g., gpt-4, claude-3-opus)"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "default": 0.1,
+          "description": "LLM temperature for generation"
+        },
+        "max_tokens": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 8000,
+          "default": 2000,
+          "description": "Maximum tokens for LLM response"
+        },
+        "timeout": {
+          "type": "number",
+          "minimum": 5,
+          "maximum": 300,
+          "default": 30,
+          "description": "Request timeout in seconds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "file_patterns": {
+      "type": "object",
+      "description": "File pattern configuration",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["**/*.py", "**/*.js", "**/*.ts"],
+          "description": "File patterns to include"
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["**/node_modules/**", "**/__pycache__/**", "**/test_*.py"],
+          "description": "File patterns to exclude"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cache": {
+      "type": "object",
+      "description": "Caching configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable result caching"
+        },
+        "ttl": {
+          "type": "number",
+          "minimum": 60,
+          "maximum": 86400,
+          "default": 3600,
+          "description": "Cache TTL in seconds"
+        },
+        "max_size": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 1000,
+          "default": 100,
+          "description": "Maximum cache entries"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["language"],
+  "additionalProperties": false
+}
