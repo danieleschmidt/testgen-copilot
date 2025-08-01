@@ -1,0 +1,215 @@
+# Terragon Autonomous SDLC Configuration
+# Advanced repository configuration for continuous value discovery and delivery
+
+# =============================================================================
+# Repository Configuration
+# =============================================================================
+repository:
+  name: testgen-copilot
+  type: python-cli
+  maturity_level: advanced
+  primary_language: python
+  frameworks:
+    - click
+    - pytest
+    - pydantic
+  architecture: cli-with-vscode-extension
+
+# =============================================================================
+# Value Discovery Configuration
+# =============================================================================
+value_discovery:
+  # Scoring weights adapted for advanced repository
+  scoring_weights:
+    wsjf: 0.5
+    ice: 0.1
+    technical_debt: 0.3
+    security: 0.1
+  
+  # Boost factors for different work types
+  boost_factors:
+    security_vulnerability: 2.0
+    compliance_blocking: 1.8
+    dependency_update: 0.8
+    documentation_only: 0.6
+    performance_critical: 1.5
+    technical_debt_hotspot: 1.3
+  
+  # Signal sources for work discovery
+  discovery_sources:
+    git_history: true
+    static_analysis: true
+    dependency_audits: true
+    security_scans: true
+    performance_monitoring: true
+    issue_trackers: true
+    code_comments: true
+    compliance_checks: true
+  
+  # Quality thresholds
+  thresholds:
+    min_composite_score: 15
+    max_execution_risk: 0.8
+    min_confidence: 0.7
+    security_boost_threshold: 8.0
+    debt_interest_threshold: 20
+
+# =============================================================================
+# Static Analysis Tools Configuration
+# =============================================================================
+static_analysis:
+  enabled_tools:
+    - ruff
+    - mypy
+    - bandit
+    - semgrep
+    - safety
+    - pip-audit
+    - detect-secrets
+  
+  custom_rules:
+    - .terragon/security-rules.yaml
+    - .terragon/quality-rules.yaml
+  
+  hot_spot_detection:
+    churn_vs_complexity: true
+    test_coverage_gaps: true
+    code_smell_patterns: true
+    architecture_violations: true
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+security:
+  vulnerability_sources:
+    - nvd
+    - osv
+    - github_advisory
+    - snyk
+  
+  compliance_frameworks:
+    - slsa
+    - openssf
+    - nist_secure_development
+  
+  sbom_generation:
+    format: cyclonedx
+    include_dev_dependencies: false
+    output_formats: [json, xml]
+  
+  supply_chain:
+    pin_dependencies: true
+    verify_signatures: true
+    provenance_tracking: true
+
+# =============================================================================
+# Execution Configuration  
+# =============================================================================
+execution:
+  # Execution limits and safety
+  max_concurrent_tasks: 1
+  max_prs_per_day: 3
+  max_execution_time_hours: 2
+  
+  # Quality gates
+  quality_gates:
+    min_test_coverage: 85
+    max_performance_regression: 5
+    security_scan_required: true
+    code_quality_check: true
+  
+  # Rollback triggers
+  rollback_conditions:
+    - test_failure
+    - coverage_drop
+    - performance_regression
+    - security_violation
+    - build_failure
+  
+  # Branch strategy
+  branch_prefix: "auto-value/"
+  pr_labels: ["autonomous", "value-driven"]
+  auto_assign_reviewers: true
+
+# =============================================================================
+# Monitoring and Observability
+# =============================================================================
+monitoring:
+  metrics_collection:
+    execution_metrics: true
+    value_delivery_tracking: true
+    system_performance: true
+    error_rates: true
+  
+  alerting:
+    execution_failures: true
+    security_issues: true
+    quality_degradation: true
+    performance_issues: true
+  
+  dashboards:
+    value_delivery: true
+    system_health: true
+    quality_trends: true
+    security_posture: true
+
+# =============================================================================
+# Learning and Adaptation
+# =============================================================================
+machine_learning:
+  prediction_models:
+    effort_estimation: true
+    value_prediction: true
+    risk_assessment: true
+  
+  feedback_loops:
+    execution_outcome_learning: true
+    scoring_model_refinement: true
+    pattern_recognition: true
+  
+  continuous_improvement:
+    model_retraining_frequency: weekly
+    accuracy_tracking: true
+    bias_detection: true
+
+# =============================================================================
+# Integration Configuration
+# =============================================================================
+integrations:
+  version_control:
+    provider: github
+    auto_pr_creation: true
+    code_owners_integration: true
+  
+  ci_cd:
+    provider: github_actions
+    workflow_templates: docs/workflow-templates/
+    auto_workflow_updates: true
+  
+  external_tools:
+    sonarqube: false
+    datadog: false
+    sentry: false
+    jira: false
+
+# =============================================================================
+# Advanced Features
+# =============================================================================
+advanced_features:
+  # AI-powered code analysis
+  ai_analysis:
+    code_review_assistance: false
+    architectural_insights: false
+    refactoring_suggestions: false
+  
+  # Predictive analytics  
+  predictive_analytics:
+    technical_debt_growth: true
+    maintenance_cost_prediction: true
+    architecture_decay_detection: true
+  
+  # Automated optimization
+  optimization:
+    dependency_optimization: true
+    performance_tuning: false
+    resource_optimization: true

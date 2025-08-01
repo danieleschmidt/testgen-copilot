@@ -1,0 +1,370 @@
+# Advanced Code Quality Rules for TestGen Copilot
+# Custom quality analysis patterns and technical debt detection
+
+# =============================================================================
+# Technical Debt Detection Patterns
+# =============================================================================
+technical_debt:
+  # TODO and FIXME pattern detection
+  debt_markers:
+    - pattern: "TODO|FIXME|HACK|XXX|BUG"
+      severity: medium
+      weight: 1.0
+      categories: ["documentation", "maintenance"]
+    
+    - pattern: "temporary|temp|quick.?fix|workaround"
+      severity: high
+      weight: 2.0
+      categories: ["technical-debt", "architecture"]
+    
+    - pattern: "remove.?this|delete.?this|cleanup"
+      severity: medium
+      weight: 1.5
+      categories: ["cleanup", "maintenance"]
+
+  # Code smell patterns
+  code_smells:
+    - name: "long_parameter_list"
+      pattern: "def .*\\(([^)]*,){6,}[^)]*\\):"
+      severity: medium
+      message: "Function has too many parameters"
+      suggestion: "Consider using a configuration object or breaking into smaller functions"
+    
+    - name: "deeply_nested_code"
+      pattern: "^\\s{20,}"
+      severity: high
+      message: "Deeply nested code detected"
+      suggestion: "Extract methods or use early returns to reduce nesting"
+    
+    - name: "magic_numbers"
+      pattern: "\\b(\\d{2,})\\b(?![.\\d])"
+      severity: low
+      message: "Magic number detected"
+      suggestion: "Consider using named constants"
+      exceptions: ["__init__.py", "test_*.py"]
+
+  # Architecture violations
+  architecture_violations:
+    - name: "circular_imports"
+      pattern: "from \\. import|import .*\\."
+      severity: high
+      context: "same_module_hierarchy"
+      message: "Potential circular import"
+    
+    - name: "direct_database_access"
+      pattern: "execute\\(|cursor\\.|connection\\."
+      severity: medium
+      exclude_files: ["**/database.py", "**/db.py", "**/models.py"]
+      message: "Direct database access outside data layer"
+
+# =============================================================================
+# Code Complexity Metrics
+# =============================================================================
+complexity_metrics:
+  # Cyclomatic complexity thresholds
+  cyclomatic_complexity:
+    low: 10
+    medium: 15
+    high: 20
+    critical: 25
+  
+  # Cognitive complexity thresholds  
+  cognitive_complexity:
+    low: 15
+    medium: 25
+    high: 35
+    critical: 50
+  
+  # Function length thresholds
+  function_length:
+    lines:
+      low: 20
+      medium: 50
+      high: 100
+      critical: 200
+    
+    statements:
+      low: 15
+      medium: 30
+      high: 50
+      critical: 100
+
+  # Class complexity thresholds
+  class_complexity:
+    methods:
+      low: 10
+      medium: 20
+      high: 30
+      critical: 50
+    
+    lines:
+      low: 200
+      medium: 500
+      high: 1000
+      critical: 2000
+
+# =============================================================================
+# Maintainability Rules
+# =============================================================================
+maintainability:
+  # Documentation requirements
+  documentation:
+    - rule: "public_function_docstring"
+      pattern: "^def [a-zA-Z_][a-zA-Z0-9_]*\\([^)]*\\):\\s*$"
+      severity: medium
+      message: "Public function missing docstring"
+      exclude_patterns: ["test_*.py", "_*.py"]
+    
+    - rule: "class_docstring"
+      pattern: "^class [A-Z][a-zA-Z0-9_]*.*:\\s*$"
+      severity: medium
+      message: "Class missing docstring"
+    
+    - rule: "module_docstring"
+      pattern: "^['\"].*['\"]\\s*$"
+      context: "file_start"
+      severity: low
+      message: "Module missing docstring"
+
+  # Naming conventions
+  naming:
+    - rule: "snake_case_functions"
+      pattern: "def [a-z_][a-z0-9_]*\\("
+      severity: low
+      message: "Function should use snake_case"
+    
+    - rule: "pascal_case_classes"
+      pattern: "class [A-Z][a-zA-Z0-9]*:"
+      severity: low
+      message: "Class should use PascalCase"
+    
+    - rule: "constant_naming"
+      pattern: "[A-Z][A-Z0-9_]* = "
+      context: "module_level"
+      severity: low
+      message: "Constants should be UPPER_CASE"
+
+  # Error handling patterns
+  error_handling:
+    - rule: "bare_except"
+      pattern: "except:\\s*$"
+      severity: high
+      message: "Bare except clause catches all exceptions"
+      suggestion: "Catch specific exceptions"
+    
+    - rule: "pass_in_except"
+      pattern: "except.*:\\s*pass"
+      severity: medium
+      message: "Silent exception handling"
+      suggestion: "Log the exception or handle appropriately"
+    
+    - rule: "missing_finally"
+      pattern: "try:.*except.*"
+      context: "resource_management"
+      severity: low
+      message: "Consider using finally for cleanup"
+
+# =============================================================================
+# Performance Quality Rules
+# =============================================================================
+performance:
+  # Performance anti-patterns
+  anti_patterns:
+    - name: "nested_loops"
+      pattern: "for.*:\\s*.*for.*:"
+      severity: medium
+      message: "Nested loops may impact performance"
+      suggestion: "Consider algorithmic optimization"
+    
+    - name: "string_concatenation_loop"
+      pattern: "for.*:\\s*.*\\+="
+      severity: medium
+      message: "String concatenation in loop"
+      suggestion: "Use join() or list comprehension"
+    
+    - name: "repeated_computation"
+      pattern: "for.*:\\s*.*\\(.*\\).*\\(.*\\)"
+      severity: low
+      message: "Potential repeated computation in loop"
+      suggestion: "Cache expensive operations"
+
+  # Memory usage patterns
+  memory_patterns:
+    - name: "large_list_comprehension"
+      pattern: "\\[[^\\]]{50,}\\]"
+      severity: low
+      message: "Large list comprehension"
+      suggestion: "Consider using generator expression"
+    
+    - name: "global_variables"
+      pattern: "global [a-zA-Z_]"
+      severity: medium
+      message: "Global variable usage"
+      suggestion: "Consider using class attributes or dependency injection"
+
+# =============================================================================
+# Testing Quality Rules
+# =============================================================================
+testing_quality:
+  # Test structure rules
+  test_structure:
+    - rule: "test_method_naming"
+      pattern: "def test_[a-z_][a-z0-9_]*\\("
+      severity: low
+      message: "Test method should start with 'test_'"
+      files: ["test_*.py", "*_test.py"]
+    
+    - rule: "assertion_in_test"
+      pattern: "assert |self\\.assert"
+      context: "test_method"
+      severity: high
+      message: "Test method should contain assertions"
+    
+    - rule: "test_docstring"
+      pattern: "def test_.*:\\s*['\"].*['\"]"
+      severity: low
+      message: "Test method should have descriptive docstring"
+
+  # Test coverage patterns
+  coverage_patterns:
+    - rule: "untested_public_methods"
+      pattern: "def [a-zA-Z_][a-zA-Z0-9_]*\\("
+      exclude_pattern: "def _|def test_"
+      severity: medium
+      message: "Public method may lack test coverage"
+    
+    - rule: "untested_exception_paths"
+      pattern: "raise [A-Z]"
+      severity: medium
+      message: "Exception path may lack test coverage"
+
+# =============================================================================
+# Security Quality Intersection
+# =============================================================================
+security_quality:
+  # Functions that need security review
+  security_critical_patterns:
+    - pattern: "password|secret|token|key|auth"
+      severity: high
+      message: "Security-critical code needs review"
+      requires_review: true
+    
+    - pattern: "decrypt|encrypt|hash|sign|verify"
+      severity: high
+      message: "Cryptographic operations need security review"
+      requires_review: true
+    
+    - pattern: "subprocess|os\\.system|eval|exec"
+      severity: critical
+      message: "System calls need security review"
+      requires_review: true
+
+# =============================================================================
+# AI/LLM Code Quality Rules
+# =============================================================================
+ai_quality:
+  # LLM integration patterns
+  llm_patterns:
+    - rule: "prompt_template_validation"
+      pattern: "prompt.*\\{.*\\}"
+      severity: medium
+      message: "Prompt template should validate parameters"
+    
+    - rule: "response_parsing"
+      pattern: "response\\..*\\[.*\\]"
+      severity: medium  
+      message: "LLM response parsing should handle errors"
+    
+    - rule: "token_count_awareness"
+      pattern: "openai\\.|anthropic\\."
+      severity: low
+      message: "Consider token count limitations"
+
+  # AI code generation quality
+  generated_code_quality:
+    - rule: "ai_generated_comment"
+      pattern: "#.*AI generated|#.*auto-generated"
+      severity: low
+      message: "AI-generated code should be reviewed"
+    
+    - rule: "placeholder_values"
+      pattern: "placeholder|example|sample|dummy"
+      severity: medium
+      message: "Replace placeholder values with real implementation"
+
+# =============================================================================
+# Project-Specific Quality Rules
+# =============================================================================
+project_specific:
+  # TestGen Copilot specific patterns
+  testgen_patterns:
+    - rule: "test_generation_quality"
+      pattern: "generate.*test"
+      severity: medium
+      message: "Test generation code needs quality validation"
+    
+    - rule: "cli_error_handling"
+      pattern: "click\\.command|argparse"
+      severity: medium
+      message: "CLI commands should have proper error handling"
+    
+    - rule: "vscode_extension_validation"
+      pattern: "vscode|extension"
+      severity: medium
+      message: "VS Code extension code needs validation"
+
+  # Configuration validation
+  config_validation:
+    - rule: "config_schema_validation"
+      pattern: "config\\[|settings\\["
+      severity: medium
+      message: "Configuration access should validate schema"
+    
+    - rule: "environment_variable_defaults"
+      pattern: "os\\.environ\\[|getenv\\("
+      severity: low
+      message: "Environment variables should have defaults"
+
+# =============================================================================
+# Refactoring Opportunities
+# =============================================================================
+refactoring_opportunities:
+  # Extract method opportunities
+  extract_method:
+    - pattern: "if.*elif.*elif.*else"
+      severity: medium
+      message: "Complex conditional logic - consider strategy pattern"
+    
+    - pattern: "try:.*except.*except.*except"
+      severity: medium
+      message: "Multiple exception handling - consider extraction"
+
+  # Extract class opportunities  
+  extract_class:
+    - pattern: "class.*:\\s*.*def.*def.*def.*def.*def"
+      severity: medium
+      message: "Large class - consider splitting responsibilities"
+    
+    - pattern: "def __init__\\(self,([^)]*,){5,}[^)]*\\):"
+      severity: medium
+      message: "Constructor with many parameters - consider builder pattern"
+
+# =============================================================================
+# Quality Metrics Scoring
+# =============================================================================
+quality_scoring:
+  # Weight factors for different quality aspects
+  weights:
+    complexity: 0.3
+    maintainability: 0.25
+    testability: 0.2
+    security: 0.15
+    performance: 0.1
+  
+  # Scoring thresholds
+  thresholds:
+    excellent: 90
+    good: 75
+    acceptable: 60
+    needs_improvement: 40
+    critical: 20
