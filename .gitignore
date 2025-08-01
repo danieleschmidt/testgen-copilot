@@ -200,7 +200,7 @@ testgen.log
 *.testgen
 
 # Development containers
-.devcontainer/
+# .devcontainer/ - keep devcontainer configuration in version control
 
 # Docker
 docker-compose.override.yml
