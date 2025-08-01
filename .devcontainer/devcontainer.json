@@ -1,0 +1,57 @@
+{
+  "name": "TestGen-Copilot Development",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.pylint",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-vscode.vscode-typescript-next",
+        "esbenp.prettier-vscode",
+        "ms-vscode.test-adapter-converter",
+        "hbenl.vscode-test-explorer",
+        "GitLab.gitlab-workflow",
+        "GitHub.copilot",
+        "redhat.vscode-yaml",
+        "ms-vscode.makefile-tools",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "black",
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": ["tests"],
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+        },
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true
+      }
+    }
+  },
+  "postCreateCommand": "pip install -e .[dev] && npm install",
+  "forwardPorts": [8000, 3000],
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/scripts,target=/usr/local/share/devcontainer-scripts,type=bind,consistency=cached"
+  ],
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "TZ": "UTC",
+    "PYTHONPATH": "/workspaces/testgen-copilot/src"
+  },
+  "workspaceFolder": "/workspaces/testgen-copilot"
+}

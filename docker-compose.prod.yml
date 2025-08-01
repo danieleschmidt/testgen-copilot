@@ -1,0 +1,241 @@
+# Production Docker Compose for TestGen Copilot Assistant
+# Optimized for production deployment with security and performance focus
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Main Application Service (Production)
+  # =============================================================================
+  testgen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VERSION: ${VERSION:-1.0.0}
+        VCS_REF: ${VCS_REF:-}
+    container_name: testgen-copilot-prod
+    volumes:
+      - testgen-data:/home/testgen/.testgen:rw
+      - testgen-logs:/var/log/testgen:rw
+    environment:
+      - TESTGEN_ENV=production
+      - TESTGEN_LOG_LEVEL=INFO
+      - TESTGEN_DATA_DIR=/home/testgen/.testgen
+      # LLM API keys (set in .env.production file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Performance settings
+      - TESTGEN_MAX_WORKERS=8
+      - TESTGEN_RATE_LIMIT=100
+      - TESTGEN_CACHE_TTL=3600
+      # Security settings
+      - TESTGEN_ALLOWED_HOSTS=${TESTGEN_ALLOWED_HOSTS:-localhost}
+      - TESTGEN_CORS_ORIGINS=${TESTGEN_CORS_ORIGINS:-}
+    ports:
+      - "8000:8000"
+    networks:
+      - testgen-prod-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "testgen", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # =============================================================================
+  # Redis for Production Caching
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: testgen-redis-prod
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data:rw
+      - ./redis.conf:/etc/redis/redis.conf:ro
+    networks:
+      - testgen-prod-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # =============================================================================
+  # Monitoring (Lightweight Production Setup)
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: testgen-prometheus-prod
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.retention.size=1GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./monitoring/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus:rw
+    networks:
+      - testgen-prod-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # =============================================================================
+  # Reverse Proxy and Load Balancer
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: testgen-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx:rw
+    networks:
+      - testgen-prod-network
+    depends_on:
+      - testgen
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # =============================================================================
+  # Log Aggregation (Optional)
+  # =============================================================================
+  fluentd:
+    image: fluent/fluentd:latest
+    container_name: testgen-fluentd-prod
+    volumes:
+      - ./fluentd/fluent.conf:/fluentd/etc/fluent.conf:ro
+      - testgen-logs:/var/log/testgen:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - testgen-prod-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    profiles:
+      - logging
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  testgen-prod-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: testgen-prod-br
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# =============================================================================
+# Volumes (Production Optimized)
+# =============================================================================
+volumes:
+  testgen-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/testgen/data
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/testgen/redis
+  prometheus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/testgen/prometheus
+  testgen-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/log/testgen
