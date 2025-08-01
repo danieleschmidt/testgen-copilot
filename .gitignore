@@ -204,7 +204,7 @@ testgen.log
 
 # Docker
 docker-compose.override.yml
-.dockerignore
+# .dockerignore - keep dockerignore in version control
 
 # Security
 secrets.env
