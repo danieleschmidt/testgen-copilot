@@ -28,6 +28,10 @@ from .database import (
     ProjectMetrics, ProcessingSession, AnalysisRepository, TestCaseRepository,
     SecurityRepository, MetricsRepository, SessionRepository, run_migrations
 )
+from .integrations import (
+    GitHubClient, GitHubIntegration, NotificationService, CICDIntegration,
+    OAuthHandler, JWTManager, CloudStorageClient, WebhookManager
+)
 
 __all__ = [
     "identity",
@@ -108,5 +112,13 @@ __all__ = [
     "SecurityRepository",
     "MetricsRepository",
     "SessionRepository",
-    "run_migrations"
+    "run_migrations",
+    "GitHubClient",
+    "GitHubIntegration", 
+    "NotificationService",
+    "CICDIntegration",
+    "OAuthHandler",
+    "JWTManager",
+    "CloudStorageClient",
+    "WebhookManager"
 ]
