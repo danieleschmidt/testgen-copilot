@@ -332,3 +332,13 @@ def get_quality_logger() -> StructuredLogger:
 def get_cli_logger() -> StructuredLogger:
     """Get logger for CLI operations."""
     return get_logger('testgen_copilot.cli')
+
+
+def get_core_logger() -> StructuredLogger:
+    """Get logger for core module."""
+    return get_logger('testgen_copilot.core')
+
+
+def get_database_logger() -> StructuredLogger:
+    """Get logger for database module."""
+    return get_logger('testgen_copilot.database')
