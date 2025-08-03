@@ -23,6 +23,11 @@ from .autonomous_backlog import BacklogManager, BacklogItem, TaskType, TaskStatu
 from .autonomous_execution import TDDExecutor, SecurityChecker, ExecutionResult, ExecutionPhase
 from .autonomous_manager import AutonomousManager
 from .metrics_collector import MetricsCollector, DORAMetrics, CIMetrics, OperationalMetrics
+from .database import (
+    DatabaseConnection, get_database, AnalysisResult, TestCase, SecurityIssue,
+    ProjectMetrics, ProcessingSession, AnalysisRepository, TestCaseRepository,
+    SecurityRepository, MetricsRepository, SessionRepository, run_migrations
+)
 
 __all__ = [
     "identity",
@@ -91,4 +96,17 @@ __all__ = [
     "DORAMetrics",
     "CIMetrics",
     "OperationalMetrics",
+    "DatabaseConnection",
+    "get_database",
+    "AnalysisResult",
+    "TestCase",
+    "SecurityIssue",
+    "ProjectMetrics",
+    "ProcessingSession",
+    "AnalysisRepository",
+    "TestCaseRepository",
+    "SecurityRepository",
+    "MetricsRepository",
+    "SessionRepository",
+    "run_migrations"
 ]
