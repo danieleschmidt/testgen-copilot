@@ -1,0 +1,282 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for TestGen Copilot Assistant
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Your ideas help make TestGen Copilot Assistant better for everyone.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues to ensure this feature hasn't been requested before
+          required: true
+        - label: I have checked the roadmap to see if this feature is already planned
+          required: true
+        - label: This feature aligns with the project's goals and scope
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A brief, clear summary of the feature you're requesting
+      placeholder: "Add support for generating tests in Go language"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What category does this feature fall into?
+      options:
+        - "Language Support"
+        - "Test Generation"
+        - "Security Analysis"
+        - "IDE Integration"
+        - "CLI Enhancement"
+        - "Performance Improvement"
+        - "Documentation"
+        - "Configuration"
+        - "Output Formatting"
+        - "AI/ML Enhancement"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What pain point does it address?
+      placeholder: "Currently, TestGen doesn't support Go, which means Go developers can't benefit from automated test generation..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution in detail
+      placeholder: |
+        I propose adding Go language support by:
+        1. Creating a Go AST parser
+        2. Adding Go-specific test templates
+        3. Integrating with Go testing package
+        4. Supporting Go modules
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific use cases and scenarios where this feature would be helpful
+      placeholder: |
+        1. Go developers working on microservices
+        2. Teams migrating from other languages to Go
+        3. Open source Go projects needing test coverage
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Provide concrete examples of how this feature would work
+      placeholder: |
+        Input Go code:
+        ```go
+        func Add(a, b int) int {
+            return a + b
+        }
+        ```
+        
+        Generated test:
+        ```go
+        func TestAdd(t *testing.T) {
+            result := Add(2, 3)
+            assert.Equal(t, 5, result)
+        }
+        ```
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - "Critical (blocking my work)"
+        - "High (would significantly improve my workflow)"
+        - "Medium (would be nice to have)"
+        - "Low (minor improvement)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - "Simple (small change or addition)"
+        - "Medium (moderate implementation effort)"
+        - "Complex (significant development required)"
+        - "Very Complex (major architectural changes)"
+        - "I'm not sure"
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternative solutions or features have you considered?
+      placeholder: |
+        1. Using existing Go testing tools separately
+        2. Manual test writing
+        3. Third-party solutions like...
+    validations:
+      required: false
+
+  - type: textarea
+    id: implementation-ideas
+    attributes:
+      label: Implementation Ideas
+      description: Do you have any ideas about how this could be implemented?
+      placeholder: |
+        Technical considerations:
+        - Use Go's ast package for parsing
+        - Leverage existing test template system
+        - Consider Go module structure
+        - Integration with go test command
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: breaking-changes
+    attributes:
+      label: Breaking Changes
+      description: Would this feature require any breaking changes?
+      options:
+        - label: This feature would require breaking changes to existing APIs
+        - label: This feature could be implemented without breaking changes
+        - label: I'm not sure about breaking changes
+
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Documentation Requirements
+      description: What documentation would be needed for this feature?
+      placeholder: |
+        - User guide for Go language support
+        - Configuration examples
+        - API documentation updates
+        - Tutorial for Go developers
+    validations:
+      required: false
+
+  - type: textarea
+    id: testing
+    attributes:
+      label: Testing Considerations
+      description: How should this feature be tested?
+      placeholder: |
+        - Unit tests for Go parser
+        - Integration tests with real Go projects
+        - Performance tests for large codebases
+        - Compatibility tests across Go versions
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: related-features
+    attributes:
+      label: Related Features
+      description: Are there any related features that should be considered?
+      options:
+        - label: This feature depends on other pending features
+        - label: This feature enables additional future features
+        - label: This feature conflicts with existing features
+        - label: This feature is independent
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: List any dependencies this feature would have
+      placeholder: |
+        - Go language runtime
+        - go/ast package
+        - Go modules support
+        - Specific Go version requirements
+    validations:
+      required: false
+
+  - type: textarea
+    id: migration-strategy
+    attributes:
+      label: Migration Strategy
+      description: If this affects existing functionality, how should users migrate?
+      placeholder: Describe any migration steps or compatibility considerations
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to help implement this feature?
+      options:
+        - label: I am willing to implement this feature myself
+        - label: I can help with testing and feedback
+        - label: I can help with documentation
+        - label: I can provide domain expertise
+        - label: I prefer someone else implements this
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Desired Timeline
+      description: When would you like to see this feature implemented?
+      placeholder: |
+        - Next minor release
+        - Next major release
+        - No specific timeline
+        - As soon as possible
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that would be helpful
+      placeholder: |
+        - Links to relevant resources
+        - References to similar features in other tools
+        - Community feedback or discussions
+        - Business justification
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: community-interest
+    attributes:
+      label: Community Interest
+      description: Have others expressed interest in this feature?
+      options:
+        - label: I've discussed this with other users who want it
+        - label: I've seen similar requests in the community
+        - label: This addresses a common pain point
+        - label: This is mainly for my specific use case

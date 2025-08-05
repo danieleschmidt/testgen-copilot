@@ -1,3 +1,4 @@
+```yaml
 # Docker Compose for TestGen Copilot Assistant
 # Provides development environment with all necessary services
 
@@ -5,26 +6,23 @@ version: '3.8'
 
 services:
   # =============================================================================
-  # Main Application Service
+  # Main Application Service (Production)
   # =============================================================================
   testgen:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development
+      target: production
       args:
         BUILD_DATE: ${BUILD_DATE:-}
-        VERSION: ${VERSION:-0.0.1}
+        VERSION: ${VERSION:-0.1.0}
         VCS_REF: ${VCS_REF:-}
+    image: testgen-copilot:latest
     container_name: testgen-copilot
-    volumes:
-      - .:/app
-      - testgen-cache:/home/testgen/.testgen
-      - /var/run/docker.sock:/var/run/docker.sock  # For Docker-in-Docker
     environment:
-      - TESTGEN_ENV=development
-      - TESTGEN_LOG_LEVEL=DEBUG
-      - TESTGEN_DATA_DIR=/home/testgen/.testgen
+      - TESTGEN_LOG_LEVEL=${TESTGEN_LOG_LEVEL:-INFO}
+      - TESTGEN_CACHE_DIR=/app/cache
+      - TESTGEN_CONFIG_PATH=/app/config
       # LLM API keys (set in .env file)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
@@ -32,17 +30,113 @@ services:
       - LOCAL_LLM_ENABLED=${LOCAL_LLM_ENABLED:-false}
       - LOCAL_LLM_HOST=ollama
       - LOCAL_LLM_PORT=11434
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+      - ./config:/app/config
+      # Mount source code for analysis
+      - ${SOURCE_PATH:-./src}:/workspace:ro
+    working_dir: /workspace
+    command: ["--help"]
+    networks:
+      - testgen-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # Development Service
+  # =============================================================================
+  testgen-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VERSION: ${VERSION:-0.1.0}
+        VCS_REF: ${VCS_REF:-}
+    image: testgen-copilot:dev
+    container_name: testgen-copilot-dev
+    volumes:
+      - .:/workspace
+      - testgen-cache:/workspace/.cache
+      - testgen-logs:/workspace/logs
+      - /var/run/docker.sock:/var/run/docker.sock  # For Docker-in-Docker
+    environment:
+      - TESTGEN_ENV=development
+      - TESTGEN_DEV_MODE=true
+      - TESTGEN_LOG_LEVEL=DEBUG
+      - TESTGEN_DATA_DIR=/workspace/.cache
+      # LLM API keys (set in .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Local LLM support
+      - LOCAL_LLM_ENABLED=${LOCAL_LLM_ENABLED:-false}
+      - LOCAL_LLM_HOST=ollama
+      - LOCAL_LLM_PORT=11434
+    working_dir: /workspace
     ports:
-      - "8000:8000"  # API server (future)
-      - "8888:8888"  # Jupyter (development)
+      - "8000:8000"  # API server
+      - "8888:8888"  # Jupyter Lab
     networks:
       - testgen-network
     depends_on:
       - redis
       - ollama
-    restart: unless-stopped
+    command: ["/bin/bash"]
     stdin_open: true
     tty: true
+    restart: unless-stopped
+
+  # =============================================================================
+  # Testing Service
+  # =============================================================================
+  testgen-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+    image: testgen-copilot:test
+    container_name: testgen-copilot-test
+    environment:
+      - TESTGEN_ENV=test
+      - TESTGEN_LOG_LEVEL=DEBUG
+      - PYTEST_ADDOPTS=--tb=short -v --cov=src/testgen_copilot --cov-report=xml
+    volumes:
+      - .:/workspace
+      - testgen-test-results:/workspace/test-results
+    working_dir: /workspace
+    command: ["pytest", "tests/"]
+    networks:
+      - testgen-network
+    profiles:
+      - testing
+
+  # =============================================================================
+  # CI/CD Service
+  # =============================================================================
+  ci-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: testgen-ci
+    volumes:
+      - .:/app
+    environment:
+      - CI=true
+      - TESTGEN_ENV=ci
+    command: |
+      sh -c "
+        make ci-install &&
+        make ci-quality &&
+        make ci-test &&
+        make ci-security
+      "
+    networks:
+      - testgen-network
+    profiles:
+      - ci
 
   # =============================================================================
   # Redis for Caching and Session Management
@@ -63,6 +157,34 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    profiles:
+      - cache
+
+  # =============================================================================
+  # PostgreSQL for Data Storage
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: testgen-postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-testgen}
+      - POSTGRES_USER=${POSTGRES_USER:-testgen}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-testgen123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - testgen-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-testgen}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - database
 
   # =============================================================================
   # Local LLM Service (Ollama)
@@ -97,7 +219,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -109,99 +231,52 @@ services:
     networks:
       - testgen-network
     restart: unless-stopped
+    profiles:
+      - monitoring
 
   grafana:
     image: grafana/grafana:latest
     container_name: testgen-grafana
     ports:
       - "3000:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana:/etc/grafana/provisioning
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     networks:
       - testgen-network
     restart: unless-stopped
     depends_on:
       - prometheus
+    profiles:
+      - monitoring
 
   # =============================================================================
-  # Database for Metrics and Analytics (Optional)
+  # Distributed Tracing
   # =============================================================================
-  postgres:
-    image: postgres:15-alpine
-    container_name: testgen-postgres
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: testgen-jaeger
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-testgen}
-      - POSTGRES_USER=${POSTGRES_USER:-testgen}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-testgen123}
+      - COLLECTOR_OTLP_ENABLED=true
     networks:
       - testgen-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-testgen}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # =============================================================================
-  # Testing Services
-  # =============================================================================
-  test-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: testing
-    container_name: testgen-tests
-    volumes:
-      - .:/app
-      - testgen-cache:/home/testgen/.testgen
-    environment:
-      - TESTGEN_ENV=test
-      - TESTGEN_LOG_LEVEL=DEBUG
-    networks:
-      - testgen-network
     profiles:
-      - testing
-
-  # =============================================================================
-  # CI/CD Services
-  # =============================================================================
-  ci-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: testgen-ci
-    volumes:
-      - .:/app
-    environment:
-      - CI=true
-      - TESTGEN_ENV=ci
-    command: |
-      sh -c "
-        make ci-install &&
-        make ci-quality &&
-        make ci-test &&
-        make ci-security
-      "
-    networks:
-      - testgen-network
-    profiles:
-      - ci
+      - tracing
 
 # =============================================================================
 # Networks
 # =============================================================================
 networks:
   testgen-network:
+    name: testgen-network
     driver: bridge
     ipam:
       config:
@@ -213,7 +288,13 @@ networks:
 volumes:
   testgen-cache:
     driver: local
+  testgen-logs:
+    driver: local
+  testgen-test-results:
+    driver: local
   redis-data:
+    driver: local
+  postgres-data:
     driver: local
   ollama-data:
     driver: local
@@ -221,5 +302,4 @@ volumes:
     driver: local
   grafana-data:
     driver: local
-  postgres-data:
-    driver: local
+```
