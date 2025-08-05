@@ -1,3 +1,4 @@
+```dockerfile
 # Multi-stage Dockerfile for TestGen Copilot Assistant
 # Optimized for security, size, and performance
 
@@ -21,6 +22,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -45,14 +47,17 @@ RUN pip install --upgrade pip setuptools wheel && \
 FROM python:3.13-slim-bullseye as runtime
 
 # Set build metadata
-LABEL org.opencontainers.image.title="TestGen Copilot Assistant" \
+LABEL maintainer="TestGen Team <team@testgen.dev>" \
+      org.opencontainers.image.title="TestGen Copilot Assistant" \
       org.opencontainers.image.description="AI-powered test generation and security analysis CLI tool" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.vendor="TestGen Team" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/testgen/copilot-assistant"
+      org.opencontainers.image.source="https://github.com/testgen-team/testgen-copilot-assistant" \
+      org.opencontainers.image.url="https://github.com/testgen-team/testgen-copilot-assistant" \
+      org.opencontainers.image.documentation="https://testgen-copilot-assistant.readthedocs.io"
 
 # Set runtime environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -60,7 +65,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     TESTGEN_ENV=production \
-    TESTGEN_LOG_LEVEL=INFO
+    TESTGEN_LOG_LEVEL=INFO \
+    PYTHONPATH=/app/src \
+    TESTGEN_CACHE_DIR=/app/cache \
+    TESTGEN_LOG_FILE=/app/logs/testgen.log \
+    TESTGEN_CONFIG_PATH=/app/config
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -73,7 +82,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -r testgen && useradd -r -g testgen -d /home/testgen testgen
 
 # Create necessary directories
-RUN mkdir -p /app /home/testgen/.testgen && \
+RUN mkdir -p /app /home/testgen/.testgen /app/data /app/logs /app/cache /app/config && \
     chown -R testgen:testgen /app /home/testgen
 
 # Set work directory
@@ -90,6 +99,11 @@ RUN pip install --upgrade pip && \
 # Copy application files
 COPY --chown=testgen:testgen . .
 
+# Copy additional files
+COPY --chown=testgen:testgen README.md LICENSE ./
+COPY --chown=testgen:testgen docs/ ./docs/
+COPY --chown=testgen:testgen security/ ./security/
+
 # Switch to non-root user
 USER testgen
 
@@ -97,8 +111,8 @@ USER testgen
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD testgen --version || exit 1
 
-# Expose any necessary ports (if running as server in future)
-# EXPOSE 8000
+# Expose port for potential web interface
+EXPOSE 8000
 
 # Set entrypoint
 ENTRYPOINT ["testgen"]
@@ -129,14 +143,16 @@ RUN pip install -e ".[dev,ai]"
 RUN pip install \
     pytest-watch \
     jupyterlab \
-    ipython
+    ipython \
+    pre-commit
 
 # Switch back to testgen user
 USER testgen
 
 # Set development environment
 ENV TESTGEN_ENV=development \
-    TESTGEN_LOG_LEVEL=DEBUG
+    TESTGEN_LOG_LEVEL=DEBUG \
+    TESTGEN_DEV_MODE=true
 
 # Default command for development
 CMD ["bash"]
@@ -148,6 +164,11 @@ FROM development as testing
 
 # Copy test files
 COPY --chown=testgen:testgen tests/ tests/
+COPY --chown=testgen:testgen pytest.ini .coveragerc ./
+
+# Set testing environment variables
+ENV PYTEST_ADDOPTS="--tb=short -v"
 
 # Run tests by default
-CMD ["pytest", "--cov=src/testgen_copilot", "--cov-report=xml", "--cov-report=term-missing"]
+CMD ["pytest", "tests/", "--cov=src/testgen_copilot", "--cov-report=xml", "--cov-report=term-missing"]
+```
