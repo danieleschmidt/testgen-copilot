@@ -18,7 +18,7 @@ from typing import List, Dict, Optional, Any, Tuple
 import subprocess
 import logging
 
-from .logging_config import get_structured_logger
+from .logging_config import get_core_logger
 
 
 class TaskType(Enum):
@@ -101,7 +101,7 @@ class BacklogDiscovery:
     
     def __init__(self, repo_path: Path):
         self.repo_path = repo_path
-        self.logger = get_structured_logger(__name__)
+        self.logger = get_core_logger()
     
     def discover_from_backlog_md(self, file_path: Path) -> List[BacklogItem]:
         """Parse existing BACKLOG.md file for items."""
@@ -239,7 +239,7 @@ class BacklogManager:
         self.config_path = config_path
         self.backlog_file = repo_path / "backlog.json"
         self.discovery = BacklogDiscovery(repo_path)
-        self.logger = get_structured_logger(__name__)
+        self.logger = get_core_logger()
         self.items: List[BacklogItem] = []
         
         # Load automation scope config

@@ -32,6 +32,10 @@ from .integrations import (
     GitHubClient, GitHubIntegration, NotificationService, CICDIntegration,
     OAuthHandler, JWTManager, CloudStorageClient, WebhookManager
 )
+from .quantum_planner import (
+    QuantumTaskPlanner, QuantumTask, TaskPriority, TaskState, ResourceQuantum,
+    QuantumAnnealer, create_quantum_planner, demo_quantum_planning
+)
 
 __all__ = [
     "identity",
@@ -120,5 +124,13 @@ __all__ = [
     "OAuthHandler",
     "JWTManager",
     "CloudStorageClient",
-    "WebhookManager"
+    "WebhookManager",
+    "QuantumTaskPlanner",
+    "QuantumTask", 
+    "TaskPriority",
+    "TaskState",
+    "ResourceQuantum",
+    "QuantumAnnealer",
+    "create_quantum_planner",
+    "demo_quantum_planning"
 ]

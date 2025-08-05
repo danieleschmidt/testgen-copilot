@@ -17,7 +17,7 @@ import json
 import sys
 import argparse
 
-from .logging_config import get_structured_logger
+from .logging_config import get_core_logger
 from .autonomous_backlog import BacklogManager, BacklogItem, TaskStatus
 from .autonomous_execution import TDDExecutor, ExecutionResult, ExecutionPhase
 from .metrics_collector import MetricsCollector, OperationalMetrics
@@ -30,7 +30,7 @@ class AutonomousManager:
         self.repo_path = repo_path
         self.config_path = config_path
         self.dry_run = dry_run
-        self.logger = get_structured_logger(__name__)
+        self.logger = get_core_logger()
         
         # Initialize components
         self.backlog_manager = BacklogManager(repo_path, config_path)
