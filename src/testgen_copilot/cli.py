@@ -291,6 +291,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--log-level", default="info", help="Logging level")
     parser.add_argument("--log-format", choices=["structured", "json"], default="structured", help="Log output format")
     sub = parser.add_subparsers(dest="command", required=True)
+    
+    # Add quantum command subparser
+    quantum_parser = sub.add_parser("quantum", help="Quantum-inspired task planning")
+    from .quantum_cli import quantum
+    # Register quantum subcommands
+    quantum._parser = quantum_parser
 
     gen = sub.add_parser("generate", help="Generate tests for files")
     gen.add_argument("--file", help="Source file to analyze")
@@ -660,6 +666,9 @@ def main(argv: list[str] | None = None) -> None:
                 _analyze(args)
             elif args.command == "scaffold":
                 _scaffold(args)
+            elif args.command == "quantum":
+                from .quantum_cli import quantum
+                quantum()
             
             logger.info("CLI operation completed successfully", {
                 "command": args.command

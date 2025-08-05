@@ -1,0 +1,136 @@
+{
+  "metadata": {
+    "generated_at": "2025-08-05T13:20:56.259702+00:00",
+    "planner_version": "1.0.0",
+    "quantum_enabled": true,
+    "total_tasks": 5
+  },
+  "tasks": {
+    "implement_auth": {
+      "name": "Implement Authentication System",
+      "description": "Build secure JWT-based authentication with OAuth2 support",
+      "priority": "GROUND_STATE",
+      "state": "entangled",
+      "estimated_duration_hours": 8.0,
+      "dependencies": [],
+      "entangled_tasks": [
+        "build_api"
+      ],
+      "resources_required": {
+        "cpu": 2.0,
+        "memory": 4.0
+      },
+      "urgency_score": 1.0,
+      "deadline": null
+    },
+    "setup_database": {
+      "name": "Setup Database Schema",
+      "description": "Design and implement PostgreSQL schema with migrations",
+      "priority": "GROUND_STATE",
+      "state": "superposition",
+      "estimated_duration_hours": 4.0,
+      "dependencies": [],
+      "entangled_tasks": [],
+      "resources_required": {
+        "cpu": 1.0,
+        "memory": 2.0,
+        "io": 3.0
+      },
+      "urgency_score": 1.0,
+      "deadline": null
+    },
+    "build_api": {
+      "name": "Build REST API",
+      "description": "Implement FastAPI endpoints with validation and documentation",
+      "priority": "EXCITED_1",
+      "state": "entangled",
+      "estimated_duration_hours": 6.0,
+      "dependencies": [
+        "implement_auth",
+        "setup_database"
+      ],
+      "entangled_tasks": [
+        "implement_auth"
+      ],
+      "resources_required": {
+        "cpu": 2.5,
+        "memory": 3.0
+      },
+      "urgency_score": 0.8250000000000001,
+      "deadline": null
+    },
+    "write_tests": {
+      "name": "Write Comprehensive Tests",
+      "description": "Create unit, integration, and e2e test suites",
+      "priority": "EXCITED_2",
+      "state": "superposition",
+      "estimated_duration_hours": 4.0,
+      "dependencies": [
+        "build_api"
+      ],
+      "entangled_tasks": [],
+      "resources_required": {
+        "cpu": 1.5,
+        "memory": 2.0
+      },
+      "urgency_score": 0.5,
+      "deadline": null
+    },
+    "optimize_performance": {
+      "name": "Performance Optimization",
+      "description": "Profile and optimize application performance bottlenecks",
+      "priority": "EXCITED_3",
+      "state": "superposition",
+      "estimated_duration_hours": 3.0,
+      "dependencies": [
+        "write_tests"
+      ],
+      "entangled_tasks": [],
+      "resources_required": {
+        "cpu": 1.0
+      },
+      "urgency_score": 0.28383382359026205,
+      "deadline": "2025-08-07T13:20:56.252642+00:00"
+    }
+  },
+  "resources": {
+    "quantum_cpu_1": {
+      "total_capacity": 4.0,
+      "available_capacity": 4.0,
+      "quantum_efficiency": 2.0,
+      "utilization_percentage": 0.0
+    },
+    "quantum_cpu_2": {
+      "total_capacity": 4.0,
+      "available_capacity": 4.0,
+      "quantum_efficiency": 1.8,
+      "utilization_percentage": 0.0
+    },
+    "quantum_memory": {
+      "total_capacity": 16.0,
+      "available_capacity": 16.0,
+      "quantum_efficiency": 1.5,
+      "utilization_percentage": 0.0
+    },
+    "quantum_io": {
+      "total_capacity": 8.0,
+      "available_capacity": 8.0,
+      "quantum_efficiency": 1.2,
+      "utilization_percentage": 0.0
+    }
+  },
+  "recommendations": [
+    {
+      "type": "resource_bottleneck",
+      "priority": "high",
+      "message": "CPU resources approaching capacity. Consider adding quantum processors.",
+      "action": "scale_resources"
+    },
+    {
+      "type": "priority_imbalance",
+      "priority": "medium",
+      "message": "Too many high-priority tasks. Consider re-prioritizing some tasks.",
+      "action": "rebalance_priorities"
+    }
+  ]
+}

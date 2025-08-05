@@ -15,7 +15,7 @@ from dataclasses import dataclass, asdict
 import re
 import os
 
-from .logging_config import get_structured_logger
+from .logging_config import get_core_logger
 
 
 @dataclass
@@ -75,7 +75,7 @@ class MetricsCollector:
     
     def __init__(self, repo_path: Path):
         self.repo_path = repo_path
-        self.logger = get_structured_logger(__name__)
+        self.logger = get_core_logger()
         self.metrics_dir = repo_path / "docs" / "status"
         self.metrics_dir.mkdir(parents=True, exist_ok=True)
     

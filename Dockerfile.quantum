@@ -1,0 +1,172 @@
+# Multi-stage Dockerfile for Quantum Task Planner
+
+# Base stage with common dependencies
+FROM python:3.12-slim-bookworm AS base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user
+RUN useradd --create-home --shell /bin/bash app
+WORKDIR /app
+RUN chown app:app /app
+
+# Copy requirements
+COPY requirements.txt requirements-dev.txt ./
+COPY pyproject.toml setup.py ./
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install -r requirements-dev.txt
+
+# Development stage
+FROM base AS development
+
+USER app
+
+# Copy source code
+COPY --chown=app:app . .
+
+# Install package in development mode
+RUN pip install -e ".[dev,ai,api,monitoring,database]"
+
+# Expose ports
+EXPOSE 8000
+
+# Default command
+CMD ["python", "-m", "testgen_copilot.quantum_api"]
+
+# Production API stage
+FROM base AS quantum-api
+
+USER app
+
+# Copy source code
+COPY --chown=app:app src/ ./src/
+COPY --chown=app:app pyproject.toml setup.py ./
+
+# Install production dependencies only
+RUN pip install -e ".[ai,api,monitoring,database]"
+
+# Create necessary directories
+RUN mkdir -p logs data
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose port
+EXPOSE 8000
+
+# Production command with proper signal handling
+CMD ["python", "-m", "uvicorn", "testgen_copilot.quantum_api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+
+# CLI stage for quantum planning
+FROM base AS quantum-cli
+
+USER app
+
+# Copy source code  
+COPY --chown=app:app src/ ./src/
+COPY --chown=app:app pyproject.toml setup.py ./
+
+# Install CLI dependencies
+RUN pip install -e ".[ai,security]"
+
+# Set CLI as default entrypoint
+ENTRYPOINT ["python", "-m", "testgen_copilot.cli"]
+CMD ["--help"]
+
+# Testing stage
+FROM development AS testing
+
+# Copy test files
+COPY --chown=app:app tests/ ./tests/
+COPY --chown=app:app pytest.ini ./
+
+# Run tests
+RUN python -m pytest tests/ -v --tb=short || true
+
+# Security scanning stage
+FROM base AS security
+
+USER app
+
+# Copy source for security scanning
+COPY --chown=app:app src/ ./src/
+COPY --chown=app:app pyproject.toml setup.py ./
+
+# Install security tools
+RUN pip install bandit safety pip-audit
+
+# Run security scans
+RUN bandit -r src/ -f json -o security-report.json || true
+RUN safety check --json --output safety-report.json || true
+RUN pip-audit --format=json --output=audit-report.json || true
+
+# Production deployment stage
+FROM python:3.12-slim-bookworm AS production
+
+# Security: run as non-root user
+RUN useradd --create-home --shell /bin/bash --uid 10001 quantum
+WORKDIR /app
+RUN chown quantum:quantum /app
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copy only production requirements
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+USER quantum
+
+# Copy application code
+COPY --chown=quantum:quantum src/ ./src/
+COPY --chown=quantum:quantum pyproject.toml setup.py ./
+
+# Install application
+RUN pip install --no-cache-dir -e ".[api,monitoring]"
+
+# Create runtime directories
+RUN mkdir -p logs data temp
+
+# Set secure file permissions
+RUN chmod 750 /app && \
+    find /app -type f -exec chmod 640 {} \; && \
+    find /app -type d -exec chmod 750 {} \;
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Security labels
+LABEL security.scan="enabled" \
+      security.vulnerability-scan="daily" \
+      maintenance.update-policy="security-only"
+
+# Expose port
+EXPOSE 8000
+
+# Production entrypoint with graceful shutdown
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python", "-m", "uvicorn", "testgen_copilot.quantum_api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

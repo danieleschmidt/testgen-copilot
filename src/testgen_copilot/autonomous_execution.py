@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from enum import Enum
 import shutil
 
-from .logging_config import get_structured_logger
+from .logging_config import get_core_logger
 from .autonomous_backlog import BacklogItem, TaskStatus, BacklogManager
 
 
@@ -60,7 +60,7 @@ class SecurityChecker:
     
     def __init__(self, repo_path: Path):
         self.repo_path = repo_path
-        self.logger = get_structured_logger(__name__)
+        self.logger = get_core_logger()
     
     def run_sca_scan(self) -> Dict[str, Any]:
         """Run Software Composition Analysis using OWASP Dependency-Check."""
@@ -308,7 +308,7 @@ class TDDExecutor:
     def __init__(self, repo_path: Path):
         self.repo_path = repo_path
         self.security_checker = SecurityChecker(repo_path)
-        self.logger = get_structured_logger(__name__)
+        self.logger = get_core_logger()
     
     def execute_red_phase(self, task: BacklogItem) -> Tuple[bool, str]:
         """Write failing test for the task."""
