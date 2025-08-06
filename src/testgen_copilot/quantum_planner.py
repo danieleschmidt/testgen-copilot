@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 import logging
 
-import numpy as np
+# import numpy as np  # Using random instead for compatibility
 
 
 class TaskPriority(Enum):
@@ -85,7 +85,16 @@ class QuantumTask:
         
         # Quantum measurement - collapse to specific state
         states = list(TaskState)
-        chosen_state = np.random.choice(states, p=probabilities)
+        # chosen_state = np.random.choice(states, p=probabilities)
+        # Fallback implementation without numpy
+        cumulative = 0.0
+        rand_val = random.random()
+        chosen_state = states[0]  # default
+        for i, prob in enumerate(probabilities):
+            cumulative += prob
+            if rand_val <= cumulative:
+                chosen_state = states[i]
+                break
         
         if chosen_state in [TaskState.EXECUTING, TaskState.COMPLETED, TaskState.FAILED]:
             self.state = chosen_state

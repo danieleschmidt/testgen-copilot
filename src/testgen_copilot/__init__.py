@@ -19,9 +19,9 @@ from .cache import (
     LRUCache, CacheEntry, cached_operation, get_cache_stats, clear_all_caches,
     ast_cache, file_content_cache, analysis_cache
 )
-from .autonomous_backlog import BacklogManager, BacklogItem, TaskType, TaskStatus, RiskTier
+# from .autonomous_backlog import BacklogManager, BacklogItem, TaskType, TaskStatus, RiskTier
 from .autonomous_execution import TDDExecutor, SecurityChecker, ExecutionResult, ExecutionPhase
-from .autonomous_manager import AutonomousManager
+# from .autonomous_manager import AutonomousManager
 from .metrics_collector import MetricsCollector, DORAMetrics, CIMetrics, OperationalMetrics
 from .database import (
     DatabaseConnection, get_database, AnalysisResult, TestCase, SecurityIssue,

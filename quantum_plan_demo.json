@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_at": "2025-08-05T13:20:56.259702+00:00",
+    "generated_at": "2025-08-06T02:36:09.080430+00:00",
     "planner_version": "1.0.0",
     "quantum_enabled": true,
     "total_tasks": 5
@@ -89,8 +89,8 @@
       "resources_required": {
         "cpu": 1.0
       },
-      "urgency_score": 0.28383382359026205,
-      "deadline": "2025-08-07T13:20:56.252642+00:00"
+      "urgency_score": 0.2838338235800806,
+      "deadline": "2025-08-08T02:36:09.073390+00:00"
     }
   },
   "resources": {
