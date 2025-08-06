@@ -1,0 +1,44 @@
+# Prometheus configuration for Quantum Task Planner monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'quantum-planner'
+    environment: 'production'
+
+rule_files:
+  - "quantum-alert-rules.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Quantum API monitoring
+  - job_name: 'quantum-api'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['quantum-api:8000']
+        labels:
+          service: 'quantum-api'
+    metrics_path: '/metrics'
+    
+  # Application-specific quantum metrics
+  - job_name: 'quantum-metrics'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['quantum-api:8000']
+        labels:
+          service: 'quantum-metrics'
+    metrics_path: '/quantum-metrics'
+    scrape_timeout: 10s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093

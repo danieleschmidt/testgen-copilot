@@ -1,0 +1,177 @@
+{
+  "scan_timestamp": "2025-08-06T02:43:39.488210+00:00",
+  "security_score": 0.0,
+  "total_issues": 16,
+  "severity_counts": {
+    "critical": 0,
+    "high": 3,
+    "medium": 4,
+    "low": 0,
+    "info": 9
+  },
+  "scan_duration_seconds": 2.04411,
+  "files_scanned": 106,
+  "lines_scanned": 33700,
+  "issues": [
+    {
+      "severity": "medium",
+      "category": "sql_injection",
+      "file_path": "scripts/quantum_security_scan.py",
+      "line_number": 119,
+      "description": "Potential SQL injection via string concatenation",
+      "recommendation": "Use parameterized queries or ORM methods to prevent SQL injection",
+      "cwe_id": "CWE-89",
+      "confidence": 1.0
+    },
+    {
+      "severity": "medium",
+      "category": "quantum_specific",
+      "file_path": "scripts/quantum_security_scan.py",
+      "line_number": 191,
+      "description": "Potential hardcoded quantum key or parameter",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": "CWE-798",
+      "confidence": 1.0
+    },
+    {
+      "severity": "high",
+      "category": "command_injection",
+      "file_path": "tests/test_api_integration.py",
+      "line_number": 287,
+      "description": "Command injection risk with shell=True",
+      "recommendation": "Avoid shell=True, validate inputs, use subprocess with list arguments",
+      "cwe_id": "CWE-78",
+      "confidence": 1.0
+    },
+    {
+      "severity": "high",
+      "category": "command_injection",
+      "file_path": "tests/test_api_integration.py",
+      "line_number": 314,
+      "description": "Command injection risk with shell=True",
+      "recommendation": "Avoid shell=True, validate inputs, use subprocess with list arguments",
+      "cwe_id": "CWE-78",
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 109,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 117,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 125,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 394,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 405,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 417,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 433,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_monitoring.py",
+      "line_number": 443,
+      "description": "Hardcoded quantum coherence time - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "info",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_optimization.py",
+      "line_number": 38,
+      "description": "Hardcoded entanglement strength - consider making configurable",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": null,
+      "confidence": 1.0
+    },
+    {
+      "severity": "medium",
+      "category": "quantum_specific",
+      "file_path": "src/testgen_copilot/quantum_security.py",
+      "line_number": 751,
+      "description": "Potential hardcoded quantum key or parameter",
+      "recommendation": "Use configuration files or environment variables for quantum parameters",
+      "cwe_id": "CWE-798",
+      "confidence": 1.0
+    },
+    {
+      "severity": "medium",
+      "category": "information_disclosure",
+      "file_path": "src/testgen_copilot/integrations/github.py",
+      "line_number": 293,
+      "description": "Potential secret information in logs",
+      "recommendation": "Avoid logging sensitive information, sanitize error messages",
+      "cwe_id": "CWE-532",
+      "confidence": 1.0
+    },
+    {
+      "severity": "high",
+      "category": "command_injection",
+      "file_path": "tests/fixtures/sample_code.py",
+      "line_number": 46,
+      "description": "Command injection risk with shell=True",
+      "recommendation": "Avoid shell=True, validate inputs, use subprocess with list arguments",
+      "cwe_id": "CWE-78",
+      "confidence": 1.0
+    }
+  ]
+}

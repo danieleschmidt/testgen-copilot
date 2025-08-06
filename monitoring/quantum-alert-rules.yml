@@ -1,0 +1,46 @@
+# Quantum Task Planner Alert Rules
+groups:
+  - name: quantum_planner_alerts
+    rules:
+      # High-level service availability
+      - alert: QuantumAPIDown
+        expr: up{job="quantum-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: quantum-api
+        annotations:
+          summary: "Quantum API is down"
+          description: "Quantum API has been down for more than 1 minute."
+          
+      # Performance alerts
+      - alert: HighResponseTime
+        expr: quantum_http_request_duration_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: quantum-api
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ $value }}s for more than 5 minutes."
+
+      # Quantum-specific alerts
+      - alert: LowQuantumCoherence
+        expr: quantum_system_coherence < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          service: quantum-metrics
+        annotations:
+          summary: "Low quantum coherence detected"
+          description: "Quantum system coherence is {{ $value }} (threshold: 0.7)."
+
+      - alert: HighTaskFailureRate
+        expr: rate(quantum_tasks_total{status="failed"}[10m]) / rate(quantum_tasks_total[10m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: quantum-api
+        annotations:
+          summary: "High task failure rate"
+          description: "Task failure rate is {{ $value | humanizePercentage }} over the last 10 minutes."
