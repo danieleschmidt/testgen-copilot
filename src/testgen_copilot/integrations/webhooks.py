@@ -6,10 +6,10 @@ import hashlib
 import hmac
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any, Callable, Awaitable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 import httpx
 
@@ -33,11 +33,11 @@ class WebhookPayload:
     timestamp: datetime
     data: Dict[str, Any]
     webhook_id: str = None
-    
+
     def __post_init__(self):
         if self.webhook_id is None:
             self.webhook_id = str(uuid.uuid4())
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -57,7 +57,7 @@ class WebhookEndpoint:
     active: bool = True
     retry_count: int = 3
     timeout: int = 30
-    
+
     def __post_init__(self):
         if self.events is None:
             self.events = list(WebhookEvent)
@@ -65,11 +65,11 @@ class WebhookEndpoint:
 
 class WebhookProcessor:
     """Process and deliver webhooks."""
-    
+
     def __init__(self):
         self.logger = get_logger("testgen_copilot.integrations.webhooks.processor")
         self.client = httpx.AsyncClient()
-    
+
     async def send_webhook(
         self,
         endpoint: WebhookEndpoint,
@@ -79,18 +79,18 @@ class WebhookProcessor:
         if not endpoint.active:
             self.logger.debug("Webhook endpoint inactive", {"url": endpoint.url})
             return False
-        
+
         if payload.event not in endpoint.events:
             self.logger.debug("Event not subscribed", {
                 "event": payload.event.value,
                 "url": endpoint.url
             })
             return False
-        
+
         # Prepare payload
         payload_dict = payload.to_dict()
         payload_json = json.dumps(payload_dict, sort_keys=True)
-        
+
         # Create headers
         headers = {
             "Content-Type": "application/json",
@@ -99,12 +99,12 @@ class WebhookProcessor:
             "X-Webhook-Event": payload.event.value,
             "X-Webhook-Timestamp": payload.timestamp.isoformat()
         }
-        
+
         # Add signature if secret is provided
         if endpoint.secret:
             signature = self._create_signature(payload_json, endpoint.secret)
             headers["X-Webhook-Signature"] = signature
-        
+
         # Send webhook with retries
         for attempt in range(endpoint.retry_count + 1):
             try:
@@ -114,7 +114,7 @@ class WebhookProcessor:
                     headers=headers,
                     timeout=endpoint.timeout
                 )
-                
+
                 if response.status_code == 200:
                     self.logger.info("Webhook delivered successfully", {
                         "url": endpoint.url,
@@ -130,7 +130,7 @@ class WebhookProcessor:
                         "webhook_id": payload.webhook_id,
                         "attempt": attempt + 1
                     })
-                    
+
             except Exception as e:
                 self.logger.error("Webhook delivery error", {
                     "url": endpoint.url,
@@ -138,21 +138,21 @@ class WebhookProcessor:
                     "webhook_id": payload.webhook_id,
                     "attempt": attempt + 1
                 })
-            
+
             # Don't retry if this was the last attempt
             if attempt < endpoint.retry_count:
                 # Exponential backoff
                 import asyncio
                 await asyncio.sleep(2 ** attempt)
-        
+
         self.logger.error("Webhook delivery failed after all retries", {
             "url": endpoint.url,
             "webhook_id": payload.webhook_id,
             "max_attempts": endpoint.retry_count + 1
         })
-        
+
         return False
-    
+
     def _create_signature(self, payload: str, secret: str) -> str:
         """Create HMAC signature for webhook payload."""
         signature = hmac.new(
@@ -160,9 +160,9 @@ class WebhookProcessor:
             payload.encode(),
             hashlib.sha256
         ).hexdigest()
-        
+
         return f"sha256={signature}"
-    
+
     async def close(self):
         """Close HTTP client."""
         await self.client.aclose()
@@ -170,58 +170,58 @@ class WebhookProcessor:
 
 class WebhookManager:
     """Manage webhook endpoints and delivery."""
-    
+
     def __init__(self):
         self.logger = get_logger("testgen_copilot.integrations.webhooks")
         self.endpoints: Dict[str, WebhookEndpoint] = {}
         self.processor = WebhookProcessor()
-        
+
         # Event handlers
         self.event_handlers: Dict[WebhookEvent, List[Callable]] = {}
-    
+
     def add_endpoint(self, endpoint_id: str, endpoint: WebhookEndpoint):
         """Add webhook endpoint."""
         self.endpoints[endpoint_id] = endpoint
-        
+
         self.logger.info("Added webhook endpoint", {
             "endpoint_id": endpoint_id,
             "url": endpoint.url,
             "events": [e.value for e in endpoint.events],
             "active": endpoint.active
         })
-    
+
     def remove_endpoint(self, endpoint_id: str) -> bool:
         """Remove webhook endpoint."""
         if endpoint_id in self.endpoints:
             endpoint = self.endpoints.pop(endpoint_id)
-            
+
             self.logger.info("Removed webhook endpoint", {
                 "endpoint_id": endpoint_id,
                 "url": endpoint.url
             })
-            
+
             return True
-        
+
         return False
-    
+
     def update_endpoint(self, endpoint_id: str, **kwargs) -> bool:
         """Update webhook endpoint configuration."""
         if endpoint_id not in self.endpoints:
             return False
-        
+
         endpoint = self.endpoints[endpoint_id]
-        
+
         for key, value in kwargs.items():
             if hasattr(endpoint, key):
                 setattr(endpoint, key, value)
-        
+
         self.logger.info("Updated webhook endpoint", {
             "endpoint_id": endpoint_id,
             "updates": list(kwargs.keys())
         })
-        
+
         return True
-    
+
     def list_endpoints(self) -> Dict[str, Dict[str, Any]]:
         """List all webhook endpoints."""
         return {
@@ -234,32 +234,32 @@ class WebhookManager:
             }
             for endpoint_id, endpoint in self.endpoints.items()
         }
-    
+
     async def trigger_event(self, event: WebhookEvent, data: Dict[str, Any]):
         """Trigger webhook event to all subscribed endpoints."""
         if not self.endpoints:
             self.logger.debug("No webhook endpoints configured")
             return
-        
+
         payload = WebhookPayload(
             event=event,
             timestamp=datetime.now(timezone.utc),
             data=data
         )
-        
+
         self.logger.info("Triggering webhook event", {
             "event": event.value,
             "webhook_id": payload.webhook_id,
             "endpoint_count": len(self.endpoints)
         })
-        
+
         # Send to all subscribed endpoints
         for endpoint_id, endpoint in self.endpoints.items():
             if event in endpoint.events and endpoint.active:
                 # Send webhook asynchronously (fire and forget)
                 import asyncio
                 asyncio.create_task(self._send_webhook_safe(endpoint_id, endpoint, payload))
-    
+
     async def _send_webhook_safe(
         self,
         endpoint_id: str,
@@ -276,7 +276,7 @@ class WebhookManager:
                 "error": str(e),
                 "webhook_id": payload.webhook_id
             })
-    
+
     def add_event_handler(
         self,
         event: WebhookEvent,
@@ -285,19 +285,19 @@ class WebhookManager:
         """Add event handler for webhook events."""
         if event not in self.event_handlers:
             self.event_handlers[event] = []
-        
+
         self.event_handlers[event].append(handler)
-        
+
         self.logger.info("Added event handler", {
             "event": event.value,
             "handler_count": len(self.event_handlers[event])
         })
-    
+
     async def handle_event(self, event: WebhookEvent, data: Dict[str, Any]):
         """Handle event with registered handlers."""
         # Trigger webhooks
         await self.trigger_event(event, data)
-        
+
         # Run event handlers
         if event in self.event_handlers:
             for handler in self.event_handlers[event]:
@@ -308,7 +308,7 @@ class WebhookManager:
                         "event": event.value,
                         "error": str(e)
                     })
-    
+
     # Convenience methods for common events
     async def notify_analysis_started(
         self,
@@ -322,7 +322,7 @@ class WebhookManager:
             "project_name": project_name,
             "file_count": file_count
         })
-    
+
     async def notify_analysis_completed(
         self,
         session_id: str,
@@ -335,7 +335,7 @@ class WebhookManager:
             "project_name": project_name,
             "metrics": metrics
         })
-    
+
     async def notify_security_issues_found(
         self,
         session_id: str,
@@ -350,7 +350,7 @@ class WebhookManager:
             "issue_count": issue_count,
             "severity_breakdown": severity_breakdown
         })
-    
+
     async def notify_tests_generated(
         self,
         session_id: str,
@@ -365,7 +365,7 @@ class WebhookManager:
             "test_count": test_count,
             "files_with_tests": files_with_tests
         })
-    
+
     async def close(self):
         """Close webhook manager and cleanup resources."""
         await self.processor.close()

@@ -5,19 +5,16 @@ from __future__ import annotations
 import argparse
 import json
 import time
-
 from pathlib import Path
-import logging
 
+from .coverage import CoverageAnalyzer, ParallelCoverageAnalyzer
 from .generator import GenerationConfig, TestGenerator
+from .logging_config import LogContext, configure_logging, get_cli_logger
+from .profiler import GeneratorProfiler
+from .progress import estimate_batch_time, progress_context
+from .quality import TestQualityScorer
 from .security import SecurityScanner
 from .vscode import scaffold_extension
-from .coverage import CoverageAnalyzer, ParallelCoverageAnalyzer, CoverageResult
-from .quality import TestQualityScorer
-from .logging_config import configure_logging, get_cli_logger, LogContext
-from .profiler import GeneratorProfiler
-from .progress import progress_context, estimate_batch_time
-
 
 LANG_PATTERNS = {
     "python": "*.py",
@@ -47,25 +44,25 @@ def _validate_config_schema(cfg: dict) -> dict:
         "include_benchmarks": bool,
         "include_integration_tests": bool,
     }
-    
+
     # Check for dangerous keys that could indicate code injection attempts
     dangerous_keys = {"__import__", "eval", "exec", "open", "compile", "globals", "locals"}
     for key in cfg.keys():
         if key in dangerous_keys:
             raise ValueError(f"Dangerous config option detected: {key}")
-    
+
     for key, value in cfg.items():
         if key not in allowed:
             raise ValueError(f"Unknown config option: {key}")
         if not isinstance(value, allowed[key]):
             raise ValueError(f"Invalid type for {key}: expected {allowed[key].__name__}, got {type(value).__name__}")
-    
+
     # Validate specific values
     if "language" in cfg:
         valid_languages = {"python", "py", "javascript", "js", "typescript", "ts", "java", "c#", "csharp", "go", "rust"}
         if cfg["language"].lower() not in valid_languages:
             raise ValueError(f"Unsupported language: {cfg['language']}. Supported: {', '.join(sorted(valid_languages))}")
-    
+
     return cfg
 
 
@@ -73,23 +70,23 @@ def _is_dangerous_path(path: Path) -> bool:
     """Check if path accesses dangerous system locations."""
     # Convert to string for easier checking
     path_str = str(path).lower()
-    
+
     # Dangerous system directories
     dangerous_dirs = {
         "/etc", "/sys", "/proc", "/dev", "/boot", "/root",
         "/var/log", "/var/run", "/var/lib", "/usr/bin", "/usr/sbin",
         "/bin", "/sbin", "/lib", "/lib64"
     }
-    
+
     # Check if path starts with any dangerous directory
     for dangerous in dangerous_dirs:
         if path_str.startswith(dangerous.lower()):
             return True
-    
+
     # Check for path traversal attempts
     if "../" in path_str or "..\\" in path_str:
         return True
-        
+
     return False
 
 
@@ -98,11 +95,11 @@ def _validate_numeric_args(args: argparse.Namespace, parser: argparse.ArgumentPa
     if hasattr(args, 'coverage_target') and args.coverage_target is not None:
         if not 0 <= args.coverage_target <= 100:
             parser.error(f"--coverage-target must be between 0 and 100, got {args.coverage_target}")
-    
+
     if hasattr(args, 'quality_target') and args.quality_target is not None:
         if not 0 <= args.quality_target <= 100:
             parser.error(f"--quality-target must be between 0 and 100, got {args.quality_target}")
-    
+
     if hasattr(args, 'poll') and args.poll is not None:
         if args.poll <= 0:
             parser.error(f"--poll interval must be positive, got {args.poll}")
@@ -134,7 +131,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
         if _is_dangerous_path(resolved_path):
             parser.error(f"Access to path {args.file} is not allowed")
         args.file = str(resolved_path)
-        
+
     if hasattr(args, 'project') and args.project:
         project = Path(args.project)
         if not project.is_dir():
@@ -143,7 +140,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
         if _is_dangerous_path(resolved_path):
             parser.error(f"Access to path {args.project} is not allowed")
         args.project = str(resolved_path)
-        
+
     if hasattr(args, 'watch') and args.watch:
         watch_dir = Path(args.watch)
         if not watch_dir.is_dir():
@@ -152,7 +149,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
         if _is_dangerous_path(resolved_path):
             parser.error(f"Access to path {args.watch} is not allowed")
         args.watch = str(resolved_path)
-        
+
     if hasattr(args, 'output') and args.output:
         out_dir = Path(args.output)
         if out_dir.exists() and not out_dir.is_dir():
@@ -165,7 +162,7 @@ def _validate_paths(args: argparse.Namespace, parser: argparse.ArgumentParser) -
         if _is_dangerous_path(resolved_path):
             parser.error(f"Access to path {args.output} is not allowed")
         args.output = str(resolved_path)
-        
+
     if hasattr(args, 'config') and args.config:
         cfg_path = Path(args.config)
         if not cfg_path.is_file():
@@ -184,15 +181,15 @@ def _coverage_failures(
     tests_dir = Path(tests_dir) if tests_dir else Path("tests")
     if not tests_dir.is_absolute():
         tests_dir = project / tests_dir
-    
+
     # Use parallel coverage analyzer for improved performance
     parallel_analyzer = ParallelCoverageAnalyzer()
-    
+
     def progress_callback(completed: int, total: int):
         """Progress callback for large projects."""
         if total > 20:  # Only show progress for large projects
             logger.info(f"Coverage analysis progress: {completed}/{total} files ({100*completed/total:.1f}%)")
-    
+
     try:
         coverage_results = parallel_analyzer.analyze_project_parallel(
             project_dir=project,
@@ -200,16 +197,16 @@ def _coverage_failures(
             target_coverage=target,
             progress_callback=progress_callback
         )
-        
+
         # Transform CoverageResult objects to the expected format
         failures = [
             (str(Path(result.file_path).relative_to(project)), result.coverage_percentage, result.uncovered_functions)
             for result in coverage_results
         ]
-        
+
         logger.info(f"Parallel coverage analysis found {len(failures)} files below {target}% coverage")
         return failures
-        
+
     except Exception as e:
         logger.warning(f"Parallel coverage analysis failed, falling back to sequential: {e}")
         # Fallback to original sequential implementation
@@ -291,7 +288,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--log-level", default="info", help="Logging level")
     parser.add_argument("--log-format", choices=["structured", "json"], default="structured", help="Log output format")
     sub = parser.add_subparsers(dest="command", required=True)
-    
+
     # Add quantum command subparser
     quantum_parser = sub.add_parser("quantum", help="Quantum-inspired task planning")
     from .quantum_cli import quantum
@@ -338,7 +335,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
     logger = get_cli_logger()
-    
+
     with LogContext(logger, "generate_command", {
         "file": args.file,
         "project": args.project,
@@ -419,21 +416,21 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
         out_dir = Path(args.output)
         pattern = _language_pattern(config.language)
         files = [p for p in project.rglob(pattern) if out_dir not in p.parents]
-        
+
         # Show batch information
         if len(files) > 10:
             estimated_time = estimate_batch_time(len(files))
             logger.info(f"Processing {len(files)} files (estimated time: {estimated_time})")
-        
+
         # Determine if progress should be shown
         show_progress = args.progress or (len(files) > 5 and not args.no_progress)
-        
+
         # Use profiler if --profile flag is enabled
         if args.profile:
             logger.info("Profiling enabled for batch generation of %d files", len(files))
             profiler = GeneratorProfiler(enable_cprofile=True)
             profiler.profile_file_batch(files, generator, out_dir)
-            
+
             # Generate and display report
             logger.info("Performance profiling completed")
             report = profiler.generate_report()
@@ -441,7 +438,7 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
             print("PERFORMANCE PROFILE REPORT")
             print("="*60)
             print(report)
-            
+
             # Save report if output path specified
             if args.profile_output:
                 report_path = Path(args.profile_output)
@@ -454,10 +451,10 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
                     try:
                         if progress:
                             progress.update(current_item=str(f.name))
-                        
+
                         logger.info("Generating tests for %s", f)
                         generator.generate_tests(f, out_dir)
-                        
+
                     except Exception as e:
                         if progress:
                             progress.update(current_item=str(f.name), failed=True)
@@ -467,7 +464,7 @@ def _generate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None
                             "error_type": type(e).__name__
                         })
                         # Continue processing other files
-        
+
         output_path = out_dir
     else:
         logger.info("Generating tests for %s", args.file)
@@ -539,7 +536,7 @@ def _analyze(args: argparse.Namespace) -> None:
     logger.info("Starting analysis")
     if args.coverage_target is None and args.quality_target is None:
         raise SystemExit("No analysis target specified")
-    
+
     # Validate paths and numeric arguments for analyze command
     parser = _build_parser()  # We need parser for error handling
     _validate_paths(args, parser)
@@ -592,26 +589,26 @@ def _analyze(args: argparse.Namespace) -> None:
             raise SystemExit(1)
         logger.info("Quality target satisfied")
         print("Quality target satisfied")
-    
+
     # Show missing fixtures if requested
     if args.show_missing_fixtures:
         tests_dir = Path(args.tests_dir)
         if not tests_dir.is_absolute():
             tests_dir = Path(args.project) / tests_dir
-        
+
         scorer = TestQualityScorer()
         detailed_metrics = scorer.get_detailed_quality_metrics(tests_dir)
-        
+
         if detailed_metrics['missing_fixtures']:
             print("\n🔧 Missing Fixture Opportunities:")
             print("-" * 35)
-            
+
             for missing in detailed_metrics['missing_fixtures']:
                 print(f"• {missing['fixture']}: {missing['reason']}")
                 if missing['patterns_found']:
                     patterns = ', '.join(missing['patterns_found'])
                     print(f"  Patterns found: {patterns}")
-            
+
             print(f"\nTotal missing fixture opportunities: {detailed_metrics['missing_fixtures_count']}")
             logger.info(f"Found {detailed_metrics['missing_fixtures_count']} missing fixture opportunities")
         else:
@@ -621,12 +618,12 @@ def _analyze(args: argparse.Namespace) -> None:
 
 def _scaffold(args: argparse.Namespace) -> None:
     logger.info("Scaffolding VS Code extension")
-    
+
     # Validate scaffold directory path
     directory_path = Path(args.directory)
     if _is_dangerous_path(directory_path.resolve()):
         raise SystemExit(f"Access to path {args.directory} is not allowed")
-    
+
     path = scaffold_extension(args.directory)
     logger.info("VS Code extension scaffolded at %s", path.parent)
     print(f"VS Code extension scaffolded at {path.parent}")
@@ -642,9 +639,9 @@ def main(argv: list[str] | None = None) -> None:
         format_type=args.log_format,
         enable_console=True
     )
-    
+
     logger = get_cli_logger()
-    
+
     # Create operation context for the entire CLI session
     with LogContext(logger, f"cli_{args.command}", {
         "command": args.command,
@@ -652,13 +649,13 @@ def main(argv: list[str] | None = None) -> None:
         "arguments": vars(args)
     }):
         from .version import get_package_version
-        
+
         logger.info("Starting TestGen Copilot CLI", {
             "command": args.command,
             "version": get_package_version(),
             "log_level": args.log_level
         })
-        
+
         try:
             if args.command == "generate":
                 _generate(args, parser)
@@ -669,11 +666,11 @@ def main(argv: list[str] | None = None) -> None:
             elif args.command == "quantum":
                 from .quantum_cli import quantum
                 quantum()
-            
+
             logger.info("CLI operation completed successfully", {
                 "command": args.command
             })
-            
+
         except Exception as e:
             logger.error("CLI operation failed", {
                 "command": args.command,

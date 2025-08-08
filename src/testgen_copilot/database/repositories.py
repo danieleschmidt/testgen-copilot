@@ -3,37 +3,37 @@
 from __future__ import annotations
 
 import json
+from abc import ABC
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
-from abc import ABC, abstractmethod
+from typing import Any, List, Optional
 
+from ..logging_config import get_database_logger
 from .connection import DatabaseConnection
 from .models import (
-    ProcessingSession,
     AnalysisResult,
-    TestCase,
-    SecurityIssue,
-    ProjectMetrics,
+    ProcessingSession,
     ProcessingStatus,
-    SecuritySeverity
+    ProjectMetrics,
+    SecurityIssue,
+    SecuritySeverity,
+    TestCase,
 )
-from ..logging_config import get_database_logger
 
 
 class BaseRepository(ABC):
     """Base repository with common functionality."""
-    
+
     def __init__(self, db: DatabaseConnection):
         self.db = db
         self.logger = get_database_logger()
-    
+
     @staticmethod
     def _serialize_json(data: Any) -> str:
         """Serialize data to JSON string."""
         if isinstance(data, (list, dict)):
             return json.dumps(data)
         return str(data)
-    
+
     @staticmethod
     def _deserialize_json(data: str, default: Any = None) -> Any:
         """Deserialize JSON string to data."""
@@ -47,7 +47,7 @@ class BaseRepository(ABC):
 
 class SessionRepository(BaseRepository):
     """Repository for managing processing sessions."""
-    
+
     def create_session(self, session: ProcessingSession) -> ProcessingSession:
         """Create a new processing session."""
         cursor = self.db.execute_query(
@@ -68,27 +68,27 @@ class SessionRepository(BaseRepository):
                 self._serialize_json(session.configuration)
             )
         )
-        
+
         session.id = cursor.lastrowid
-        
+
         self.logger.info("Created processing session", {
             "session_id": session.session_id,
             "project_path": session.project_path,
             "id": session.id
         })
-        
+
         return session
-    
+
     def get_session_by_id(self, session_id: str) -> Optional[ProcessingSession]:
         """Get session by session ID."""
         row = self.db.fetch_one(
             "SELECT * FROM processing_sessions WHERE session_id = ?",
             (session_id,)
         )
-        
+
         if not row:
             return None
-        
+
         return ProcessingSession(
             id=row["id"],
             session_id=row["session_id"],
@@ -101,7 +101,7 @@ class SessionRepository(BaseRepository):
             failed_files=row["failed_files"],
             configuration=self._deserialize_json(row["configuration"], {})
         )
-    
+
     def update_session(self, session: ProcessingSession) -> ProcessingSession:
         """Update an existing session."""
         self.db.execute_query(
@@ -121,14 +121,14 @@ class SessionRepository(BaseRepository):
                 session.session_id
             )
         )
-        
+
         self.logger.debug("Updated processing session", {
             "session_id": session.session_id,
             "status": session.status.value
         })
-        
+
         return session
-    
+
     def list_sessions(
         self,
         project_path: Optional[str] = None,
@@ -138,20 +138,20 @@ class SessionRepository(BaseRepository):
         """List processing sessions with optional filters."""
         query = "SELECT * FROM processing_sessions WHERE 1=1"
         params = []
-        
+
         if project_path:
             query += " AND project_path = ?"
             params.append(project_path)
-        
+
         if status:
             query += " AND status = ?"
             params.append(status.value)
-        
+
         query += " ORDER BY started_at DESC LIMIT ?"
         params.append(limit)
-        
+
         rows = self.db.fetch_all(query, tuple(params))
-        
+
         sessions = []
         for row in rows:
             sessions.append(ProcessingSession(
@@ -166,13 +166,13 @@ class SessionRepository(BaseRepository):
                 failed_files=row["failed_files"],
                 configuration=self._deserialize_json(row["configuration"], {})
             ))
-        
+
         return sessions
 
 
 class AnalysisRepository(BaseRepository):
     """Repository for managing analysis results."""
-    
+
     def create_result(self, result: AnalysisResult) -> AnalysisResult:
         """Create a new analysis result."""
         cursor = self.db.execute_query(
@@ -198,21 +198,21 @@ class AnalysisRepository(BaseRepository):
                 self._serialize_json(result.metadata)
             )
         )
-        
+
         result.id = cursor.lastrowid
-        
+
         self.logger.debug("Created analysis result", {
             "id": result.id,
             "session_id": result.session_id,
             "file_path": result.file_path
         })
-        
+
         return result
-    
+
     def update_result(self, result: AnalysisResult) -> AnalysisResult:
         """Update an existing analysis result."""
         result.updated_at = datetime.now(timezone.utc)
-        
+
         self.db.execute_query(
             """
             UPDATE analysis_results 
@@ -236,16 +236,16 @@ class AnalysisRepository(BaseRepository):
                 result.id
             )
         )
-        
+
         return result
-    
+
     def get_results_by_session(self, session_id: str) -> List[AnalysisResult]:
         """Get all analysis results for a session."""
         rows = self.db.fetch_all(
             "SELECT * FROM analysis_results WHERE session_id = ? ORDER BY created_at",
             (session_id,)
         )
-        
+
         results = []
         for row in rows:
             results.append(AnalysisResult(
@@ -265,13 +265,13 @@ class AnalysisRepository(BaseRepository):
                 created_at=datetime.fromisoformat(row["created_at"]),
                 updated_at=datetime.fromisoformat(row["updated_at"])
             ))
-        
+
         return results
 
 
 class TestCaseRepository(BaseRepository):
     """Repository for managing test cases."""
-    
+
     def create_test_case(self, test_case: TestCase) -> TestCase:
         """Create a new test case."""
         cursor = self.db.execute_query(
@@ -295,17 +295,17 @@ class TestCaseRepository(BaseRepository):
                 self._serialize_json(test_case.metadata)
             )
         )
-        
+
         test_case.id = cursor.lastrowid
         return test_case
-    
+
     def get_test_cases_by_analysis(self, analysis_result_id: int) -> List[TestCase]:
         """Get all test cases for an analysis result."""
         rows = self.db.fetch_all(
             "SELECT * FROM test_cases WHERE analysis_result_id = ? ORDER BY test_name",
             (analysis_result_id,)
         )
-        
+
         test_cases = []
         for row in rows:
             test_cases.append(TestCase(
@@ -322,13 +322,13 @@ class TestCaseRepository(BaseRepository):
                 metadata=self._deserialize_json(row["metadata"], {}),
                 created_at=datetime.fromisoformat(row["created_at"])
             ))
-        
+
         return test_cases
 
 
 class SecurityRepository(BaseRepository):
     """Repository for managing security issues."""
-    
+
     def create_security_issue(self, issue: SecurityIssue) -> SecurityIssue:
         """Create a new security issue."""
         cursor = self.db.execute_query(
@@ -360,10 +360,10 @@ class SecurityRepository(BaseRepository):
                 self._serialize_json(issue.metadata)
             )
         )
-        
+
         issue.id = cursor.lastrowid
         return issue
-    
+
     def get_issues_by_analysis(self, analysis_result_id: int) -> List[SecurityIssue]:
         """Get all security issues for an analysis result."""
         rows = self.db.fetch_all(
@@ -374,7 +374,7 @@ class SecurityRepository(BaseRepository):
             """,
             (analysis_result_id,)
         )
-        
+
         issues = []
         for row in rows:
             issues.append(SecurityIssue(
@@ -398,16 +398,16 @@ class SecurityRepository(BaseRepository):
                 metadata=self._deserialize_json(row["metadata"], {}),
                 created_at=datetime.fromisoformat(row["created_at"])
             ))
-        
+
         return issues
-    
+
     def mark_false_positive(self, issue_id: int, false_positive: bool = True) -> None:
         """Mark a security issue as false positive."""
         self.db.execute_query(
             "UPDATE security_issues SET false_positive = ? WHERE id = ?",
             (false_positive, issue_id)
         )
-    
+
     def suppress_issue(self, issue_id: int, suppressed: bool = True) -> None:
         """Suppress a security issue."""
         self.db.execute_query(
@@ -418,7 +418,7 @@ class SecurityRepository(BaseRepository):
 
 class MetricsRepository(BaseRepository):
     """Repository for managing project metrics."""
-    
+
     def create_metrics(self, metrics: ProjectMetrics) -> ProjectMetrics:
         """Create new project metrics."""
         cursor = self.db.execute_query(
@@ -458,20 +458,20 @@ class MetricsRepository(BaseRepository):
                 self._serialize_json(metrics.metadata)
             )
         )
-        
+
         metrics.id = cursor.lastrowid
         return metrics
-    
+
     def get_metrics_by_session(self, session_id: str) -> Optional[ProjectMetrics]:
         """Get project metrics for a session."""
         row = self.db.fetch_one(
             "SELECT * FROM project_metrics WHERE session_id = ?",
             (session_id,)
         )
-        
+
         if not row:
             return None
-        
+
         return ProjectMetrics(
             id=row["id"],
             session_id=row["session_id"],

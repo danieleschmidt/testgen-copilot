@@ -1,0 +1,4 @@
+[console_scripts]
+quantum-planner = testgen_copilot.quantum_cli:quantum
+testgen = testgen_copilot.cli:main
+testgen-copilot = testgen_copilot.cli:main

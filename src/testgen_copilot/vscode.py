@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable, Mapping, Any, List
+from typing import Any, Iterable, List, Mapping
 
 
 def scaffold_extension(path: str | Path) -> Path:
@@ -20,7 +20,7 @@ def scaffold_extension(path: str | Path) -> Path:
     (dest / "src").mkdir(parents=True, exist_ok=True)
 
     from .version import get_package_version
-    
+
     package_data = {
         "name": "testgen-copilot",
         "displayName": "TestGen Copilot",

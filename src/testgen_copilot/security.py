@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-import logging
 from pathlib import Path
 from typing import List
 
-from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
+from .cache import analysis_cache, cached_operation
+from .file_utils import FileSizeError, safe_parse_ast
 from .logging_config import get_security_logger
-from .ast_utils import ASTParsingError
 from .security_rules import SecurityRulesManager
-from .cache import cached_operation, analysis_cache
 
 
 @dataclass
@@ -46,21 +44,21 @@ class SecurityScanner:
         self._dangerous_calls = None
         self._shell_required_patterns = None
         self._dynamic_check_patterns = None
-    
+
     @property
     def dangerous_calls(self) -> dict:
         """Get dangerous calls dictionary, loading rules if needed."""
         if self._dangerous_calls is None:
             self._dangerous_calls = self.rules_manager.get_dangerous_calls_dict()
         return self._dangerous_calls
-    
+
     @property
     def shell_required_patterns(self) -> list:
         """Get patterns that require shell=True checking."""
         if self._shell_required_patterns is None:
             self._shell_required_patterns = self.rules_manager.get_rules_requiring_shell()
         return self._shell_required_patterns
-    
+
     @property
     def dynamic_check_patterns(self) -> list:
         """Get patterns that need dynamic argument checking."""
@@ -72,7 +70,7 @@ class SecurityScanner:
     def scan_file(self, path: str | Path) -> SecurityReport:
         logger = get_security_logger()
         file_path = Path(path)
-        
+
         try:
             # Use safe_parse_ast for consolidated error handling
             try:
@@ -81,7 +79,7 @@ class SecurityScanner:
                     # Syntax error occurred - safe_parse_ast already logged it
                     return SecurityReport(file_path, [SecurityIssue(0, "Syntax error in file")])
                 tree, content = result
-            except FileNotFoundError as e:
+            except FileNotFoundError:
                 logger.warning(f"File not found for security scan: {file_path}")
                 return SecurityReport(file_path, [SecurityIssue(0, "File not found")])
             except PermissionError as e:
@@ -96,9 +94,9 @@ class SecurityScanner:
             except OSError as e:
                 logger.error(f"File I/O error during security scan: {file_path}: {e}")
                 return SecurityReport(file_path, [SecurityIssue(0, f"File I/O error: {e}")])
-            
+
             issues: List[SecurityIssue] = []
-            
+
             try:
                 for node in ast.walk(tree):
                     if isinstance(node, ast.Call):
@@ -118,7 +116,7 @@ class SecurityScanner:
                             # For subprocess calls, also check if shell=True
                             if "subprocess" in name and not self._has_shell_true(node):
                                 continue
-                            
+
                             if node.args and self._is_non_constant(node.args[0]):
                                 issues.append(
                                     SecurityIssue(node.lineno, "Possible shell injection with dynamic command")
@@ -136,10 +134,10 @@ class SecurityScanner:
             except Exception as e:
                 logger.error(f"Error analyzing AST for {file_path}: {e}")
                 issues.append(SecurityIssue(0, f"Analysis error: {e}"))
-            
+
             logger.debug(f"Security scan of {file_path} found {len(issues)} issues")
             return SecurityReport(file_path, issues)
-            
+
         except Exception as e:
             logger.error(f"Failed to scan file {file_path}: {e}")
             return SecurityReport(file_path, [SecurityIssue(0, f"Scan failed: {e}")])
@@ -147,25 +145,25 @@ class SecurityScanner:
     def scan_project(self, path: str | Path) -> List[SecurityReport]:
         logger = get_security_logger()
         base = Path(path)
-        
+
         try:
             if not base.exists():
                 logger.error(f"Project path does not exist: {base}")
                 return [SecurityReport(base, [SecurityIssue(0, "Project path not found")])]
-            
+
             if not base.is_dir():
                 logger.error(f"Project path is not a directory: {base}")
                 return [SecurityReport(base, [SecurityIssue(0, "Path is not a directory")])]
-            
+
             reports = []
             python_files = list(base.rglob("*.py"))
-            
+
             if not python_files:
                 logger.warning(f"No Python files found in {base}")
                 return [SecurityReport(base, [SecurityIssue(0, "No Python files found")])]
-            
+
             logger.info(f"Scanning {len(python_files)} Python files for security issues")
-            
+
             for file in python_files:
                 try:
                     report = self.scan_file(file)
@@ -173,11 +171,11 @@ class SecurityScanner:
                 except Exception as e:
                     logger.error(f"Failed to scan {file}: {e}")
                     reports.append(SecurityReport(file, [SecurityIssue(0, f"Scan error: {e}")]))
-            
+
             total_issues = sum(len(r.issues) for r in reports)
             logger.info(f"Security scan completed: {total_issues} issues found across {len(reports)} files")
             return reports
-            
+
         except Exception as e:
             logger.error(f"Failed to scan project {base}: {e}")
             return [SecurityReport(base, [SecurityIssue(0, f"Project scan failed: {e}")])]

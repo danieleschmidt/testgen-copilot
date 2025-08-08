@@ -1,33 +1,22 @@
 """REST API layer for TestGen Copilot."""
 
-from .server import create_app, TestGenAPI
-from .routes import (
-    analysis_bp,
-    sessions_bp,
-    security_bp, 
-    metrics_bp,
-    health_bp
-)
-from .middleware import (
-    error_handler,
-    cors_handler,
-    auth_middleware,
-    request_logging_middleware
-)
+from .middleware import auth_middleware, cors_handler, error_handler, request_logging_middleware
 from .models import (
     AnalysisRequest,
     AnalysisResponse,
+    ErrorResponse,
+    HealthResponse,
     SecurityScanRequest,
     SecurityScanResponse,
-    HealthResponse,
-    ErrorResponse
 )
+from .routes import analysis_bp, health_bp, metrics_bp, security_bp, sessions_bp
+from .server import TestGenAPI, create_app
 
 __all__ = [
     "create_app",
     "TestGenAPI",
     "analysis_bp",
-    "sessions_bp", 
+    "sessions_bp",
     "security_bp",
     "metrics_bp",
     "health_bp",

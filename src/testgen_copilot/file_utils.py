@@ -3,11 +3,10 @@
 import ast
 from enum import Enum
 from pathlib import Path
-from typing import Union, Optional, Tuple
-import os
+from typing import Optional, Tuple, Union
 
+from .cache import ast_cache, file_content_cache
 from .logging_config import get_generator_logger
-from .cache import file_content_cache, ast_cache
 
 
 class FileSizeError(Exception):
@@ -23,7 +22,7 @@ class SyntaxErrorStrategy(Enum):
 
 
 def safe_read_file(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     max_size_mb: int = 10
 ) -> str:
     """Safely read a file with size limits and comprehensive error handling.
@@ -45,10 +44,10 @@ def safe_read_file(
     logger = get_generator_logger()
     file_path = Path(path)
     max_size_bytes = max_size_mb * 1024 * 1024
-    
+
     # Create cache key that includes size limit for safety
     cache_key = f"read_file_{max_size_mb}mb"
-    
+
     # Try to get from cache first
     cached_content = file_content_cache.get(file_path, cache_key)
     if cached_content is not None:
@@ -58,7 +57,7 @@ def safe_read_file(
             "operation": "safe_read_file"
         })
         return cached_content
-    
+
     # Log the operation
     logger.debug("Reading file with safety checks", {
         "file_path": str(file_path),
@@ -66,7 +65,7 @@ def safe_read_file(
         "cache_hit": False,
         "operation": "safe_read_file"
     })
-    
+
     # Check if file exists
     if not file_path.exists():
         error_msg = f"File not found: {file_path}"
@@ -75,7 +74,7 @@ def safe_read_file(
             "error_type": "file_not_found"
         })
         raise FileNotFoundError(error_msg)
-        
+
     # Check if it's actually a file
     if not file_path.is_file():
         error_msg = f"Path is not a file: {file_path}"
@@ -84,7 +83,7 @@ def safe_read_file(
             "error_type": "invalid_file_type"
         })
         raise ValueError(error_msg)
-    
+
     # Check file size before reading
     try:
         file_size = file_path.stat().st_size
@@ -97,7 +96,7 @@ def safe_read_file(
                 "error_type": "file_too_large"
             })
             raise FileSizeError(error_msg)
-            
+
     except OSError as e:
         error_msg = f"Cannot access file {file_path}: {e}"
         logger.error("Cannot access file for size check", {
@@ -106,23 +105,23 @@ def safe_read_file(
             "error_message": str(e)
         })
         raise OSError(f"File I/O error reading {file_path}: {e}") from e
-    
+
     # Read file content with comprehensive error handling
     try:
         content = file_path.read_text(encoding='utf-8')
-        
+
         # Cache the content for future reads
         file_content_cache.put(file_path, content, cache_key)
-        
+
         logger.debug("File read successfully", {
             "file_path": str(file_path),
             "content_length": len(content),
             "file_size_bytes": file_size,
             "cached": True
         })
-        
+
         return content
-        
+
     except PermissionError as e:
         error_msg = f"Permission denied reading {file_path}: {e}"
         logger.error("Permission denied reading file", {
@@ -131,7 +130,7 @@ def safe_read_file(
             "error_message": str(e)
         })
         raise PermissionError(error_msg) from e
-        
+
     except UnicodeDecodeError as e:
         error_msg = f"Invalid text encoding in {file_path}: {e}"
         logger.error("Unicode decode error", {
@@ -141,7 +140,7 @@ def safe_read_file(
             "error_message": str(e)
         })
         raise ValueError(error_msg) from e
-        
+
     except OSError as e:
         error_msg = f"File I/O error reading {file_path}: {e}"
         logger.error("File I/O error", {
@@ -182,10 +181,10 @@ def safe_parse_ast(
     logger = get_generator_logger()
     file_path = Path(path)
     original_content_provided = content is not None
-    
+
     # Create cache key based on parsing parameters
     cache_key = f"ast_parse_{max_size_mb}mb_{timeout_seconds}s_{raise_on_syntax_error}"
-    
+
     # Try to get from cache first (only if content not provided)
     if content is None:
         cached_result = ast_cache.get(file_path, cache_key)
@@ -196,7 +195,7 @@ def safe_parse_ast(
                 "operation": "safe_parse_ast"
             })
             return cached_result
-    
+
     logger.debug("Starting safe AST parsing", {
         "file_path": str(file_path),
         "content_provided": content is not None,
@@ -205,15 +204,15 @@ def safe_parse_ast(
         "raise_on_syntax_error": raise_on_syntax_error,
         "cache_hit": False
     })
-    
+
     # Get file content
     if content is None:
         try:
             content = safe_read_file(path, max_size_mb=max_size_mb)
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError):
             # File reading errors are already logged by safe_read_file
             raise
-    
+
     # Parse AST with optional timeout
     try:
         if timeout_seconds is not None:
@@ -229,22 +228,22 @@ def safe_parse_ast(
                 tree = ast.parse(content, filename=str(file_path))
         else:
             tree = ast.parse(content, filename=str(file_path))
-        
+
         result = (tree, content)
-        
+
         # Cache the result for future parses (only if we read the file ourselves)
         if not original_content_provided:
             ast_cache.put(file_path, result, cache_key)
-        
+
         logger.debug("AST parsing completed successfully", {
             "file_path": str(file_path),
             "content_length": len(content),
             "ast_node_count": len(list(ast.walk(tree))),
             "cached": content is None
         })
-        
+
         return result
-        
+
     except SyntaxError as e:
         logger.error("Syntax error during AST parsing", {
             "file_path": str(file_path),
@@ -253,7 +252,7 @@ def safe_parse_ast(
             "error_message": e.msg,
             "error_type": "syntax_error"
         })
-        
+
         if raise_on_syntax_error:
             # Enhance the error message with file context while preserving original attributes
             enhanced_msg = f"Cannot parse {file_path}: syntax error at line {e.lineno}: {e.msg}"
@@ -269,7 +268,7 @@ def safe_parse_ast(
                 "line_number": e.lineno
             })
             return None
-            
+
     except Exception as e:
         logger.error("Unexpected error during AST parsing", {
             "file_path": str(file_path),
