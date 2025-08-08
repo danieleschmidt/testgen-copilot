@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import ast
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 from typing import Iterable, List
 
-from .logging_config import get_generator_logger, LogContext
-from .file_utils import safe_read_file, FileSizeError, safe_parse_ast
-from .resource_limits import ResourceMonitor, ResourceLimits
-from .ast_utils import extract_functions, ASTParsingError
-from .cache import cached_operation, analysis_cache
+from .ast_utils import ASTParsingError
+from .cache import analysis_cache, cached_operation
+from .file_utils import FileSizeError, safe_parse_ast, safe_read_file
+from .logging_config import LogContext, get_generator_logger
+from .resource_limits import ResourceLimits, ResourceMonitor
 
 
 @dataclass
@@ -40,11 +40,11 @@ class TestGenerator:
     def generate_tests(self, file_path: str | Path, output_dir: str | Path) -> Path:
         """Generate tests for ``file_path`` inside ``output_dir``."""
         logger = get_generator_logger()
-        
+
         source_path = Path(file_path)
         out_path = Path(output_dir)
         lang = self.config.language.lower()
-        
+
         # Create operation context for tracking
         with LogContext(logger, "generate_tests", {
             "source_file": str(source_path),
@@ -65,27 +65,27 @@ class TestGenerator:
                     "error_type": "file_not_found"
                 })
                 raise FileNotFoundError(f"Source file not found: {source_path}")
-            
+
             if not source_path.is_file():
                 logger.error("Path is not a file", {
                     "file_path": str(source_path),
                     "error_type": "invalid_file_type"
                 })
                 raise ValueError(f"Path is not a file: {source_path}")
-            
+
             # Test file readability early using safe file utility
             try:
                 safe_read_file(source_path)  # Just test readability, don't store content yet
-            except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+            except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError):
                 # Errors are already logged by safe_read_file with structured context
                 raise
-            
+
             logger.info("Starting test generation", {
                 "language": lang,
                 "source_file": str(source_path),
                 "output_dir": str(out_path)
             })
-            
+
             # Generate tests based on language with performance timing
             with logger.time_operation(f"{lang}_test_generation", {"language": lang}):
                 if lang in {"python", "py"}:
@@ -107,23 +107,23 @@ class TestGenerator:
                         "error_type": "unsupported_language"
                     })
                     raise ValueError(f"Unsupported language: {self.config.language}")
-            
+
             logger.info("Test generation completed successfully", {
                 "generated_file": str(result),
                 "language": lang,
                 "source_file": str(source_path)
             })
-            
+
             return result
 
     def generate_tests_with_memory_monitoring(self, file_path: str | Path, output_dir: str | Path) -> Path:
         """Generate tests with memory usage monitoring."""
         logger = get_generator_logger()
-        
+
         # Check memory usage before starting
         if not self.resource_monitor.check_memory_usage():
             raise MemoryError("Insufficient memory available for test generation")
-        
+
         with LogContext(logger, "generate_tests_with_memory_monitoring", {
             "source_file": str(file_path),
             "output_dir": str(output_dir),
@@ -137,7 +137,7 @@ class TestGenerator:
     # ------------------------------------------------------------------
     def _generate_python_tests(self, source_path: Path, out_dir: Path) -> Path:
         logger = get_generator_logger()
-        
+
         with logger.time_operation("python_test_generation", {"source_file": str(source_path)}):
             try:
                 functions = self._parse_functions(source_path)
@@ -146,9 +146,9 @@ class TestGenerator:
                     "function_names": [func.name for func in functions],
                     "source_file": str(source_path)
                 })
-                
+
                 test_content = self._build_test_file(source_path, functions)
-                
+
                 # Ensure output directory exists
                 try:
                     out_dir.mkdir(parents=True, exist_ok=True)
@@ -159,12 +159,12 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
-                
+
                 out_file = out_dir / f"test_{source_path.stem}.py"
-                
+
                 # Validate test content before writing to disk
                 self.resource_monitor.validate_test_content(test_content, out_file)
-                
+
                 # Write test file with error handling
                 try:
                     out_file.write_text(test_content)
@@ -175,15 +175,15 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot write test file {out_file}: {e}")
-                
+
                 logger.info("Python tests generated successfully", {
                     "output_file": str(out_file),
                     "function_count": len(functions),
                     "test_content_length": len(test_content)
                 })
-                
+
                 return out_file
-                
+
             except Exception as e:
                 logger.error("Failed to generate Python tests", {
                     "source_file": str(source_path),
@@ -198,20 +198,20 @@ class TestGenerator:
     @cached_operation("generator_parse_functions", analysis_cache)
     def _parse_functions(self, path: Path) -> List[ast.FunctionDef]:
         logger = get_generator_logger()
-        
+
         try:
             tree, content = safe_parse_ast(path)
             functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
-            
+
             logger.debug("Parsed functions from source file", {
                 "source_file": str(path),
                 "function_count": len(functions),
                 "content_length": len(content),
                 "ast_node_count": len(tree.body)
             })
-            
+
             return functions
-            
+
         except SyntaxError as e:
             # Convert SyntaxError to ASTParsingError for consistent error handling
             raise ASTParsingError(
@@ -403,7 +403,7 @@ class TestGenerator:
     # ------------------------------------------------------------------
     def _generate_javascript_tests(self, source_path: Path, out_dir: Path) -> Path:
         logger = get_generator_logger()
-        
+
         with logger.time_operation("javascript_test_generation", {"source_file": str(source_path)}):
             try:
                 names = self._parse_js_functions(source_path)
@@ -412,7 +412,7 @@ class TestGenerator:
                     "function_names": names,
                     "source_file": str(source_path)
                 })
-                
+
                 lines: List[str] = [
                     f"import {{ {', '.join(names)} }} from './{source_path.stem}';",
                     "",
@@ -433,9 +433,9 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
-                
+
                 out_file = out_dir / f"{source_path.stem}.test.js"
-                
+
                 # Write test file with error handling
                 try:
                     out_file.write_text("\n".join(lines).rstrip() + "\n")
@@ -446,15 +446,15 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot write test file {out_file}: {e}")
-                
+
                 logger.info("JavaScript tests generated successfully", {
                     "output_file": str(out_file),
                     "function_count": len(names),
                     "test_content_length": len("\n".join(lines))
                 })
-                
+
                 return out_file
-                
+
             except Exception as e:
                 logger.error("Failed to generate JavaScript tests", {
                     "source_file": str(source_path),
@@ -466,7 +466,7 @@ class TestGenerator:
     @cached_operation("generator_parse_js_functions", analysis_cache)
     def _parse_js_functions(self, path: Path) -> List[str]:
         logger = get_generator_logger()
-        
+
         try:
             text = safe_read_file(path)
             patterns = [r"function\s+(\w+)\s*\(", r"const\s+(\w+)\s*=\s*\("]
@@ -482,7 +482,7 @@ class TestGenerator:
                         "language": "javascript"
                     })
                     continue
-            
+
             result = list(dict.fromkeys(names)) or [path.stem]
             logger.debug("Parsed JavaScript functions", {
                 "function_count": len(result),
@@ -490,8 +490,8 @@ class TestGenerator:
                 "source_file": str(path)
             })
             return result
-            
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError):
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
@@ -507,7 +507,7 @@ class TestGenerator:
     # ------------------------------------------------------------------
     def _generate_java_tests(self, source_path: Path, out_dir: Path) -> Path:
         logger = get_generator_logger()
-        
+
         try:
             methods = self._parse_java_methods(source_path)
             class_name = source_path.stem.capitalize() + "Test"
@@ -537,21 +537,21 @@ class TestGenerator:
                 out_dir.mkdir(parents=True, exist_ok=True)
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
-            
+
             out_file = out_dir / f"{class_name}.java"
-            
+
             try:
                 out_file.write_text("\n".join(lines).rstrip() + "\n")
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot write test file {out_file}: {e}")
-            
+
             logger.info("Java tests generated successfully", {
                 "output_file": str(out_file),
                 "method_count": len(methods),
                 "test_content_length": len("\n".join(lines))
             })
             return out_file
-            
+
         except Exception as e:
             logger.error("Failed to generate Java tests", {
                 "source_file": str(source_path),
@@ -563,7 +563,7 @@ class TestGenerator:
     @cached_operation("generator_parse_java_methods", analysis_cache)
     def _parse_java_methods(self, path: Path) -> List[str]:
         logger = get_generator_logger()
-        
+
         try:
             text = safe_read_file(path)
             try:
@@ -581,8 +581,8 @@ class TestGenerator:
                     "fallback_used": "methodUnderTest"
                 })
                 return ["methodUnderTest"]
-                
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError):
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
@@ -598,7 +598,7 @@ class TestGenerator:
     # ------------------------------------------------------------------
     def _generate_csharp_tests(self, source_path: Path, out_dir: Path) -> Path:
         logger = get_generator_logger()
-        
+
         try:
             methods = self._parse_csharp_methods(source_path)
             class_name = source_path.stem + "Tests"
@@ -619,21 +619,21 @@ class TestGenerator:
                 out_dir.mkdir(parents=True, exist_ok=True)
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
-            
+
             out_file = out_dir / f"{class_name}.cs"
-            
+
             try:
                 out_file.write_text("\n".join(lines).rstrip() + "\n")
             except (OSError, PermissionError) as e:
                 raise PermissionError(f"Cannot write test file {out_file}: {e}")
-            
+
             logger.info("C# tests generated successfully", {
                 "output_file": str(out_file),
                 "method_count": len(methods),
                 "test_content_length": len("\n".join(lines))
             })
             return out_file
-            
+
         except Exception as e:
             logger.error("Failed to generate C# tests", {
                 "source_file": str(source_path),
@@ -644,7 +644,7 @@ class TestGenerator:
 
     def _parse_csharp_methods(self, path: Path) -> List[str]:
         logger = get_generator_logger()
-        
+
         try:
             text = safe_read_file(path)
             try:
@@ -662,8 +662,8 @@ class TestGenerator:
                     "fallback_used": "MethodUnderTest"
                 })
                 return ["MethodUnderTest"]
-                
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError):
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
@@ -679,7 +679,7 @@ class TestGenerator:
     # ------------------------------------------------------------------
     def _generate_go_tests(self, source_path: Path, out_dir: Path) -> Path:
         logger = get_generator_logger()
-        
+
         with logger.time_operation("go_test_generation", {"source_file": str(source_path)}):
             try:
                 funcs = self._parse_go_functions(source_path)
@@ -688,7 +688,7 @@ class TestGenerator:
                     "function_names": funcs,
                     "source_file": str(source_path)
                 })
-                
+
                 lines: List[str] = ["package main", "", 'import "testing"', ""]
                 for f_name in funcs:
                     lines.append(f"func Test{f_name.capitalize()}(t *testing.T) {{")
@@ -708,9 +708,9 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
-                
+
                 out_file = out_dir / f"{source_path.stem}_test.go"
-                
+
                 # Write test file with error handling
                 try:
                     out_file.write_text("\n".join(lines).rstrip() + "\n")
@@ -721,15 +721,15 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot write test file {out_file}: {e}")
-                
+
                 logger.info("Go tests generated successfully", {
                     "output_file": str(out_file),
                     "function_count": len(funcs),
                     "test_content_length": len("\n".join(lines))
                 })
-                
+
                 return out_file
-                
+
             except Exception as e:
                 logger.error("Failed to generate Go tests", {
                     "source_file": str(source_path),
@@ -740,7 +740,7 @@ class TestGenerator:
 
     def _parse_go_functions(self, path: Path) -> List[str]:
         logger = get_generator_logger()
-        
+
         try:
             text = safe_read_file(path)
             try:
@@ -750,8 +750,8 @@ class TestGenerator:
             except re.error as e:
                 logger.warning(f"Regex parsing failed for Go functions: {e}")
                 return ["FuncUnderTest"]
-                
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError):
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
@@ -763,7 +763,7 @@ class TestGenerator:
     # ------------------------------------------------------------------
     def _generate_rust_tests(self, source_path: Path, out_dir: Path) -> Path:
         logger = get_generator_logger()
-        
+
         with logger.time_operation("rust_test_generation", {"source_file": str(source_path)}):
             try:
                 funcs = self._parse_rust_functions(source_path)
@@ -772,7 +772,7 @@ class TestGenerator:
                     "function_names": funcs,
                     "source_file": str(source_path)
                 })
-                
+
                 lines: List[str] = ["#[cfg(test)]", "mod tests {", "    use super::*;", ""]
                 for f_name in funcs:
                     lines.append("    #[test]")
@@ -792,9 +792,9 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot create output directory {out_dir}: {e}")
-                
+
                 out_file = out_dir / f"{source_path.stem}_test.rs"
-                
+
                 # Write test file with error handling
                 try:
                     out_file.write_text("\n".join(lines).rstrip() + "\n")
@@ -805,15 +805,15 @@ class TestGenerator:
                         "error_message": str(e)
                     })
                     raise PermissionError(f"Cannot write test file {out_file}: {e}")
-                
+
                 logger.info("Rust tests generated successfully", {
                     "output_file": str(out_file),
                     "function_count": len(funcs),
                     "test_content_length": len("\n".join(lines))
                 })
-                
+
                 return out_file
-                
+
             except Exception as e:
                 logger.error("Failed to generate Rust tests", {
                     "source_file": str(source_path),
@@ -824,7 +824,7 @@ class TestGenerator:
 
     def _parse_rust_functions(self, path: Path) -> List[str]:
         logger = get_generator_logger()
-        
+
         try:
             text = safe_read_file(path)
             try:
@@ -834,8 +834,8 @@ class TestGenerator:
             except re.error as e:
                 logger.warning(f"Regex parsing failed for Rust functions: {e}")
                 return ["func_under_test"]
-                
-        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError) as e:
+
+        except (FileNotFoundError, PermissionError, ValueError, FileSizeError, OSError):
             # File reading errors are already logged by safe_read_file
             raise
         except Exception as e:
@@ -849,7 +849,7 @@ class TestGenerator:
         """Generate appropriate assertion based on function analysis."""
         # Analyze function to determine likely return type and assertion
         return_hints = self._analyze_return_type(func)
-        
+
         if "bool" in return_hints.lower():
             return f"assert isinstance({result_var}, bool)"
         elif "str" in return_hints.lower() or "string" in return_hints.lower():
@@ -869,8 +869,8 @@ class TestGenerator:
         """Generate assertion for edge case scenarios."""
         # For edge cases, often check for specific boundary conditions
         if self._raises_exceptions(func):
-            return f"# Edge case may raise exception or return special value"
-        
+            return "# Edge case may raise exception or return special value"
+
         return_hints = self._analyze_return_type(func)
         if "bool" in return_hints.lower():
             return f"assert isinstance({result_var}, bool)"
@@ -889,7 +889,7 @@ class TestGenerator:
                 return func.returns.id
             elif isinstance(func.returns, ast.Constant):
                 return str(func.returns.value)
-        
+
         # Analyze docstring for type hints
         docstring = ast.get_docstring(func)
         if docstring:
@@ -905,7 +905,7 @@ class TestGenerator:
                     return "list"
                 elif "dict" in doc_lower or "dictionary" in doc_lower:
                     return "dict"
-        
+
         # Analyze return statements
         return_types = []
         for node in ast.walk(func):
@@ -924,7 +924,7 @@ class TestGenerator:
                             return_types.append("list")
                         elif node.value.func.id in ["dict", "{}"]:
                             return_types.append("dict")
-        
+
         return return_types[0] if return_types else "unknown"
 
     def _has_return_statement(self, func: ast.FunctionDef) -> bool:

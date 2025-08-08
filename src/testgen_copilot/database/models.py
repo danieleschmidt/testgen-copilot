@@ -5,9 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
-from typing import Optional, List, Dict, Any
-import json
+from typing import Any, Dict, List, Optional
 
 
 class ProcessingStatus(Enum):
@@ -39,7 +37,7 @@ class ProcessingSession:
     processed_files: int = 0
     failed_files: int = 0
     configuration: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -74,7 +72,7 @@ class AnalysisResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -111,7 +109,7 @@ class TestCase:
     passed: Optional[bool] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -152,7 +150,7 @@ class SecurityIssue:
     suppressed: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -204,7 +202,7 @@ class ProjectMetrics:
     frameworks_detected: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     calculated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {

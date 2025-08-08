@@ -4,26 +4,36 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, status, Depends, Query, BackgroundTasks
-from fastapi.responses import FileResponse
+from typing import Any, Dict, List, Optional
 
-from .models import (
-    AnalysisRequest, AnalysisResponse, ProjectAnalysisRequest, ProjectAnalysisResponse,
-    SecurityScanRequest, SecurityScanResponse, HealthResponse, SessionResponse,
-    ProjectMetricsResponse, PaginationParams, PaginatedResponse, ErrorResponse
-)
-from ..core import TestGenOrchestrator, ProcessingStatus, AnalysisPhase
-from ..generator import GenerationConfig
-from ..security import SecurityScanner
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+
+from ..core import AnalysisPhase, ProcessingStatus, TestGenOrchestrator
 from ..database import (
-    get_database, SessionRepository, AnalysisRepository, SecurityRepository,
-    MetricsRepository, run_migrations
+    AnalysisRepository,
+    MetricsRepository,
+    SecurityRepository,
+    SessionRepository,
+    get_database,
 )
+from ..generator import GenerationConfig
 from ..logging_config import get_logger
+from ..security import SecurityScanner
 from ..version import __version__, get_version_info
-
+from .models import (
+    AnalysisRequest,
+    AnalysisResponse,
+    HealthResponse,
+    PaginatedResponse,
+    PaginationParams,
+    ProjectAnalysisRequest,
+    ProjectAnalysisResponse,
+    ProjectMetricsResponse,
+    SecurityScanRequest,
+    SecurityScanResponse,
+    SessionResponse,
+)
 
 # Create routers
 health_bp = APIRouter()
@@ -62,7 +72,7 @@ async def health_check():
     """Health check endpoint."""
     db = get_database()
     db_info = db.get_database_info()
-    
+
     # Check database connectivity
     try:
         with db.get_connection() as conn:
@@ -70,7 +80,7 @@ async def health_check():
         db_status = "healthy"
     except Exception as e:
         db_status = f"error: {str(e)}"
-    
+
     return HealthResponse(
         version=__version__,
         timestamp=datetime.now(timezone.utc),
@@ -103,13 +113,13 @@ async def analyze_file(
 ):
     """Analyze a single source file."""
     session_id = str(uuid.uuid4())
-    
+
     logger.info("Starting file analysis", {
         "session_id": session_id,
         "file_path": request.file_path,
         "language": request.language
     })
-    
+
     try:
         # Create processing session
         from ..database.models import ProcessingSession
@@ -121,7 +131,7 @@ async def analyze_file(
             configuration=request.dict()
         )
         session_repo.create_session(session)
-        
+
         # Create generation config
         config = GenerationConfig(
             language=request.language or "python",
@@ -131,7 +141,7 @@ async def analyze_file(
             include_integration_tests=request.include_integration_tests,
             use_mocking=request.use_mocking
         )
-        
+
         # Create orchestrator
         orchestrator = TestGenOrchestrator(
             config=config,
@@ -139,7 +149,7 @@ async def analyze_file(
             enable_coverage=request.enable_coverage_analysis,
             enable_quality=request.enable_quality_assessment
         )
-        
+
         # Process file
         phases = request.phases or list(AnalysisPhase)
         result = await orchestrator.process_file(
@@ -147,14 +157,14 @@ async def analyze_file(
             request.output_dir,
             phases=phases
         )
-        
+
         # Update session
         session.status = ProcessingStatus.COMPLETED if result.status == ProcessingStatus.COMPLETED else ProcessingStatus.FAILED
         session.processed_files = 1 if result.status == ProcessingStatus.COMPLETED else 0
         session.failed_files = 1 if result.status == ProcessingStatus.FAILED else 0
         session.completed_at = datetime.now(timezone.utc)
         session_repo.update_session(session)
-        
+
         # Convert to response model
         return AnalysisResponse(
             session_id=session_id,
@@ -172,14 +182,14 @@ async def analyze_file(
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc)
         )
-        
+
     except Exception as e:
         logger.error("File analysis failed", {
             "session_id": session_id,
             "file_path": request.file_path,
             "error": str(e)
         })
-        
+
         # Update session status
         try:
             session.status = ProcessingStatus.FAILED
@@ -188,7 +198,7 @@ async def analyze_file(
             session_repo.update_session(session)
         except:
             pass  # Don't fail the error response if session update fails
-        
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Analysis failed: {str(e)}"
@@ -205,13 +215,13 @@ async def analyze_project(
 ):
     """Analyze an entire project."""
     session_id = str(uuid.uuid4())
-    
+
     logger.info("Starting project analysis", {
         "session_id": session_id,
         "project_path": request.project_path,
         "concurrent_limit": request.concurrent_limit
     })
-    
+
     try:
         # Create processing session
         from ..database.models import ProcessingSession
@@ -222,7 +232,7 @@ async def analyze_project(
             configuration=request.dict()
         )
         session_repo.create_session(session)
-        
+
         # Create generation config
         config = GenerationConfig(
             include_edge_cases=request.include_edge_cases,
@@ -231,7 +241,7 @@ async def analyze_project(
             include_integration_tests=request.include_integration_tests,
             use_mocking=request.use_mocking
         )
-        
+
         # Create orchestrator
         orchestrator = TestGenOrchestrator(
             config=config,
@@ -240,7 +250,7 @@ async def analyze_project(
             enable_quality=request.enable_quality_assessment,
             concurrent_limit=request.concurrent_limit
         )
-        
+
         # Process project
         results = await orchestrator.process_project(
             request.project_path,
@@ -248,21 +258,21 @@ async def analyze_project(
             file_patterns=request.file_patterns,
             exclude_patterns=request.exclude_patterns
         )
-        
+
         # Generate comprehensive report
         report = orchestrator.generate_comprehensive_report(results)
-        
+
         # Update session
         successful_count = sum(1 for r in results.values() if r.status == ProcessingStatus.COMPLETED)
         failed_count = len(results) - successful_count
-        
+
         session.status = ProcessingStatus.COMPLETED
         session.total_files = len(results)
         session.processed_files = successful_count
         session.failed_files = failed_count
         session.completed_at = datetime.now(timezone.utc)
         session_repo.update_session(session)
-        
+
         # Convert results to response models
         analysis_responses = []
         for file_path, result in results.items():
@@ -282,7 +292,7 @@ async def analyze_project(
                 created_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(timezone.utc)
             ))
-        
+
         # Create metrics response
         metrics_response = ProjectMetricsResponse(
             session_id=session_id,
@@ -307,7 +317,7 @@ async def analyze_project(
             frameworks_detected=[],  # TODO: Detect frameworks
             calculated_at=datetime.now(timezone.utc)
         )
-        
+
         return ProjectAnalysisResponse(
             session=SessionResponse(
                 session_id=session_id,
@@ -324,14 +334,14 @@ async def analyze_project(
             metrics=metrics_response,
             recommendations=report["recommendations"]
         )
-        
+
     except Exception as e:
         logger.error("Project analysis failed", {
             "session_id": session_id,
             "project_path": request.project_path,
             "error": str(e)
         })
-        
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Project analysis failed: {str(e)}"
@@ -364,13 +374,13 @@ async def list_sessions(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid status: {status_filter}"
         )
-    
+
     sessions = session_repo.list_sessions(
         project_path=project_path,
         status=status_enum,
         limit=pagination.size * pagination.page  # Simple limit for now
     )
-    
+
     # Convert to response models
     session_responses = []
     for session in sessions:
@@ -385,7 +395,7 @@ async def list_sessions(
             failed_files=session.failed_files,
             configuration=session.configuration
         ))
-    
+
     return PaginatedResponse(
         items=session_responses,
         total=len(session_responses),
@@ -402,13 +412,13 @@ async def get_session(
 ):
     """Get session details by ID."""
     session = session_repo.get_session_by_id(session_id)
-    
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session not found: {session_id}"
         )
-    
+
     return SessionResponse(
         session_id=session.session_id,
         project_path=session.project_path,
@@ -429,7 +439,7 @@ async def get_session_results(
 ):
     """Get analysis results for a session."""
     results = analysis_repo.get_results_by_session(session_id)
-    
+
     # Convert to response models
     response_list = []
     for result in results:
@@ -449,7 +459,7 @@ async def get_session_results(
             created_at=result.created_at,
             updated_at=result.updated_at
         ))
-    
+
     return response_list
 
 
@@ -461,11 +471,11 @@ async def scan_file(request: SecurityScanRequest):
         "file_path": request.file_path,
         "strict_mode": request.strict_mode
     })
-    
+
     try:
         scanner = SecurityScanner()
         report = scanner.scan_file(request.file_path)
-        
+
         # Convert to response model
         from .models import SecurityIssueResponse
         issues = []
@@ -485,13 +495,13 @@ async def scan_file(request: SecurityScanRequest):
                 owasp_category=issue.owasp_category,
                 confidence=issue.confidence
             ))
-        
+
         # Calculate summary
         summary = {}
         for issue in issues:
             severity = issue.severity
             summary[severity] = summary.get(severity, 0) + 1
-        
+
         return SecurityScanResponse(
             file_path=request.file_path,
             scan_time_ms=int(report.scan_time * 1000),
@@ -499,13 +509,13 @@ async def scan_file(request: SecurityScanRequest):
             issues=issues,
             summary=summary
         )
-        
+
     except Exception as e:
         logger.error("Security scan failed", {
             "file_path": request.file_path,
             "error": str(e)
         })
-        
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Security scan failed: {str(e)}"
@@ -520,13 +530,13 @@ async def get_session_metrics(
 ):
     """Get metrics for a processing session."""
     metrics = metrics_repo.get_metrics_by_session(session_id)
-    
+
     if not metrics:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Metrics not found for session: {session_id}"
         )
-    
+
     return ProjectMetricsResponse(
         session_id=metrics.session_id,
         project_path=metrics.project_path,

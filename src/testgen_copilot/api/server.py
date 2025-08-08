@@ -3,32 +3,32 @@
 from __future__ import annotations
 
 import os
-import uvicorn
 from contextlib import asynccontextmanager
-from typing import Dict, Any, Optional
-from fastapi import FastAPI, Request, HTTPException
+from typing import Any, Dict, Optional
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pathlib import Path
 
-from .routes import analysis_bp, sessions_bp, security_bp, metrics_bp, health_bp
-from .middleware import error_handler, request_logging_middleware, auth_middleware
-from ..database import run_migrations, get_database, close_database
-from ..logging_config import get_logger, configure_logging
+from ..database import close_database, run_migrations
+from ..logging_config import configure_logging, get_logger
 from ..version import __version__
+from .middleware import auth_middleware, error_handler, request_logging_middleware
+from .routes import analysis_bp, health_bp, metrics_bp, security_bp, sessions_bp
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle - startup and shutdown."""
     logger = get_logger("testgen_copilot.api.server")
-    
+
     # Startup
     logger.info("Starting TestGen Copilot API server", {
         "version": __version__,
         "environment": os.getenv("TESTGEN_ENV", "development")
     })
-    
+
     try:
         # Initialize database
         logger.info("Initializing database")
@@ -36,18 +36,18 @@ async def lifespan(app: FastAPI):
         logger.info("Database initialized", {
             "migrations_applied": migrations_applied
         })
-        
+
         # Additional startup tasks
         logger.info("API server startup complete")
-        
+
     except Exception as e:
         logger.error("Failed to start API server", {
             "error": str(e)
         })
         raise
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down TestGen Copilot API server")
     try:
@@ -57,13 +57,13 @@ async def lifespan(app: FastAPI):
         logger.warning("Error during shutdown", {
             "error": str(e)
         })
-    
+
     logger.info("API server shutdown complete")
 
 
 class TestGenAPI:
     """Main API application class."""
-    
+
     def __init__(
         self,
         title: str = "TestGen Copilot API",
@@ -80,12 +80,12 @@ class TestGenAPI:
             docs_url="/docs" if debug else None,
             redoc_url="/redoc" if debug else None
         )
-        
+
         self.logger = get_logger("testgen_copilot.api")
         self._setup_middleware()
         self._setup_routes()
         self._setup_error_handlers()
-    
+
     def _setup_middleware(self) -> None:
         """Configure middleware for the application."""
         # CORS middleware
@@ -96,25 +96,25 @@ class TestGenAPI:
             allow_methods=["GET", "POST", "PUT", "DELETE"],
             allow_headers=["*"],
         )
-        
+
         # Custom middleware
         self.app.middleware("http")(request_logging_middleware)
-        
+
         # Authentication middleware (if API keys are enabled)
         if os.getenv("ENABLE_API_AUTH", "false").lower() == "true":
             self.app.middleware("http")(auth_middleware)
-    
+
     def _setup_routes(self) -> None:
         """Register API route blueprints."""
         # Health check (always available)
         self.app.include_router(health_bp, prefix="/health", tags=["health"])
-        
+
         # Main API routes
         self.app.include_router(analysis_bp, prefix="/api/v1/analysis", tags=["analysis"])
         self.app.include_router(sessions_bp, prefix="/api/v1/sessions", tags=["sessions"])
         self.app.include_router(security_bp, prefix="/api/v1/security", tags=["security"])
         self.app.include_router(metrics_bp, prefix="/api/v1/metrics", tags=["metrics"])
-        
+
         # Root endpoint
         @self.app.get("/", response_model=Dict[str, Any])
         async def root():
@@ -126,14 +126,14 @@ class TestGenAPI:
                 "docs_url": "/docs" if self.app.debug else None,
                 "health_url": "/health"
             }
-    
+
     def _setup_error_handlers(self) -> None:
         """Configure global error handlers."""
         @self.app.exception_handler(Exception)
         async def global_exception_handler(request: Request, exc: Exception):
             """Handle unexpected exceptions."""
             return await error_handler(request, exc)
-        
+
         @self.app.exception_handler(HTTPException)
         async def http_exception_handler(request: Request, exc: HTTPException):
             """Handle HTTP exceptions."""
@@ -143,7 +143,7 @@ class TestGenAPI:
                 "path": request.url.path,
                 "method": request.method
             })
-            
+
             return JSONResponse(
                 status_code=exc.status_code,
                 content={
@@ -153,7 +153,7 @@ class TestGenAPI:
                     "path": request.url.path
                 }
             )
-    
+
     def run(
         self,
         host: str = "0.0.0.0",
@@ -168,7 +168,7 @@ class TestGenAPI:
             "workers": workers,
             "log_level": log_level
         })
-        
+
         uvicorn.run(
             self.app,
             host=host,
@@ -186,7 +186,7 @@ def create_app(
     """Factory function to create FastAPI application."""
     if debug is None:
         debug = os.getenv("TESTGEN_ENV", "development") == "development"
-    
+
     # Configure logging
     log_level = os.getenv("TESTGEN_LOG_LEVEL", "INFO")
     configure_logging(
@@ -194,22 +194,22 @@ def create_app(
         format_type="structured" if not debug else "simple",
         enable_console=True
     )
-    
+
     # Create API instance
     api = TestGenAPI(debug=debug)
-    
+
     # Apply configuration overrides
     if config_overrides:
         for key, value in config_overrides.items():
             setattr(api.app, key, value)
-    
+
     return api.app
 
 
 if __name__ == "__main__":
     # Development server
     app = create_app(debug=True)
-    
+
     uvicorn.run(
         app,
         host="0.0.0.0",

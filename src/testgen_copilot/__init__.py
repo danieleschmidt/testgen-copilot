@@ -1,40 +1,132 @@
 """TestGen Copilot package."""
 
-from .core import identity
-from .generator import GenerationConfig, TestGenerator
-from .security import SecurityScanner, SecurityIssue, SecurityReport
-from .security_rules import SecurityRulesManager, SecurityRule, SecurityRuleSet
-from .version import get_package_version, get_version_info, __version__
-from .vscode import scaffold_extension, suggest_from_diagnostics, write_usage_docs
-from .coverage import CoverageAnalyzer, ParallelCoverageAnalyzer, CoverageResult, StreamingCoverageAnalyzer
-from .streaming import StreamingProcessor, FileStreamProcessor, StreamingProgress, create_progress_reporter
-from .quality import TestQualityScorer
-from .file_utils import safe_read_file, FileSizeError, safe_parse_ast, SyntaxErrorStrategy
-from .resource_limits import (
-    MemoryMonitor, BatchProcessor, TimeoutHandler, CrossPlatformTimeoutHandler, ResourceMemoryError,
-    ResourceLimits, ResourceMonitor, safe_parse_ast_with_timeout, validate_test_content,
-    AST_PARSE_TIMEOUT, MAX_PROJECT_FILES
-)
-from .cache import (
-    LRUCache, CacheEntry, cached_operation, get_cache_stats, clear_all_caches,
-    ast_cache, file_content_cache, analysis_cache
-)
 # from .autonomous_backlog import BacklogManager, BacklogItem, TaskType, TaskStatus, RiskTier
-from .autonomous_execution import TDDExecutor, SecurityChecker, ExecutionResult, ExecutionPhase
-# from .autonomous_manager import AutonomousManager
-from .metrics_collector import MetricsCollector, DORAMetrics, CIMetrics, OperationalMetrics
+from .autonomous_execution import ExecutionPhase, ExecutionResult, SecurityChecker, TDDExecutor
+from .cache import (
+    CacheEntry,
+    LRUCache,
+    analysis_cache,
+    ast_cache,
+    cached_operation,
+    clear_all_caches,
+    file_content_cache,
+    get_cache_stats,
+)
+from .core import identity
+from .coverage import (
+    CoverageAnalyzer,
+    CoverageResult,
+    ParallelCoverageAnalyzer,
+    StreamingCoverageAnalyzer,
+)
 from .database import (
-    DatabaseConnection, get_database, AnalysisResult, TestCase, SecurityIssue,
-    ProjectMetrics, ProcessingSession, AnalysisRepository, TestCaseRepository,
-    SecurityRepository, MetricsRepository, SessionRepository, run_migrations
+    AnalysisRepository,
+    AnalysisResult,
+    DatabaseConnection,
+    MetricsRepository,
+    ProcessingSession,
+    ProjectMetrics,
+    SecurityRepository,
+    SessionRepository,
+    TestCase,
+    TestCaseRepository,
+    get_database,
+    run_migrations,
 )
+from .file_utils import FileSizeError, SyntaxErrorStrategy, safe_parse_ast, safe_read_file
+from .generator import GenerationConfig, TestGenerator
 from .integrations import (
-    GitHubClient, GitHubIntegration, NotificationService, CICDIntegration,
-    OAuthHandler, JWTManager, CloudStorageClient, WebhookManager
+    CICDIntegration,
+    CloudStorageClient,
+    GitHubClient,
+    GitHubIntegration,
+    JWTManager,
+    NotificationService,
+    OAuthHandler,
+    WebhookManager,
 )
+
+# from .autonomous_manager import AutonomousManager
+from .metrics_collector import CIMetrics, DORAMetrics, MetricsCollector, OperationalMetrics
+from .quality import TestQualityScorer
 from .quantum_planner import (
-    QuantumTaskPlanner, QuantumTask, TaskPriority, TaskState, ResourceQuantum,
-    QuantumAnnealer, create_quantum_planner, demo_quantum_planning
+    QuantumAnnealer,
+    QuantumTask,
+    QuantumTaskPlanner,
+    ResourceQuantum,
+    TaskPriority,
+    TaskState,
+    create_quantum_planner,
+    demo_quantum_planning,
+)
+from .resource_limits import (
+    AST_PARSE_TIMEOUT,
+    MAX_PROJECT_FILES,
+    BatchProcessor,
+    CrossPlatformTimeoutHandler,
+    MemoryMonitor,
+    ResourceLimits,
+    ResourceMemoryError,
+    ResourceMonitor,
+    TimeoutHandler,
+    safe_parse_ast_with_timeout,
+    validate_test_content,
+)
+from .security import SecurityIssue, SecurityReport, SecurityScanner
+from .security_rules import SecurityRule, SecurityRuleSet, SecurityRulesManager
+from .streaming import (
+    FileStreamProcessor,
+    StreamingProcessor,
+    StreamingProgress,
+    create_progress_reporter,
+)
+from .version import __version__, get_package_version, get_version_info
+from .vscode import scaffold_extension, suggest_from_diagnostics, write_usage_docs
+
+# Robustness and reliability components (Generation 2)
+from .monitoring import (
+    HealthMonitor, SystemMetrics, ApplicationMetrics, Alert, AlertSeverity,
+    get_health_monitor, shutdown_monitoring
+)
+from .resilience import (
+    CircuitBreaker, RetryMechanism, Bulkhead, ResilienceManager,
+    CircuitBreakerConfig, RetryConfig, BulkheadConfig,
+    CircuitState, RetryStrategy, get_resilience_manager,
+    circuit_breaker, retry, bulkhead,
+    CircuitBreakerError, RetryExhaustedError, BulkheadFullError
+)
+from .security_monitoring import (
+    SecurityScanner as EnhancedSecurityScanner, SecurityThreat, SecurityEvent,
+    ThreatLevel, ThreatCategory, get_security_scanner
+)
+
+# Optimization and scaling components (Generation 3)
+from .performance_optimizer import (
+    PerformanceOptimizer, PerformanceCache, ConcurrentExecutor,
+    AdaptiveResourceManager, PerformanceMetrics, get_performance_optimizer
+)
+from .auto_scaling import (
+    AutoScaler, LoadBalancer, WorkloadAnalyzer, ScalingMetrics,
+    ScalingDecision, ScalingPolicy, WorkloadPattern,
+    get_auto_scaler
+)
+
+# Global-first features (Generation 4)
+from .internationalization import (
+    LocalizationManager, SupportedLocales, LocaleInfo,
+    get_localization_manager, set_global_locale, t,
+    format_localized_datetime, format_localized_currency
+)
+from .compliance import (
+    ComplianceEngine, ComplianceFramework, DataClassification,
+    ProcessingPurpose, RetentionPeriod, DataProcessingRecord,
+    PrivacyControlsManager, get_compliance_engine,
+    log_data_processing, check_data_compliance
+)
+from .multi_region import (
+    MultiRegionManager, Region, RegionConfig, DataResidencyRequirement,
+    ReplicationStrategy, DataLocation, get_multi_region_manager,
+    store_data_globally, get_optimal_region
 )
 
 __all__ = [
@@ -73,14 +165,14 @@ __all__ = [
     "AST_PARSE_TIMEOUT",
     "MAX_PROJECT_FILES",
     "ResourceLimits",
-    "ResourceMonitor", 
+    "ResourceMonitor",
     "CircuitBreaker",
     "safe_parse_ast",
     "ASTParsingError",
     "extract_functions",
     "extract_classes",
     "LRUCache",
-    "CacheEntry", 
+    "CacheEntry",
     "cached_operation",
     "get_cache_stats",
     "clear_all_caches",
@@ -91,7 +183,7 @@ __all__ = [
     "get_version_info",
     "__version__",
     "BacklogManager",
-    "BacklogItem", 
+    "BacklogItem",
     "TaskType",
     "TaskStatus",
     "RiskTier",
@@ -118,7 +210,7 @@ __all__ = [
     "SessionRepository",
     "run_migrations",
     "GitHubClient",
-    "GitHubIntegration", 
+    "GitHubIntegration",
     "NotificationService",
     "CICDIntegration",
     "OAuthHandler",
@@ -126,11 +218,84 @@ __all__ = [
     "CloudStorageClient",
     "WebhookManager",
     "QuantumTaskPlanner",
-    "QuantumTask", 
+    "QuantumTask",
     "TaskPriority",
     "TaskState",
     "ResourceQuantum",
     "QuantumAnnealer",
     "create_quantum_planner",
-    "demo_quantum_planning"
+    "demo_quantum_planning",
+    # Robustness and reliability components
+    "HealthMonitor",
+    "SystemMetrics", 
+    "ApplicationMetrics",
+    "Alert",
+    "AlertSeverity",
+    "get_health_monitor",
+    "shutdown_monitoring",
+    "CircuitBreaker",
+    "RetryMechanism",
+    "Bulkhead", 
+    "ResilienceManager",
+    "CircuitBreakerConfig",
+    "RetryConfig",
+    "BulkheadConfig",
+    "CircuitState",
+    "RetryStrategy",
+    "get_resilience_manager",
+    "circuit_breaker",
+    "retry", 
+    "bulkhead",
+    "CircuitBreakerError",
+    "RetryExhaustedError",
+    "BulkheadFullError",
+    "EnhancedSecurityScanner",
+    "SecurityThreat",
+    "SecurityEvent",
+    "ThreatLevel",
+    "ThreatCategory",
+    "get_security_scanner",
+    # Optimization and scaling components
+    "PerformanceOptimizer",
+    "PerformanceCache",
+    "ConcurrentExecutor", 
+    "AdaptiveResourceManager",
+    "PerformanceMetrics",
+    "get_performance_optimizer",
+    "AutoScaler",
+    "LoadBalancer",
+    "WorkloadAnalyzer",
+    "ScalingMetrics",
+    "ScalingDecision",
+    "ScalingPolicy",
+    "WorkloadPattern",
+    "get_auto_scaler",
+    # Global-first features
+    "LocalizationManager",
+    "SupportedLocales",
+    "LocaleInfo",
+    "get_localization_manager",
+    "set_global_locale",
+    "t",
+    "format_localized_datetime",
+    "format_localized_currency",
+    "ComplianceEngine",
+    "ComplianceFramework",
+    "DataClassification",
+    "ProcessingPurpose",
+    "RetentionPeriod",
+    "DataProcessingRecord",
+    "PrivacyControlsManager",
+    "get_compliance_engine",
+    "log_data_processing",
+    "check_data_compliance",
+    "MultiRegionManager",
+    "Region",
+    "RegionConfig", 
+    "DataResidencyRequirement",
+    "ReplicationStrategy",
+    "DataLocation",
+    "get_multi_region_manager",
+    "store_data_globally",
+    "get_optimal_region"
 ]

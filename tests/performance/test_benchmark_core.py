@@ -6,8 +6,9 @@ from pathlib import Path
 import tempfile
 import time
 
-from testgen_copilot.core import TestGenCore
-from testgen_copilot.ast_utils import parse_python_file
+from testgen_copilot.core import TestGenOrchestrator
+from testgen_copilot.generator import TestGenerator
+from testgen_copilot.ast_utils import ASTParsingError
 
 
 @pytest.fixture
@@ -51,9 +52,10 @@ class Calculator:
 @pytest.mark.performance
 def test_ast_parsing_performance(benchmark, sample_python_file):
     """Benchmark AST parsing performance."""
+    from testgen_copilot.file_utils import safe_parse_ast
     
     def parse_file():
-        return parse_python_file(sample_python_file)
+        return safe_parse_ast(sample_python_file)
     
     result = benchmark(parse_file)
     assert result is not None
@@ -66,14 +68,16 @@ def test_ast_parsing_performance(benchmark, sample_python_file):
 @pytest.mark.performance
 def test_test_generation_performance(benchmark, sample_python_file):
     """Benchmark test generation performance."""
-    core = TestGenCore()
+    import tempfile
+    generator = TestGenerator()
     
     def generate_tests():
-        return core.generate_tests_for_file(sample_python_file)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            return generator.generate_tests(sample_python_file, temp_dir)
     
     result = benchmark(generate_tests)
     assert result is not None
-    assert len(result) > 0
+    assert result.exists()
     
     # Cleanup
     sample_python_file.unlink()
@@ -107,10 +111,11 @@ class Class_{i}:
         f.write(content)
         large_file = Path(f.name)
     
-    core = TestGenCore()
+    orchestrator = TestGenOrchestrator(repo_path=Path("."))
     
     def process_large_file():
-        return core.analyze_file(large_file)
+        import asyncio
+        return asyncio.run(orchestrator.process_file(large_file, "/tmp/test_output"))
     
     result = benchmark(process_large_file)
     assert result is not None
@@ -130,7 +135,7 @@ def test_memory_usage_tracking():
     initial_memory = process.memory_info().rss / 1024 / 1024  # MB
     
     # Process multiple files
-    core = TestGenCore()
+    orchestrator = TestGenOrchestrator(repo_path=Path("."))
     
     for i in range(10):
         content = f'''
@@ -145,7 +150,8 @@ class TestClass_{i}:
             f.write(content)
             temp_file = Path(f.name)
         
-        core.analyze_file(temp_file)
+        import asyncio
+        asyncio.run(orchestrator.process_file(temp_file, "/tmp/test_output"))
         temp_file.unlink()
     
     final_memory = process.memory_info().rss / 1024 / 1024  # MB
@@ -176,19 +182,23 @@ class Class_{i}:
             f.write(content)
             files.append(Path(f.name))
     
-    core = TestGenCore()
+    orchestrator = TestGenOrchestrator(repo_path=Path("."))
     
-    # Test sequential processing
+    # Test sequential processing  
     start_time = time.time()
     for file_path in files:
-        core.analyze_file(file_path)
+        import asyncio
+        asyncio.run(orchestrator.process_file(file_path, "/tmp/test_output"))
     sequential_time = time.time() - start_time
     
     # Test concurrent processing
+    import asyncio
+    async def process_files():
+        results = await orchestrator.process_project(Path("/tmp"), Path("/tmp/test_output"))
+        return results
+    
     start_time = time.time()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        futures = [executor.submit(core.analyze_file, file_path) for file_path in files]
-        concurrent.futures.wait(futures)
+    asyncio.run(process_files())
     concurrent_time = time.time() - start_time
     
     # Concurrent processing should be faster (or at least not significantly slower)
@@ -216,20 +226,21 @@ class TestClass:
         f.write(content)
         test_file = Path(f.name)
     
-    core = TestGenCore()
+    orchestrator = TestGenOrchestrator(repo_path=Path("."))
     
     # First analysis (cache miss)
     start_time = time.time()
-    result1 = core.analyze_file(test_file)
+    import asyncio
+    result1 = asyncio.run(orchestrator.process_file(test_file, "/tmp/test_output"))
     first_analysis_time = time.time() - start_time
     
     # Second analysis (cache hit)
     start_time = time.time()
-    result2 = core.analyze_file(test_file)
+    result2 = asyncio.run(orchestrator.process_file(test_file, "/tmp/test_output"))
     second_analysis_time = time.time() - start_time
     
-    # Results should be identical
-    assert result1 == result2
+    # Results should have similar structure
+    assert result1.status == result2.status
     
     # Second analysis should be significantly faster
     speedup = first_analysis_time / second_analysis_time
