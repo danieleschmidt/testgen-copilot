@@ -1,6 +1,16 @@
 """TestGen Copilot package."""
 
 # from .autonomous_backlog import BacklogManager, BacklogItem, TaskType, TaskStatus, RiskTier
+from .auto_scaling import (
+    AutoScaler,
+    LoadBalancer,
+    ScalingDecision,
+    ScalingMetrics,
+    ScalingPolicy,
+    WorkloadAnalyzer,
+    WorkloadPattern,
+    get_auto_scaler,
+)
 from .autonomous_execution import ExecutionPhase, ExecutionResult, SecurityChecker, TDDExecutor
 from .cache import (
     CacheEntry,
@@ -11,6 +21,18 @@ from .cache import (
     clear_all_caches,
     file_content_cache,
     get_cache_stats,
+)
+from .compliance import (
+    ComplianceEngine,
+    ComplianceFramework,
+    DataClassification,
+    DataProcessingRecord,
+    PrivacyControlsManager,
+    ProcessingPurpose,
+    RetentionPeriod,
+    check_data_compliance,
+    get_compliance_engine,
+    log_data_processing,
 )
 from .core import identity
 from .coverage import (
@@ -46,8 +68,52 @@ from .integrations import (
     WebhookManager,
 )
 
+# Global-first features (Generation 4)
+from .internationalization import (
+    LocaleInfo,
+    LocalizationManager,
+    SupportedLocales,
+    format_localized_currency,
+    format_localized_datetime,
+    get_localization_manager,
+    set_global_locale,
+    t,
+)
+
 # from .autonomous_manager import AutonomousManager
 from .metrics_collector import CIMetrics, DORAMetrics, MetricsCollector, OperationalMetrics
+
+# Robustness and reliability components (Generation 2)
+from .monitoring import (
+    Alert,
+    AlertSeverity,
+    ApplicationMetrics,
+    HealthMonitor,
+    SystemMetrics,
+    get_health_monitor,
+    shutdown_monitoring,
+)
+from .multi_region import (
+    DataLocation,
+    DataResidencyRequirement,
+    MultiRegionManager,
+    Region,
+    RegionConfig,
+    ReplicationStrategy,
+    get_multi_region_manager,
+    get_optimal_region,
+    store_data_globally,
+)
+
+# Optimization and scaling components (Generation 3)
+from .performance_optimizer import (
+    AdaptiveResourceManager,
+    ConcurrentExecutor,
+    PerformanceCache,
+    PerformanceMetrics,
+    PerformanceOptimizer,
+    get_performance_optimizer,
+)
 from .quality import TestQualityScorer
 from .quantum_planner import (
     QuantumAnnealer,
@@ -58,6 +124,24 @@ from .quantum_planner import (
     TaskState,
     create_quantum_planner,
     demo_quantum_planning,
+)
+from .resilience import (
+    Bulkhead,
+    BulkheadConfig,
+    BulkheadFullError,
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitBreakerError,
+    CircuitState,
+    ResilienceManager,
+    RetryConfig,
+    RetryExhaustedError,
+    RetryMechanism,
+    RetryStrategy,
+    bulkhead,
+    circuit_breaker,
+    get_resilience_manager,
+    retry,
 )
 from .resource_limits import (
     AST_PARSE_TIMEOUT,
@@ -73,6 +157,14 @@ from .resource_limits import (
     validate_test_content,
 )
 from .security import SecurityIssue, SecurityReport, SecurityScanner
+from .security_monitoring import (
+    SecurityEvent,
+    SecurityThreat,
+    ThreatCategory,
+    ThreatLevel,
+    get_security_scanner,
+)
+from .security_monitoring import SecurityScanner as EnhancedSecurityScanner
 from .security_rules import SecurityRule, SecurityRuleSet, SecurityRulesManager
 from .streaming import (
     FileStreamProcessor,
@@ -82,52 +174,6 @@ from .streaming import (
 )
 from .version import __version__, get_package_version, get_version_info
 from .vscode import scaffold_extension, suggest_from_diagnostics, write_usage_docs
-
-# Robustness and reliability components (Generation 2)
-from .monitoring import (
-    HealthMonitor, SystemMetrics, ApplicationMetrics, Alert, AlertSeverity,
-    get_health_monitor, shutdown_monitoring
-)
-from .resilience import (
-    CircuitBreaker, RetryMechanism, Bulkhead, ResilienceManager,
-    CircuitBreakerConfig, RetryConfig, BulkheadConfig,
-    CircuitState, RetryStrategy, get_resilience_manager,
-    circuit_breaker, retry, bulkhead,
-    CircuitBreakerError, RetryExhaustedError, BulkheadFullError
-)
-from .security_monitoring import (
-    SecurityScanner as EnhancedSecurityScanner, SecurityThreat, SecurityEvent,
-    ThreatLevel, ThreatCategory, get_security_scanner
-)
-
-# Optimization and scaling components (Generation 3)
-from .performance_optimizer import (
-    PerformanceOptimizer, PerformanceCache, ConcurrentExecutor,
-    AdaptiveResourceManager, PerformanceMetrics, get_performance_optimizer
-)
-from .auto_scaling import (
-    AutoScaler, LoadBalancer, WorkloadAnalyzer, ScalingMetrics,
-    ScalingDecision, ScalingPolicy, WorkloadPattern,
-    get_auto_scaler
-)
-
-# Global-first features (Generation 4)
-from .internationalization import (
-    LocalizationManager, SupportedLocales, LocaleInfo,
-    get_localization_manager, set_global_locale, t,
-    format_localized_datetime, format_localized_currency
-)
-from .compliance import (
-    ComplianceEngine, ComplianceFramework, DataClassification,
-    ProcessingPurpose, RetentionPeriod, DataProcessingRecord,
-    PrivacyControlsManager, get_compliance_engine,
-    log_data_processing, check_data_compliance
-)
-from .multi_region import (
-    MultiRegionManager, Region, RegionConfig, DataResidencyRequirement,
-    ReplicationStrategy, DataLocation, get_multi_region_manager,
-    store_data_globally, get_optimal_region
-)
 
 __all__ = [
     "identity",
@@ -227,7 +273,7 @@ __all__ = [
     "demo_quantum_planning",
     # Robustness and reliability components
     "HealthMonitor",
-    "SystemMetrics", 
+    "SystemMetrics",
     "ApplicationMetrics",
     "Alert",
     "AlertSeverity",
@@ -235,7 +281,7 @@ __all__ = [
     "shutdown_monitoring",
     "CircuitBreaker",
     "RetryMechanism",
-    "Bulkhead", 
+    "Bulkhead",
     "ResilienceManager",
     "CircuitBreakerConfig",
     "RetryConfig",
@@ -244,7 +290,7 @@ __all__ = [
     "RetryStrategy",
     "get_resilience_manager",
     "circuit_breaker",
-    "retry", 
+    "retry",
     "bulkhead",
     "CircuitBreakerError",
     "RetryExhaustedError",
@@ -258,7 +304,7 @@ __all__ = [
     # Optimization and scaling components
     "PerformanceOptimizer",
     "PerformanceCache",
-    "ConcurrentExecutor", 
+    "ConcurrentExecutor",
     "AdaptiveResourceManager",
     "PerformanceMetrics",
     "get_performance_optimizer",
@@ -291,7 +337,7 @@ __all__ = [
     "check_data_compliance",
     "MultiRegionManager",
     "Region",
-    "RegionConfig", 
+    "RegionConfig",
     "DataResidencyRequirement",
     "ReplicationStrategy",
     "DataLocation",
