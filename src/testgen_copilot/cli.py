@@ -8,7 +8,15 @@ import time
 from pathlib import Path
 
 from .coverage import CoverageAnalyzer, ParallelCoverageAnalyzer
+from .error_recovery import retry_with_backoff, safe_execute
 from .generator import GenerationConfig, TestGenerator
+from .input_validation import (
+    SecurityValidationError,
+    ValidationError,
+    validate_configuration,
+    validate_file_path,
+    validate_project_directory,
+)
 from .logging_config import LogContext, configure_logging, get_cli_logger
 from .profiler import GeneratorProfiler
 from .progress import estimate_batch_time, progress_context

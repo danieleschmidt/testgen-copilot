@@ -5,17 +5,14 @@ Provides compliance checks, data governance, privacy protection, and regulatory
 adherence for global deployment in regulated industries.
 """
 
-import json
 import hashlib
-import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from enum import Enum
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Any, Union, Callable
-from uuid import uuid4, UUID
-import threading
 import re
+import threading
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set, Union
+from uuid import uuid4
 
 from .logging_config import get_core_logger
 
@@ -111,16 +108,16 @@ class ComplianceRule:
 
 class PrivacyControlsManager:
     """Manages privacy controls and data protection."""
-    
+
     def __init__(self):
         self.logger = get_core_logger()
         self._data_processing_log: List[DataProcessingRecord] = []
         self._consent_records: Dict[str, Dict[str, Any]] = {}
         self._data_retention_policies: Dict[DataClassification, RetentionPeriod] = {}
         self._lock = threading.RLock()
-        
+
         self._init_default_retention_policies()
-    
+
     def _init_default_retention_policies(self) -> None:
         """Initialize default data retention policies."""
         self._data_retention_policies = {
@@ -134,30 +131,30 @@ class PrivacyControlsManager:
             DataClassification.HEALTH: RetentionPeriod.DAYS_30,
             DataClassification.BIOMETRIC: RetentionPeriod.IMMEDIATE,
         }
-    
+
     def log_data_processing(self, record: DataProcessingRecord) -> None:
         """Log a data processing activity."""
         with self._lock:
             self._data_processing_log.append(record)
-            
+
             # Apply retention policy
             retention_period = self._data_retention_policies.get(
                 record.data_classification, RetentionPeriod.DAYS_30
             )
             record.retention_period = retention_period
-            
+
             self.logger.info("Data processing logged", {
                 "record_id": record.id,
                 "data_classification": record.data_classification.value,
                 "processing_purpose": record.processing_purpose.value,
                 "retention_period": retention_period.value
             })
-    
-    def record_consent(self, data_subject_id: str, purposes: List[ProcessingPurpose], 
+
+    def record_consent(self, data_subject_id: str, purposes: List[ProcessingPurpose],
                       consent_details: Dict[str, Any]) -> str:
         """Record user consent for data processing."""
         consent_id = str(uuid4())
-        
+
         with self._lock:
             self._consent_records[consent_id] = {
                 "id": consent_id,
@@ -168,83 +165,83 @@ class PrivacyControlsManager:
                 "details": consent_details,
                 "withdrawn_at": None
             }
-        
+
         self.logger.info("Consent recorded", {
             "consent_id": consent_id,
             "data_subject_id": data_subject_id,
             "purposes": [p.value for p in purposes]
         })
-        
+
         return consent_id
-    
+
     def withdraw_consent(self, consent_id: str) -> bool:
         """Withdraw previously granted consent."""
         with self._lock:
             if consent_id in self._consent_records:
                 self._consent_records[consent_id]["valid"] = False
                 self._consent_records[consent_id]["withdrawn_at"] = datetime.now(timezone.utc)
-                
+
                 self.logger.info("Consent withdrawn", {"consent_id": consent_id})
                 return True
-        
+
         return False
-    
+
     def has_valid_consent(self, data_subject_id: str, purpose: ProcessingPurpose) -> bool:
         """Check if valid consent exists for a processing purpose."""
         with self._lock:
             for consent in self._consent_records.values():
-                if (consent["data_subject_id"] == data_subject_id and 
+                if (consent["data_subject_id"] == data_subject_id and
                     consent["valid"] and
                     purpose.value in consent["purposes"]):
                     return True
-        
+
         return False
-    
+
     def pseudonymize_identifier(self, identifier: str, salt: str = "") -> str:
         """Pseudonymize a personal identifier using hashing."""
         # Use SHA-256 with salt for pseudonymization
         combined = f"{identifier}:{salt}:testgen_copilot"
         return hashlib.sha256(combined.encode('utf-8')).hexdigest()[:16]
-    
+
     def classify_data_content(self, content: str) -> Set[DataClassification]:
         """Automatically classify data content based on patterns."""
         classifications = set()
-        
+
         # Email patterns
         if re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', content):
             classifications.add(DataClassification.PERSONAL)
-        
+
         # Credit card patterns
         if re.search(r'\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b', content):
             classifications.add(DataClassification.FINANCIAL)
-        
+
         # Social Security Number patterns (US)
         if re.search(r'\b\d{3}-?\d{2}-?\d{4}\b', content):
             classifications.add(DataClassification.SENSITIVE_PERSONAL)
-        
+
         # Phone number patterns
         if re.search(r'\b\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b', content):
             classifications.add(DataClassification.PERSONAL)
-        
+
         # IP address patterns
         if re.search(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', content):
             classifications.add(DataClassification.INTERNAL)
-        
+
         # If no patterns matched, default to internal
         if not classifications:
             classifications.add(DataClassification.INTERNAL)
-        
+
         return classifications
-    
+
     def get_retention_policy(self, data_classification: DataClassification) -> RetentionPeriod:
         """Get retention policy for a data classification."""
         return self._data_retention_policies.get(data_classification, RetentionPeriod.DAYS_30)
-    
+
     def cleanup_expired_data(self) -> int:
         """Clean up data that has exceeded its retention period."""
         current_time = datetime.now(timezone.utc)
         expired_count = 0
-        
+
         with self._lock:
             # Clean up processing logs
             retention_cutoffs = {
@@ -257,7 +254,7 @@ class PrivacyControlsManager:
                 RetentionPeriod.YEAR_1: current_time - timedelta(days=365),
                 RetentionPeriod.YEARS_7: current_time - timedelta(days=2555),  # 7 years
             }
-            
+
             # Filter out expired records
             initial_count = len(self._data_processing_log)
             self._data_processing_log = [
@@ -266,12 +263,12 @@ class PrivacyControlsManager:
                    record.timestamp > retention_cutoffs.get(record.retention_period, current_time)
             ]
             expired_count = initial_count - len(self._data_processing_log)
-        
+
         if expired_count > 0:
             self.logger.info("Expired data cleaned up", {"records_deleted": expired_count})
-        
+
         return expired_count
-    
+
     def export_data_for_subject(self, data_subject_id: str) -> Dict[str, Any]:
         """Export all data related to a data subject (GDPR Article 15)."""
         with self._lock:
@@ -288,7 +285,7 @@ class PrivacyControlsManager:
                 for record in self._data_processing_log
                 if record.data_subject_id == data_subject_id
             ]
-            
+
             # Find consent records
             consent_records = [
                 {
@@ -301,14 +298,14 @@ class PrivacyControlsManager:
                 for consent in self._consent_records.values()
                 if consent["data_subject_id"] == data_subject_id
             ]
-            
+
             return {
                 "data_subject_id": data_subject_id,
                 "export_timestamp": datetime.now(timezone.utc).isoformat(),
                 "processing_records": processing_records,
                 "consent_records": consent_records
             }
-    
+
     def delete_subject_data(self, data_subject_id: str) -> bool:
         """Delete all data for a data subject (Right to be Forgotten - GDPR Article 17)."""
         with self._lock:
@@ -318,29 +315,29 @@ class PrivacyControlsManager:
                 record for record in self._data_processing_log
                 if record.data_subject_id != data_subject_id
             ]
-            
+
             # Remove consent records
             consents_to_remove = [
                 consent_id for consent_id, consent in self._consent_records.items()
                 if consent["data_subject_id"] == data_subject_id
             ]
-            
+
             for consent_id in consents_to_remove:
                 del self._consent_records[consent_id]
-            
+
             deleted_count = initial_count - len(self._data_processing_log) + len(consents_to_remove)
-            
+
             self.logger.info("Subject data deleted", {
                 "data_subject_id": data_subject_id,
                 "records_deleted": deleted_count
             })
-            
+
             return deleted_count > 0
 
 
 class ComplianceEngine:
     """Main compliance engine for regulatory adherence."""
-    
+
     def __init__(self):
         self.logger = get_core_logger()
         self.privacy_controls = PrivacyControlsManager()
@@ -348,10 +345,10 @@ class ComplianceEngine:
         self._active_frameworks: Set[ComplianceFramework] = set()
         self._geographic_jurisdiction: Set[str] = {"US"}  # Default to US
         self._lock = threading.RLock()
-        
+
         # Initialize compliance rules
         self._init_compliance_rules()
-    
+
     def _init_compliance_rules(self) -> None:
         """Initialize compliance rules for different frameworks."""
         # GDPR Rules
@@ -387,7 +384,7 @@ class ComplianceEngine:
                 geographic_scope={"EU", "UK"}
             )
         ]
-        
+
         # CCPA Rules
         ccpa_rules = [
             ComplianceRule(
@@ -411,7 +408,7 @@ class ComplianceEngine:
                 geographic_scope={"US-CA"}
             )
         ]
-        
+
         # HIPAA Rules
         hipaa_rules = [
             ComplianceRule(
@@ -435,61 +432,61 @@ class ComplianceEngine:
                 geographic_scope={"US"}
             )
         ]
-        
+
         self._compliance_rules = {
             ComplianceFramework.GDPR: gdpr_rules,
             ComplianceFramework.CCPA: ccpa_rules,
             ComplianceFramework.HIPAA: hipaa_rules,
             # Additional frameworks would be added here
         }
-    
+
     def enable_compliance_framework(self, framework: Union[ComplianceFramework, str]) -> None:
         """Enable a compliance framework."""
         if isinstance(framework, str):
             framework = ComplianceFramework(framework)
-            
+
         with self._lock:
             self._active_frameworks.add(framework)
-            
+
         self.logger.info("Compliance framework enabled", {"framework": framework.value})
-    
+
     def disable_compliance_framework(self, framework: ComplianceFramework) -> None:
         """Disable a compliance framework."""
         with self._lock:
             self._active_frameworks.discard(framework)
-            
+
         self.logger.info("Compliance framework disabled", {"framework": framework.value})
-    
+
     def set_geographic_jurisdiction(self, jurisdictions: Set[str]) -> None:
         """Set geographic jurisdictions for compliance (ISO country codes)."""
         self._geographic_jurisdiction = jurisdictions
-        
+
         self.logger.info("Geographic jurisdiction updated", {"jurisdictions": list(jurisdictions)})
-    
-    def check_compliance(self, data_classification: DataClassification, 
+
+    def check_compliance(self, data_classification: DataClassification,
                         processing_purpose: ProcessingPurpose,
                         geographic_location: str = "US") -> Dict[str, Any]:
         """Check compliance for a data processing activity."""
         violations = []
         recommendations = []
         applicable_rules = []
-        
+
         with self._lock:
             for framework in self._active_frameworks:
                 rules = self._compliance_rules.get(framework, [])
-                
+
                 for rule in rules:
                     # Check if rule applies to this data type and location
                     if (data_classification in rule.applicable_data_types and
                         (not rule.geographic_scope or geographic_location in rule.geographic_scope)):
-                        
+
                         applicable_rules.append({
                             "id": rule.id,
                             "framework": rule.framework.value,
                             "title": rule.title,
                             "severity": rule.severity
                         })
-                        
+
                         # Run automated check if available
                         if rule.automated_check:
                             try:
@@ -507,7 +504,7 @@ class ComplianceEngine:
                                     "rule_id": rule.id,
                                     "error": str(e)
                                 })
-        
+
         # Generate recommendations
         if data_classification in {DataClassification.PERSONAL, DataClassification.SENSITIVE_PERSONAL}:
             recommendations.extend([
@@ -516,14 +513,14 @@ class ComplianceEngine:
                 "Ensure appropriate retention periods are applied",
                 "Document legal basis for processing"
             ])
-        
+
         if data_classification == DataClassification.HEALTH:
             recommendations.extend([
                 "Implement HIPAA-compliant access controls",
                 "Apply minimum necessary standards",
                 "Ensure appropriate encryption for PHI"
             ])
-        
+
         return {
             "compliant": len(violations) == 0,
             "violations": violations,
@@ -534,7 +531,7 @@ class ComplianceEngine:
             "geographic_location": geographic_location,
             "checked_at": datetime.now(timezone.utc).isoformat()
         }
-    
+
     def generate_compliance_report(self) -> Dict[str, Any]:
         """Generate a comprehensive compliance report."""
         with self._lock:
@@ -543,14 +540,14 @@ class ComplianceEngine:
             for record in self.privacy_controls._data_processing_log:
                 key = f"{record.data_classification.value}_{record.processing_purpose.value}"
                 processing_summary[key] = processing_summary.get(key, 0) + 1
-            
+
             # Consent summary
             consent_summary = {
                 "total_consents": len(self.privacy_controls._consent_records),
                 "active_consents": sum(1 for c in self.privacy_controls._consent_records.values() if c["valid"]),
                 "withdrawn_consents": sum(1 for c in self.privacy_controls._consent_records.values() if not c["valid"])
             }
-            
+
             return {
                 "report_generated_at": datetime.now(timezone.utc).isoformat(),
                 "active_frameworks": [f.value for f in self._active_frameworks],
@@ -558,21 +555,21 @@ class ComplianceEngine:
                 "processing_activity_summary": processing_summary,
                 "consent_summary": consent_summary,
                 "retention_policies": {
-                    k.value: v.value 
+                    k.value: v.value
                     for k, v in self.privacy_controls._data_retention_policies.items()
                 },
                 "total_processing_records": len(self.privacy_controls._data_processing_log),
                 "data_classifications_in_use": list(set(
-                    record.data_classification.value 
+                    record.data_classification.value
                     for record in self.privacy_controls._data_processing_log
                 ))
             }
-    
+
     def process_data_subject_request(self, request_type: str, data_subject_id: str) -> Dict[str, Any]:
         """Process a data subject rights request."""
         if request_type.lower() == "export":
             data = self.privacy_controls.export_data_for_subject(data_subject_id)
-            
+
             return {
                 "request_type": "export",
                 "data_subject_id": data_subject_id,
@@ -580,10 +577,10 @@ class ComplianceEngine:
                 "status": "completed",
                 "data": data
             }
-            
+
         elif request_type.lower() == "delete":
             deleted = self.privacy_controls.delete_subject_data(data_subject_id)
-            
+
             return {
                 "request_type": "delete",
                 "data_subject_id": data_subject_id,
@@ -591,7 +588,7 @@ class ComplianceEngine:
                 "status": "completed" if deleted else "no_data_found",
                 "data_deleted": deleted
             }
-        
+
         else:
             return {
                 "request_type": request_type,
@@ -609,12 +606,12 @@ _engine_lock = threading.Lock()
 def get_compliance_engine() -> ComplianceEngine:
     """Get the global compliance engine instance."""
     global _compliance_engine
-    
+
     if _compliance_engine is None:
         with _engine_lock:
             if _compliance_engine is None:
                 _compliance_engine = ComplianceEngine()
-    
+
     return _compliance_engine
 
 
@@ -624,14 +621,14 @@ def log_data_processing(data_classification: DataClassification,
                        additional_details: Optional[Dict[str, Any]] = None) -> str:
     """Log a data processing activity for compliance."""
     engine = get_compliance_engine()
-    
+
     record = DataProcessingRecord(
         data_subject_id=data_subject_id,
         data_classification=data_classification,
         processing_purpose=processing_purpose,
         processing_details=additional_details or {}
     )
-    
+
     engine.privacy_controls.log_data_processing(record)
     return record.id
 

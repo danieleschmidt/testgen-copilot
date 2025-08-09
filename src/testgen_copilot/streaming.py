@@ -237,14 +237,14 @@ class FileStreamProcessor:
     def analyze_project_files(
         self,
         project_path: Union[str, Path],
-        file_patterns: List[str] = ["**/*.py"],
+        file_patterns: Optional[List[str]] = None,
         analyzer_func: Optional[Callable[[Path], Any]] = None
     ) -> Iterator[BatchResult]:
         """Analyze all matching files in a project directory.
         
         Args:
             project_path: Root directory of the project
-            file_patterns: Glob patterns for files to analyze
+            file_patterns: Glob patterns for files to analyze (default: ["**/*.py"])
             analyzer_func: Function to analyze each file (default: basic file info)
             
         Yields:
@@ -255,6 +255,10 @@ class FileStreamProcessor:
         if not project_dir.exists() or not project_dir.is_dir():
             raise ValueError(f"Project path must be an existing directory: {project_path}")
 
+        # Use default patterns if none provided
+        if file_patterns is None:
+            file_patterns = ["**/*.py"]
+            
         # Collect matching files
         all_files = []
         for pattern in file_patterns:

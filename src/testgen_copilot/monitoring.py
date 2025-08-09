@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-import asyncio
-import psutil
+import threading
 import time
+from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
-import json
-import threading
-from collections import defaultdict
+from typing import Any, Dict, List, Optional, Union
+
+import psutil
 
 from .logging_config import get_core_logger
 
@@ -21,7 +20,7 @@ from .logging_config import get_core_logger
 class AlertSeverity(Enum):
     """Alert severity levels."""
     CRITICAL = "critical"
-    HIGH = "high"  
+    HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
     INFO = "info"
@@ -62,7 +61,7 @@ class ApplicationMetrics:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-@dataclass  
+@dataclass
 class Alert:
     """System alert."""
     id: str
@@ -79,14 +78,14 @@ class Alert:
 
 class HealthMonitor:
     """Comprehensive system health monitoring."""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  check_interval_seconds: float = 30.0,
                  alert_cooldown_seconds: float = 300.0):
         self.check_interval = check_interval_seconds
         self.alert_cooldown = alert_cooldown_seconds
         self.logger = get_core_logger()
-        
+
         # Monitoring state
         self.is_monitoring = False
         self.monitoring_thread: Optional[threading.Thread] = None
@@ -95,7 +94,7 @@ class HealthMonitor:
         self.active_alerts: Dict[str, Alert] = {}
         self.alert_history: List[Alert] = []
         self.last_alert_times: Dict[str, datetime] = {}
-        
+
         # Configurable thresholds
         self.thresholds = {
             "cpu_critical": 90.0,
@@ -109,32 +108,32 @@ class HealthMonitor:
             "response_time_critical": 30000.0,  # ms
             "response_time_high": 10000.0,
         }
-        
+
         self._operation_timings: Dict[str, List[float]] = defaultdict(list)
         self._error_counts = defaultdict(int)
-        
+
     def start_monitoring(self) -> None:
         """Start background health monitoring."""
         if self.is_monitoring:
             return
-            
+
         self.is_monitoring = True
         self.monitoring_thread = threading.Thread(target=self._monitoring_loop, daemon=True)
         self.monitoring_thread.start()
-        
+
         self.logger.info("Health monitoring started", {
             "check_interval_seconds": self.check_interval,
             "alert_cooldown_seconds": self.alert_cooldown
         })
-        
+
     def stop_monitoring(self) -> None:
         """Stop background health monitoring."""
         self.is_monitoring = False
         if self.monitoring_thread:
             self.monitoring_thread.join(timeout=5.0)
-            
+
         self.logger.info("Health monitoring stopped")
-        
+
     def _monitoring_loop(self) -> None:
         """Main monitoring loop."""
         while self.is_monitoring:
@@ -142,46 +141,46 @@ class HealthMonitor:
                 # Collect system metrics
                 system_metrics = self._collect_system_metrics()
                 self.metrics_history.append(system_metrics)
-                
+
                 # Keep only last hour of metrics
                 cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
                 self.metrics_history = [
                     m for m in self.metrics_history if m.timestamp > cutoff_time
                 ]
-                
+
                 # Check for alerts
                 self._check_system_alerts(system_metrics)
                 self._check_application_alerts()
-                
+
                 # Log periodic health summary
                 self._log_health_summary(system_metrics)
-                
+
                 time.sleep(self.check_interval)
-                
+
             except Exception as e:
                 self.logger.error("Error in monitoring loop", {
                     "error_type": type(e).__name__,
                     "error_message": str(e)
                 })
                 time.sleep(self.check_interval)
-                
+
     def _collect_system_metrics(self) -> SystemMetrics:
         """Collect current system metrics."""
         try:
             # CPU and Memory
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
-            
+
             # Disk usage for current working directory
             disk = psutil.disk_usage(Path.cwd())
             disk_usage_percent = (disk.used / disk.total) * 100
             disk_used_gb = disk.used / (1024**3)
-            
+
             # Process info
             process = psutil.Process()
             active_threads = process.num_threads()
             open_files = len(process.open_files())
-            
+
             return SystemMetrics(
                 cpu_percent=cpu_percent,
                 memory_percent=memory.percent,
@@ -191,25 +190,25 @@ class HealthMonitor:
                 active_threads=active_threads,
                 open_files=open_files
             )
-            
+
         except Exception as e:
             self.logger.error("Failed to collect system metrics", {
                 "error_type": type(e).__name__,
                 "error_message": str(e)
             })
             return SystemMetrics()
-            
+
     def _check_system_alerts(self, metrics: SystemMetrics) -> None:
         """Check system metrics against thresholds."""
         checks = [
-            ("cpu_usage", metrics.cpu_percent, self.thresholds["cpu_critical"], 
+            ("cpu_usage", metrics.cpu_percent, self.thresholds["cpu_critical"],
              self.thresholds["cpu_high"], "CPU usage"),
             ("memory_usage", metrics.memory_percent, self.thresholds["memory_critical"],
              self.thresholds["memory_high"], "Memory usage"),
             ("disk_usage", metrics.disk_usage_percent, self.thresholds["disk_critical"],
              self.thresholds["disk_high"], "Disk usage"),
         ]
-        
+
         for metric_name, value, critical_threshold, high_threshold, description in checks:
             if value >= critical_threshold:
                 self._create_alert(
@@ -232,18 +231,18 @@ class HealthMonitor:
             else:
                 # Resolve alert if it exists
                 self._resolve_alert(metric_name)
-                
+
     def _check_application_alerts(self) -> None:
         """Check application metrics for issues."""
         # Error rate check (errors per minute)
         now = datetime.now(timezone.utc)
         minute_ago = now - timedelta(minutes=1)
-        
+
         recent_errors = sum(
-            count for timestamp, count in 
+            count for timestamp, count in
             [(t, c) for t, c in self._error_counts.items() if t > minute_ago]
         )
-        
+
         if recent_errors >= self.thresholds["error_rate_critical"]:
             self._create_alert(
                 "error_rate",
@@ -264,8 +263,8 @@ class HealthMonitor:
             )
         else:
             self._resolve_alert("error_rate")
-            
-    def _create_alert(self, metric_name: str, severity: AlertSeverity, 
+
+    def _create_alert(self, metric_name: str, severity: AlertSeverity,
                      title: str, message: str, value: Union[float, int, str],
                      threshold: Union[float, int, str]) -> None:
         """Create or update an alert."""
@@ -275,7 +274,7 @@ class HealthMonitor:
             time_since_last = datetime.now(timezone.utc) - last_alert_time
             if time_since_last.total_seconds() < self.alert_cooldown:
                 return
-                
+
         alert = Alert(
             id=f"{metric_name}_{int(time.time())}",
             severity=severity,
@@ -285,11 +284,11 @@ class HealthMonitor:
             metric_value=value,
             threshold=threshold
         )
-        
+
         self.active_alerts[metric_name] = alert
         self.alert_history.append(alert)
         self.last_alert_times[metric_name] = alert.timestamp
-        
+
         self.logger.error("Alert triggered", {
             "alert_id": alert.id,
             "severity": severity.value,
@@ -300,20 +299,20 @@ class HealthMonitor:
             "threshold": threshold,
             "alert_type": "system_health"
         })
-        
+
     def _resolve_alert(self, metric_name: str) -> None:
         """Resolve an active alert."""
         if metric_name in self.active_alerts:
             alert = self.active_alerts.pop(metric_name)
             alert.resolved = True
-            
+
             self.logger.info("Alert resolved", {
                 "alert_id": alert.id,
                 "metric_name": metric_name,
                 "duration_seconds": (datetime.now(timezone.utc) - alert.timestamp).total_seconds(),
                 "alert_type": "system_health"
             })
-            
+
     def _log_health_summary(self, metrics: SystemMetrics) -> None:
         """Log periodic health summary."""
         self.logger.info("Health check summary", {
@@ -336,13 +335,13 @@ class HealthMonitor:
             "active_alerts": len(self.active_alerts),
             "monitoring_health": "healthy" if len(self.active_alerts) == 0 else "degraded"
         })
-        
+
     @contextmanager
     def operation_timer(self, operation_name: str):
         """Context manager for timing operations."""
         start_time = time.time()
         self.app_metrics.active_operations += 1
-        
+
         try:
             yield
         except Exception as e:
@@ -352,53 +351,53 @@ class HealthMonitor:
             duration_ms = (time.time() - start_time) * 1000
             self._operation_timings[operation_name].append(duration_ms)
             self.app_metrics.active_operations -= 1
-            
+
             # Keep only recent timings (last 100)
             if len(self._operation_timings[operation_name]) > 100:
                 self._operation_timings[operation_name] = \
                     self._operation_timings[operation_name][-100:]
-                    
+
             # Update average processing time
             all_timings = []
             for timings in self._operation_timings.values():
                 all_timings.extend(timings[-10:])  # Last 10 operations per type
-                
+
             if all_timings:
                 self.app_metrics.average_processing_time_ms = sum(all_timings) / len(all_timings)
-                
+
     def record_test_generation(self) -> None:
         """Record a successful test generation."""
         self.app_metrics.tests_generated += 1
-        
+
     def record_security_scan(self) -> None:
         """Record a completed security scan."""
         self.app_metrics.security_scans_completed += 1
-        
+
     def record_coverage_analysis(self) -> None:
         """Record a completed coverage analysis."""
         self.app_metrics.coverage_analyses += 1
-        
+
     def record_error(self, operation: str, error_message: str) -> None:
         """Record an error occurrence."""
         self.app_metrics.errors_encountered += 1
         now = datetime.now(timezone.utc)
         self._error_counts[now] += 1
-        
+
         self.logger.error("Operation error recorded", {
             "operation": operation,
             "error_message": error_message,
             "total_errors": self.app_metrics.errors_encountered,
             "monitoring_event": "error_tracked"
         })
-        
+
     def update_cache_stats(self, hit_rate: float) -> None:
         """Update cache hit rate statistics."""
         self.app_metrics.cache_hit_rate = hit_rate
-        
+
     def get_health_status(self) -> Dict[str, Any]:
         """Get current health status."""
         latest_metrics = self.metrics_history[-1] if self.metrics_history else SystemMetrics()
-        
+
         return {
             "status": "healthy" if len(self.active_alerts) == 0 else "degraded",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -440,11 +439,11 @@ class HealthMonitor:
                 "alert_history_size": len(self.alert_history)
             }
         }
-        
+
     def get_metrics_export(self) -> Dict[str, Any]:
         """Export metrics in Prometheus-compatible format."""
         latest_metrics = self.metrics_history[-1] if self.metrics_history else SystemMetrics()
-        
+
         return {
             "testgen_cpu_usage_percent": latest_metrics.cpu_percent,
             "testgen_memory_usage_percent": latest_metrics.memory_percent,

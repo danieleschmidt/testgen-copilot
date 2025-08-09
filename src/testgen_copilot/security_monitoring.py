@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import re
 import time
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
 
 from .logging_config import get_core_logger
-from .resilience import circuit_breaker, retry, CircuitBreakerConfig, RetryConfig
+from .resilience import CircuitBreakerConfig, RetryConfig, circuit_breaker, retry
 
 
 class ThreatLevel(Enum):
@@ -70,7 +69,7 @@ class SecurityEvent:
 
 class SecurityPatterns:
     """Advanced security patterns and detection rules."""
-    
+
     # Code injection patterns
     CODE_INJECTION_PATTERNS = [
         (r'eval\s*\(', ThreatLevel.CRITICAL, "Direct eval() usage - code injection risk"),
@@ -81,7 +80,7 @@ class SecurityPatterns:
         (r'subprocess\.\w+\(.*shell\s*=\s*True', ThreatLevel.HIGH, "Shell command execution"),
         (r'pickle\.loads?\s*\(', ThreatLevel.HIGH, "Pickle deserialization - potential RCE"),
     ]
-    
+
     # Path traversal patterns
     PATH_TRAVERSAL_PATTERNS = [
         (r'\.\.[\\/]', ThreatLevel.HIGH, "Directory traversal attempt"),
@@ -91,7 +90,7 @@ class SecurityPatterns:
         (r'/proc/self', ThreatLevel.HIGH, "Process information access"),
         (r'["\']\.\.[\\/]', ThreatLevel.MEDIUM, "Relative path traversal"),
     ]
-    
+
     # Secrets and sensitive data patterns
     SECRETS_PATTERNS = [
         (r'password\s*=\s*["\'][^"\']{3,}["\']', ThreatLevel.HIGH, "Hardcoded password"),
@@ -104,7 +103,7 @@ class SecurityPatterns:
         (r'postgresql://[^"\']+', ThreatLevel.MEDIUM, "PostgreSQL connection string"),
         (r'mongodb://[^"\']+', ThreatLevel.MEDIUM, "MongoDB connection string"),
     ]
-    
+
     # Malicious patterns
     MALICIOUS_PATTERNS = [
         (r'rm\s+-rf\s+/', ThreatLevel.CRITICAL, "Dangerous file deletion command"),
@@ -115,7 +114,7 @@ class SecurityPatterns:
         (r'base64\s*-d.*\|\s*sh', ThreatLevel.HIGH, "Base64 decode and execute"),
         (r'echo\s+[A-Za-z0-9+/=]{50,}\s*\|\s*base64\s*-d', ThreatLevel.HIGH, "Base64 encoded payload"),
     ]
-    
+
     # Resource exhaustion patterns
     RESOURCE_EXHAUSTION_PATTERNS = [
         (r'while\s+True\s*:', ThreatLevel.MEDIUM, "Infinite loop detected"),
@@ -124,7 +123,7 @@ class SecurityPatterns:
         (r'open\([^)]+,\s*["\']w["\'].*\.seek\(\d{9,}\)', ThreatLevel.MEDIUM, "Large file write"),
         (r'threading\.Thread.*target.*while', ThreatLevel.MEDIUM, "Potential thread bomb"),
     ]
-    
+
     # Privilege escalation patterns
     PRIVILEGE_ESCALATION_PATTERNS = [
         (r'sudo\s+', ThreatLevel.MEDIUM, "Sudo usage detected"),
@@ -138,7 +137,7 @@ class SecurityPatterns:
 
 class SecurityScanner:
     """Advanced security scanner with threat detection."""
-    
+
     def __init__(self):
         self.logger = get_core_logger()
         self.patterns = SecurityPatterns()
@@ -147,7 +146,7 @@ class SecurityScanner:
         self.file_hashes: Dict[str, str] = {}
         self.scan_count = 0
         self.threat_counts = defaultdict(int)
-        
+
     @circuit_breaker("security_scan", CircuitBreakerConfig(failure_threshold=3, timeout_duration_seconds=30))
     @retry("security_scan", RetryConfig(max_attempts=2))
     def scan_file(self, file_path: str) -> List[SecurityThreat]:
@@ -155,30 +154,30 @@ class SecurityScanner:
         try:
             self.scan_count += 1
             file_path_obj = Path(file_path)
-            
+
             if not file_path_obj.exists():
                 self.logger.warning("Security scan skipped - file not found", {
                     "file_path": file_path,
                     "scan_id": self.scan_count
                 })
                 return []
-                
+
             # Read and hash file for integrity checking
             content = file_path_obj.read_text(encoding='utf-8', errors='ignore')
             file_hash = hashlib.sha256(content.encode()).hexdigest()
-            
+
             # Check if file was modified since last scan
             if file_path in self.file_hashes and self.file_hashes[file_path] == file_hash:
                 self.logger.debug("File unchanged since last scan", {
                     "file_path": file_path,
                     "file_hash": file_hash[:16]
                 })
-                
+
             self.file_hashes[file_path] = file_hash
-            
+
             threats = []
             lines = content.split('\n')
-            
+
             # Scan for various threat categories
             threats.extend(self._scan_code_injection(content, lines, file_path))
             threats.extend(self._scan_path_traversal(content, lines, file_path))
@@ -186,17 +185,17 @@ class SecurityScanner:
             threats.extend(self._scan_malicious_patterns(content, lines, file_path))
             threats.extend(self._scan_resource_exhaustion(content, lines, file_path))
             threats.extend(self._scan_privilege_escalation(content, lines, file_path))
-            
+
             # Additional contextual analysis
             threats.extend(self._analyze_imports(content, lines, file_path))
             threats.extend(self._analyze_network_usage(content, lines, file_path))
-            
+
             # Update threat statistics
             for threat in threats:
                 self.threat_counts[threat.category] += 1
-                
+
             self.scan_history.extend(threats)
-            
+
             if threats:
                 self.logger.warning("Security threats detected", {
                     "file_path": file_path,
@@ -212,9 +211,9 @@ class SecurityScanner:
                     "file_path": file_path,
                     "scan_id": self.scan_count
                 })
-                
+
             return threats
-            
+
         except Exception as e:
             self._log_security_event(
                 "security_scan_error",
@@ -224,13 +223,13 @@ class SecurityScanner:
                 {"error_type": type(e).__name__}
             )
             raise
-            
-    def _scan_patterns(self, patterns: List[Tuple[str, ThreatLevel, str]], 
+
+    def _scan_patterns(self, patterns: List[Tuple[str, ThreatLevel, str]],
                       content: str, lines: List[str], file_path: str,
                       category: ThreatCategory) -> List[SecurityThreat]:
         """Scan content against a list of patterns."""
         threats = []
-        
+
         for pattern, level, description in patterns:
             try:
                 for line_num, line in enumerate(lines, 1):
@@ -254,24 +253,24 @@ class SecurityScanner:
                             }
                         )
                         threats.append(threat)
-                        
+
             except re.error as e:
                 self.logger.error("Invalid regex pattern", {
                     "pattern": pattern,
                     "category": category.value,
                     "error": str(e)
                 })
-                
+
         return threats
-        
+
     def _scan_code_injection(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Scan for code injection vulnerabilities."""
         return self._scan_patterns(
-            self.patterns.CODE_INJECTION_PATTERNS, 
-            content, lines, file_path, 
+            self.patterns.CODE_INJECTION_PATTERNS,
+            content, lines, file_path,
             ThreatCategory.CODE_INJECTION
         )
-        
+
     def _scan_path_traversal(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Scan for path traversal vulnerabilities."""
         return self._scan_patterns(
@@ -279,7 +278,7 @@ class SecurityScanner:
             content, lines, file_path,
             ThreatCategory.PATH_TRAVERSAL
         )
-        
+
     def _scan_secrets(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Scan for exposed secrets and credentials."""
         return self._scan_patterns(
@@ -287,7 +286,7 @@ class SecurityScanner:
             content, lines, file_path,
             ThreatCategory.SECRETS_EXPOSURE
         )
-        
+
     def _scan_malicious_patterns(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Scan for malicious code patterns."""
         return self._scan_patterns(
@@ -295,7 +294,7 @@ class SecurityScanner:
             content, lines, file_path,
             ThreatCategory.MALICIOUS_PATTERNS
         )
-        
+
     def _scan_resource_exhaustion(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Scan for resource exhaustion vulnerabilities."""
         return self._scan_patterns(
@@ -303,7 +302,7 @@ class SecurityScanner:
             content, lines, file_path,
             ThreatCategory.RESOURCE_EXHAUSTION
         )
-        
+
     def _scan_privilege_escalation(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Scan for privilege escalation attempts."""
         return self._scan_patterns(
@@ -311,7 +310,7 @@ class SecurityScanner:
             content, lines, file_path,
             ThreatCategory.PRIVILEGE_ESCALATION
         )
-        
+
     def _analyze_imports(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Analyze imports for potentially dangerous modules."""
         threats = []
@@ -325,7 +324,7 @@ class SecurityScanner:
             ('socket', ThreatLevel.LOW, "Network socket usage - review for backdoors"),
             ('requests', ThreatLevel.LOW, "HTTP requests - review for data exfiltration"),
         ]
-        
+
         for line_num, line in enumerate(lines, 1):
             for module, level, description in dangerous_imports:
                 if re.search(rf'import\s+{module}|from\s+{module}\s+import', line, re.IGNORECASE):
@@ -341,9 +340,9 @@ class SecurityScanner:
                         recommendation=f"Review usage of {module} module for security implications",
                         metadata={"imported_module": module}
                     ))
-                    
+
         return threats
-        
+
     def _analyze_network_usage(self, content: str, lines: List[str], file_path: str) -> List[SecurityThreat]:
         """Analyze network-related code for security issues."""
         threats = []
@@ -353,7 +352,7 @@ class SecurityScanner:
             (r'requests\.get\s*\([^)]*verify\s*=\s*False', ThreatLevel.HIGH, "SSL verification disabled"),
             (r'ssl\._create_unverified_context', ThreatLevel.HIGH, "SSL verification bypassed"),
         ]
-        
+
         for line_num, line in enumerate(lines, 1):
             for pattern, level, description in network_patterns:
                 if re.search(pattern, line, re.IGNORECASE):
@@ -369,9 +368,9 @@ class SecurityScanner:
                         recommendation="Review network security configuration",
                         metadata={"pattern_matched": pattern}
                     ))
-                    
+
         return threats
-        
+
     def _get_recommendation(self, category: ThreatCategory, pattern: str) -> str:
         """Get security recommendation for a threat category."""
         recommendations = {
@@ -384,10 +383,10 @@ class SecurityScanner:
             ThreatCategory.DATA_LEAKAGE: "Implement data sanitization and access controls.",
             ThreatCategory.CONFIGURATION: "Review configuration for security best practices.",
         }
-        
+
         return recommendations.get(category, "Review code for security implications.")
-        
-    def _log_security_event(self, event_type: str, severity: ThreatLevel, 
+
+    def _log_security_event(self, event_type: str, severity: ThreatLevel,
                            message: str, source: str, metadata: Dict[str, Any] = None) -> None:
         """Log a security monitoring event."""
         event = SecurityEvent(
@@ -398,9 +397,9 @@ class SecurityScanner:
             source=source,
             metadata=metadata or {}
         )
-        
+
         self.events_history.append(event)
-        
+
         self.logger.error("Security event logged", {
             "event_id": event.id,
             "event_type": event_type,
@@ -409,36 +408,36 @@ class SecurityScanner:
             "source": source,
             "metadata": metadata
         })
-        
+
     def get_security_report(self) -> Dict[str, Any]:
         """Generate comprehensive security report."""
         now = datetime.now(timezone.utc)
-        
+
         # Recent threats (last 24 hours)
         recent_threats = [
-            t for t in self.scan_history 
+            t for t in self.scan_history
             if (now - t.timestamp) < timedelta(hours=24)
         ]
-        
+
         # Threat statistics
         severity_counts = defaultdict(int)
         category_counts = defaultdict(int)
-        
+
         for threat in recent_threats:
             severity_counts[threat.level.value] += 1
             category_counts[threat.category.value] += 1
-            
+
         # High-risk files (files with multiple threats)
         file_threat_counts = defaultdict(int)
         for threat in recent_threats:
             file_threat_counts[threat.file_path] += 1
-            
+
         high_risk_files = [
             {"file": file, "threat_count": count}
             for file, count in file_threat_counts.items()
             if count >= 3
         ]
-        
+
         return {
             "report_timestamp": now.isoformat(),
             "scan_summary": {
@@ -467,80 +466,80 @@ class SecurityScanner:
             "security_trends": {
                 "threat_growth": self._calculate_threat_growth(),
                 "most_common_categories": sorted(
-                    category_counts.items(), 
-                    key=lambda x: x[1], 
+                    category_counts.items(),
+                    key=lambda x: x[1],
                     reverse=True
                 )[:5]
             },
             "recommendations": self._generate_security_recommendations(recent_threats)
         }
-        
+
     def _calculate_threat_growth(self) -> Dict[str, Any]:
         """Calculate threat growth trends."""
         now = datetime.now(timezone.utc)
-        
+
         # Threats in last 24 hours vs previous 24 hours
-        last_24h = sum(1 for t in self.scan_history 
+        last_24h = sum(1 for t in self.scan_history
                       if (now - t.timestamp) < timedelta(hours=24))
-        prev_24h = sum(1 for t in self.scan_history 
+        prev_24h = sum(1 for t in self.scan_history
                       if timedelta(hours=24) <= (now - t.timestamp) < timedelta(hours=48))
-                      
+
         growth_rate = ((last_24h - prev_24h) / prev_24h * 100) if prev_24h > 0 else 0
-        
+
         return {
             "last_24_hours": last_24h,
             "previous_24_hours": prev_24h,
             "growth_rate_percent": round(growth_rate, 2),
             "trend": "increasing" if growth_rate > 10 else "decreasing" if growth_rate < -10 else "stable"
         }
-        
+
     def _generate_security_recommendations(self, recent_threats: List[SecurityThreat]) -> List[str]:
         """Generate actionable security recommendations."""
         recommendations = []
-        
+
         # Critical threats
         critical_threats = [t for t in recent_threats if t.level == ThreatLevel.CRITICAL]
         if critical_threats:
             recommendations.append(
                 f"URGENT: Address {len(critical_threats)} critical security threats immediately"
             )
-            
+
         # Common categories
         category_counts = defaultdict(int)
         for threat in recent_threats:
             category_counts[threat.category] += 1
-            
+
         if category_counts[ThreatCategory.SECRETS_EXPOSURE] > 0:
             recommendations.append(
                 "Implement secrets management system to prevent credential exposure"
             )
-            
+
         if category_counts[ThreatCategory.CODE_INJECTION] > 0:
             recommendations.append(
                 "Review dynamic code execution patterns and implement input validation"
             )
-            
+
         if category_counts[ThreatCategory.CONFIGURATION] > 2:
             recommendations.append(
                 "Conduct security configuration review and implement hardening guidelines"
             )
-            
+
         # High-risk files
         file_counts = defaultdict(int)
         for threat in recent_threats:
             file_counts[threat.file_path] += 1
-            
+
         high_risk = [f for f, c in file_counts.items() if c >= 3]
         if high_risk:
             recommendations.append(
                 f"Focus security review on {len(high_risk)} high-risk files with multiple threats"
             )
-            
+
         if not recommendations:
             recommendations.append("Continue regular security scanning and monitoring")
-            
+
         return recommendations
-        
+
     def mitigate_threat(self, threat_id: str, mitigation_note: str = "") -> bool:
         """Mark a threat as mitigated."""
         for threat in self.scan_history:
@@ -548,14 +547,14 @@ class SecurityScanner:
                 threat.mitigated = True
                 threat.metadata["mitigation_note"] = mitigation_note
                 threat.metadata["mitigated_at"] = datetime.now(timezone.utc).isoformat()
-                
+
                 self.logger.info("Security threat mitigated", {
                     "threat_id": threat_id,
                     "threat_category": threat.category.value,
                     "mitigation_note": mitigation_note
                 })
                 return True
-                
+
         return False
 
 
