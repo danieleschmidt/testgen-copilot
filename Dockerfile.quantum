@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Quantum Task Planner
 
 # Base stage with common dependencies
-FROM python:3.12-slim-bookworm AS base
+FROM python:3.13-slim-bookworm AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -118,7 +118,7 @@ RUN safety check --json --output safety-report.json || true
 RUN pip-audit --format=json --output=audit-report.json || true
 
 # Production deployment stage
-FROM python:3.12-slim-bookworm AS production
+FROM python:3.13-slim-bookworm AS production
 
 # Security: run as non-root user
 RUN useradd --create-home --shell /bin/bash --uid 10001 quantum
