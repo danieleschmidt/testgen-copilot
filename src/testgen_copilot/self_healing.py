@@ -19,9 +19,9 @@ import json
 
 from rich.console import Console
 
-from .logging_config import setup_logger
+from .logging_config import get_core_logger
 
-logger = setup_logger(__name__)
+logger = get_core_logger()
 console = Console()
 
 
