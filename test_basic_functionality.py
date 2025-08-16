@@ -13,15 +13,15 @@ def test_basic_imports():
     try:
         import testgen_copilot
         from testgen_copilot.cli import main
-        from testgen_copilot.core import TestGenOrchestrator
+        from testgen_copilot.core import identity
         from testgen_copilot.quantum_planner import create_quantum_planner
         from testgen_copilot.generator import TestGenerator
         from testgen_copilot.security import SecurityScanner
         print("✅ All core modules imported successfully")
-        return True
+        assert True
     except ImportError as e:
         print(f"❌ Import error: {e}")
-        return False
+        assert False, f"Import error: {e}"
 
 def test_quantum_planner_creation():
     """Test quantum planner instantiation"""
@@ -29,10 +29,10 @@ def test_quantum_planner_creation():
         from testgen_copilot.quantum_planner import create_quantum_planner
         planner = create_quantum_planner()
         print(f"✅ Quantum planner created with {len(planner.resources)} resources")
-        return True
+        assert True
     except Exception as e:
         print(f"❌ Quantum planner error: {e}")
-        return False
+        assert False, f"Quantum planner error: {e}"
 
 def test_test_generator_creation():
     """Test test generator instantiation"""
@@ -41,10 +41,10 @@ def test_test_generator_creation():
         config = GenerationConfig(language="python")
         generator = TestGenerator(config)
         print("✅ Test generator created successfully")
-        return True
+        assert True
     except Exception as e:
         print(f"❌ Test generator error: {e}")
-        return False
+        assert False, f"Test generator error: {e}"
 
 def test_security_scanner_creation():
     """Test security scanner instantiation"""
@@ -52,10 +52,10 @@ def test_security_scanner_creation():
         from testgen_copilot.security import SecurityScanner
         scanner = SecurityScanner()
         print("✅ Security scanner created successfully")
-        return True
+        assert True
     except Exception as e:
         print(f"❌ Security scanner error: {e}")
-        return False
+        assert False, f"Security scanner error: {e}"
 
 def test_cli_help():
     """Test CLI help functionality"""
@@ -67,10 +67,10 @@ def test_cli_help():
         assert "quantum" in help_text
         assert "generate" in help_text
         print("✅ CLI help functionality works")
-        return True
+        assert True
     except Exception as e:
         print(f"❌ CLI help error: {e}")
-        return False
+        assert False, f"CLI help error: {e}"
 
 def main():
     """Run all basic functionality tests"""

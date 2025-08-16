@@ -173,7 +173,7 @@ def test_streaming_and_real_time():
         print(f"❌ Streaming test failed: {e}")
         return False
 
-async def test_async_orchestration():
+def test_async_orchestration():
     """Test asynchronous orchestration and coordination"""
     try:
         from testgen_copilot.async_processor import AsyncBatchProcessor
