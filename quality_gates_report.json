@@ -1,0 +1,76 @@
+{
+  "Code Quality": {
+    "name": "Code Quality",
+    "score": 0.9566657844863591,
+    "threshold": 0.85,
+    "passed": true,
+    "details": [
+      "Analyzed 100 Python files",
+      "Average code quality score: 0.96"
+    ],
+    "validation_time": 1.168973684310913
+  },
+  "Security": {
+    "name": "Security",
+    "score": 0.9994259218370501,
+    "threshold": 0.9,
+    "passed": true,
+    "details": [
+      "Scanned 4529 files",
+      "Found 13 potential security issues",
+      "quality_gates_validation.py: Use of eval() function",
+      "quality_gates_validation.py: Use of exec() function",
+      "quality_gates_validation.py: Use of os.system()",
+      "performance_optimizer.py: Unsafe deserialization",
+      "resource_limits.py: Use of eval() function"
+    ],
+    "validation_time": 0.24793267250061035
+  },
+  "Performance": {
+    "name": "Performance",
+    "score": 0.9844998896003533,
+    "threshold": 0.8,
+    "passed": true,
+    "details": [
+      "Analyzed 4529 files for performance",
+      "Found 234 potential performance issues",
+      "quality_gates_validation.py: Nested loops detected - consider optimization",
+      "quality_gates_validation.py: Nested loops detected - consider optimization",
+      "quality_gates_validation.py: Nested loops detected - consider optimization"
+    ],
+    "validation_time": 0.728663444519043
+  },
+  "Test Coverage": {
+    "name": "Test Coverage",
+    "score": 0.7514925373134329,
+    "threshold": 0.85,
+    "passed": false,
+    "details": [
+      "Found 67 source files",
+      "Found 47 test files",
+      "Estimated coverage: 75.1%"
+    ],
+    "validation_time": 0.008391380310058594
+  },
+  "Documentation": {
+    "name": "Documentation",
+    "score": 0.8185896150761828,
+    "threshold": 0.75,
+    "passed": true,
+    "details": [
+      "README file found",
+      "Documentation directory found",
+      "Docstring coverage: 39.5%",
+      "Configuration files found",
+      "Example/demo files found"
+    ],
+    "validation_time": 19.7242488861084
+  },
+  "summary": {
+    "passed_gates": 4,
+    "total_gates": 5,
+    "overall_score": 0.9021347496626756,
+    "overall_passed": true,
+    "pass_rate": 0.8
+  }
+}
