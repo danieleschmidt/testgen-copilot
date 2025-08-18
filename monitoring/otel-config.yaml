@@ -1,0 +1,197 @@
+# OpenTelemetry Collector Configuration
+# Comprehensive observability data pipeline for TestGen-Copilot
+
+receivers:
+  # OTLP receivers for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - http://localhost:*
+            - https://localhost:*
+
+  # Prometheus metrics scraping
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'testgen-copilot'
+          static_configs:
+            - targets: ['testgen-app:8000']
+          metrics_path: '/metrics'
+          scrape_interval: 15s
+        
+        - job_name: 'testgen-quantum-api'
+          static_configs:
+            - targets: ['quantum-api:8000']
+          metrics_path: '/metrics'
+          scrape_interval: 15s
+
+  # Host metrics (when running on host)
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      disk:
+        metrics:
+          system.disk.io:
+            enabled: true
+          system.disk.operations:
+            enabled: true
+      network:
+        metrics:
+          system.network.io:
+            enabled: true
+      process:
+        metrics:
+          process.cpu.utilization:
+            enabled: true
+          process.memory.utilization:
+            enabled: true
+
+  # File log receiver
+  filelog:
+    include: 
+      - /app/logs/*.log
+      - /var/log/testgen/*.log
+    operators:
+      - type: json_parser
+        id: json_parser
+        output: json_extract
+      - type: move
+        id: json_extract
+        from: attributes.level
+        to: severity_text
+      - type: move
+        from: attributes.timestamp
+        to: time
+
+processors:
+  # Batch processor for performance
+  batch:
+    send_batch_size: 1024
+    timeout: 1s
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 256
+    spike_limit_mib: 64
+
+  # Resource processor to add service information
+  resource:
+    attributes:
+      - key: service.name
+        value: testgen-copilot
+        action: upsert
+      - key: service.version
+        value: "${TESTGEN_VERSION}"
+        action: upsert
+      - key: deployment.environment
+        value: "${TESTGEN_ENV}"
+        action: upsert
+
+  # Span processor for trace sampling
+  probabilistic_sampler:
+    sampling_percentage: 10.0
+
+  # Metric transformations
+  transform/metrics:
+    metric_statements:
+      - context: metric
+        statements:
+          - set(description, "TestGen-Copilot metrics") where name == "testgen_requests_total"
+
+  # Log enhancement
+  transform/logs:
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["service.name"], "testgen-copilot")
+          - set(attributes["environment"], "${TESTGEN_ENV}")
+
+exporters:
+  # Prometheus metrics export
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    const_labels:
+      service: testgen-copilot
+      environment: "${TESTGEN_ENV}"
+
+  # Jaeger traces export
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+  # OTLP export (for vendors like Honeycomb, DataDog, etc.)
+  otlp/honeycomb:
+    endpoint: "api.honeycomb.io:443"
+    headers:
+      "x-honeycomb-team": "${HONEYCOMB_API_KEY}"
+      "x-honeycomb-dataset": "testgen-copilot"
+
+  # Elasticsearch for logs
+  elasticsearch:
+    endpoints: ["http://elasticsearch:9200"]
+    index: testgen-logs
+    pipeline: testgen-pipeline
+
+  # Debug export for development
+  debug:
+    verbosity: detailed
+
+  # File export for local development
+  file:
+    path: ./otel-output.json
+
+service:
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888
+
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, probabilistic_sampler]
+      exporters: [jaeger, debug]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics]
+      processors: [memory_limiter, batch, resource, transform/metrics]
+      exporters: [prometheus, debug]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, batch, resource, transform/logs]
+      exporters: [elasticsearch, debug]
+
+  extensions: [health_check, pprof, zpages]
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # Performance profiling
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # Debugging and diagnostics
+  zpages:
+    endpoint: 0.0.0.0:55679

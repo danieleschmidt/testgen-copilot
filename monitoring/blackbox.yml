@@ -1,0 +1,188 @@
+# Blackbox Exporter Configuration
+# External monitoring and health checks for TestGen-Copilot
+
+modules:
+  # HTTP 2xx check
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      headers:
+        User-Agent: "TestGen-Blackbox-Exporter"
+      fail_if_ssl: false
+      fail_if_not_ssl: false
+      tls_config:
+        insecure_skip_verify: true
+
+  # HTTP health check endpoint
+  http_health:
+    prober: http
+    timeout: 10s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      headers:
+        User-Agent: "TestGen-Health-Check"
+      fail_if_body_not_matches_regexp:
+        - "\"status\":\\s*\"healthy\""
+
+  # HTTP readiness check
+  http_ready:
+    prober: http
+    timeout: 10s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      headers:
+        User-Agent: "TestGen-Readiness-Check"
+      fail_if_body_not_matches_regexp:
+        - "\"status\":\\s*\"ready\""
+
+  # API endpoint check with authentication
+  http_api:
+    prober: http
+    timeout: 15s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200, 201, 401] # 401 acceptable for auth endpoint
+      method: GET
+      headers:
+        User-Agent: "TestGen-API-Check"
+        Content-Type: "application/json"
+
+  # TCP connectivity check
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      query_response:
+        - expect: "."
+
+  # DNS resolution check
+  dns:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "example.com"
+      query_type: "A"
+      valid_rcodes:
+        - NOERROR
+
+  # ICMP ping check
+  icmp:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      preferred_ip_protocol: "ip4"
+
+  # gRPC health check
+  grpc_health:
+    prober: grpc
+    timeout: 5s
+    grpc:
+      tls: false
+      service: "grpc.health.v1.Health"
+
+  # Custom TestGen API check
+  testgen_api_check:
+    prober: http
+    timeout: 30s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: POST
+      headers:
+        User-Agent: "TestGen-Integration-Check"
+        Content-Type: "application/json"
+      body: |
+        {
+          "code": "def test_function(): return True",
+          "language": "python",
+          "dry_run": true
+        }
+      fail_if_body_not_matches_regexp:
+        - "\"status\":\\s*\"success\""
+
+  # Database connectivity check (through API)
+  database_check:
+    prober: http
+    timeout: 10s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      headers:
+        User-Agent: "TestGen-Database-Check"
+      fail_if_body_not_matches_regexp:
+        - "\"database\":\\s*(true|\"healthy\")"
+
+  # Redis connectivity check (through API)
+  redis_check:
+    prober: http
+    timeout: 10s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      headers:
+        User-Agent: "TestGen-Redis-Check"
+      fail_if_body_not_matches_regexp:
+        - "\"redis\":\\s*(true|\"healthy\")"
+
+  # LLM API connectivity check
+  llm_check:
+    prober: http
+    timeout: 15s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: GET
+      headers:
+        User-Agent: "TestGen-LLM-Check"
+      fail_if_body_not_matches_regexp:
+        - "\"llm_api\":\\s*(true|\"healthy\")"
+
+  # Performance benchmark check
+  performance_check:
+    prober: http
+    timeout: 60s  # Allow longer for performance test
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: POST
+      headers:
+        User-Agent: "TestGen-Performance-Check"
+        Content-Type: "application/json"
+      body: |
+        {
+          "code": "def simple_function(a, b): return a + b",
+          "language": "python",
+          "benchmark": true
+        }
+      fail_if_body_not_matches_regexp:
+        - "\"generation_time\":\\s*[0-9]+(\\.[0-9]+)?"
+
+  # Security scan endpoint check
+  security_check:
+    prober: http
+    timeout: 45s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      method: POST
+      headers:
+        User-Agent: "TestGen-Security-Check"
+        Content-Type: "application/json"
+      body: |
+        {
+          "code": "import os\npassword = 'hardcoded_password'\nprint(password)",
+          "language": "python",
+          "security_scan_only": true
+        }
+      fail_if_body_not_matches_regexp:
+        - "\"security_issues\":\\s*[0-9]+"

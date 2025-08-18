@@ -1,0 +1,146 @@
+# Dependabot Configuration for TestGen-Copilot
+# Automated dependency updates with security and compliance focus
+
+version: 2
+
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "maintainer-team"
+    assignees:
+      - "lead-maintainer"
+    labels:
+      - "dependencies"
+      - "python"
+      - "automated"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    # Allow auto-merge for patch updates
+    allow:
+      - dependency-type: "direct"
+        update-type: "version-update:semver-patch"
+      - dependency-type: "indirect"
+        update-type: "version-update:semver-patch"
+    # Security updates for all dependency types
+    - dependency-type: "all"
+      update-type: "security"
+    # Group related updates
+    groups:
+      testing-dependencies:
+        patterns:
+          - "pytest*"
+          - "*test*"
+          - "coverage"
+          - "tox"
+      linting-dependencies:
+        patterns:
+          - "ruff"
+          - "black"
+          - "isort"
+          - "mypy"
+          - "pre-commit"
+      security-dependencies:
+        patterns:
+          - "bandit"
+          - "safety"
+          - "cryptography"
+      ai-dependencies:
+        patterns:
+          - "openai"
+          - "anthropic"
+          - "tiktoken"
+
+  # Docker base image updates
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "devops-team"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "infrastructure"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+
+  # GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "first-monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "devops-team"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    # Pin action versions to specific commits for security
+    groups:
+      github-actions:
+        patterns:
+          - "actions/*"
+          - "github/*"
+
+  # npm dependencies (for VS Code extension)
+  - package-ecosystem: "npm"
+    directory: "/vscode-extension"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "frontend-team"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "vscode-extension"
+    commit-message:
+      prefix: "npm"
+      include: "scope"
+    groups:
+      vscode-dependencies:
+        patterns:
+          - "@vscode/*"
+          - "vscode-*"
+      typescript-dependencies:
+        patterns:
+          - "typescript"
+          - "@types/*"
+          - "ts-*"
+
+# Global configuration
+registries:
+  pypi:
+    type: python-index
+    url: https://pypi.org/simple
+    verify-ssl: true
+
+  npm-registry:
+    type: npm-registry
+    url: https://registry.npmjs.org
+    verify-ssl: true

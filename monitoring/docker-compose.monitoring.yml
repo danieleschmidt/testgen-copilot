@@ -1,0 +1,254 @@
+# Docker Compose for comprehensive monitoring stack
+# Includes Prometheus, Grafana, Jaeger, and OpenTelemetry Collector
+
+version: '3.8'
+
+networks:
+  monitoring:
+    driver: bridge
+  app:
+    external: true
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+services:
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: testgen-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-config.yaml:/etc/otel-collector-config.yaml:ro
+      - /var/log:/var/log:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8889:8889"   # Prometheus metrics export
+      - "8888:8888"   # Metrics endpoint
+      - "13133:13133" # Health check
+      - "1777:1777"   # pprof
+      - "55679:55679" # zpages
+    environment:
+      - TESTGEN_VERSION=${TESTGEN_VERSION:-latest}
+      - TESTGEN_ENV=${TESTGEN_ENV:-development}
+      - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY:-}
+    networks:
+      - monitoring
+      - app
+    depends_on:
+      - prometheus
+      - jaeger
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: testgen-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+      - app
+    restart: unless-stopped
+
+  # Alertmanager for alert routing
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: testgen-alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: testgen-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+      - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: testgen-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14268:14268" # HTTP collector
+      - "14250:14250" # gRPC collector
+      - "9411:9411"   # Zipkin collector
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Elasticsearch for log storage
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: testgen-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Kibana for log visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: testgen-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+      - SERVER_HOST=0.0.0.0
+    ports:
+      - "5601:5601"
+    networks:
+      - monitoring
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  # Node Exporter for host metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: testgen-node-exporter
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - '/:/host:ro,rslave'
+    ports:
+      - "9100:9100"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # cAdvisor for container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: testgen-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /cgroup:/cgroup:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Redis Exporter for Redis metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: testgen-redis-exporter
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    ports:
+      - "9121:9121"
+    networks:
+      - monitoring
+      - app
+    restart: unless-stopped
+
+  # Postgres Exporter for database metrics
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: testgen-postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://username:password@postgres:5432/testgen?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - monitoring
+      - app
+    restart: unless-stopped
+
+  # Loki for log aggregation (alternative to ELK)
+  loki:
+    image: grafana/loki:latest
+    container_name: testgen-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Promtail for log shipping to Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: testgen-promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - ./promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - monitoring
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # Uptime monitoring with Blackbox Exporter
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: testgen-blackbox-exporter
+    volumes:
+      - ./blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    ports:
+      - "9115:9115"
+    networks:
+      - monitoring
+      - app
+    restart: unless-stopped
