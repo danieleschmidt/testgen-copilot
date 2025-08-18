@@ -1,1 +1,210 @@
-Execution error
+# Docker ignore file for TestGen Copilot Assistant
+# Optimizes build context and reduces image size
+
+# Git and version control
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# Documentation (unless specifically needed)
+docs/
+*.md
+!README.md
+!LICENSE
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+pytest.ini
+.coveragerc
+test-results/
+test-reports/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Environments
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Node.js (for VS Code extension development)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build and deployment
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+Makefile
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
+Jenkinsfile
+
+# Logs
+logs/
+*.log
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Security
+.secrets
+secrets/
+private/
+certificates/
+
+# Development tools
+.pre-commit-config.yaml
+.editorconfig
+renovate.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Monitoring and metrics
+prometheus/
+grafana/
+monitoring/
+
+# Package manager files (already in requirements.txt)
+Pipfile
+Pipfile.lock
+poetry.lock
+requirements-dev.txt
+
+# Terraform (if any)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Kubernetes (if any)
+k8s/
+kubernetes/
+
+# Helm charts (if any)
+charts/
+
+# Scripts that shouldn't be in container
+scripts/
+automation/
+
+# Local configuration overrides
+local/
+.local/
+
+# Performance profiling
+*.prof
+*.pstats
+profile.stats
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.msi
+*.msm
+*.msp
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Large media files (if any)
+*.mov
+*.mp4
+*.avi
+*.wmv
+*.flv
+*.webm
