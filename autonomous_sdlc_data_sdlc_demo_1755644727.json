@@ -1,0 +1,84 @@
+{
+  "execution_id": "sdlc_demo_1755644727",
+  "start_time": "2025-08-19T23:05:27.136127",
+  "end_time": "2025-08-19T23:05:45.013936",
+  "duration": 17.877824783325195,
+  "success": true,
+  "generations_completed": 3,
+  "quality_gates_passed": 8,
+  "metrics": {
+    "overall_quality_score": 0.8966229262103891,
+    "quality_gate_pass_rate": 1.0,
+    "quantum_advantage": 0.2944481433156769,
+    "neural_evolution_score": 0.8604199505414045,
+    "optimization_score": 0.8463037372780277,
+    "generations_completed": 3,
+    "execution_duration": 0.0
+  },
+  "quality_gates": [
+    {
+      "gate_id": "functionality_basic",
+      "name": "Basic Functionality",
+      "passed": true,
+      "score": 0.9043444754815941,
+      "details": "Core features: 10 implemented",
+      "execution_time": 0.4187889099121094
+    },
+    {
+      "gate_id": "functionality_advanced",
+      "name": "Advanced Functionality",
+      "passed": true,
+      "score": 0.9096960104985439,
+      "details": "Advanced features: 6 validated",
+      "execution_time": 0.6371536254882812
+    },
+    {
+      "gate_id": "performance_benchmark",
+      "name": "Performance Benchmarks",
+      "passed": true,
+      "score": 0.8406791899682942,
+      "details": "Avg latency: 0.26s",
+      "execution_time": 0.5068092346191406
+    },
+    {
+      "gate_id": "security_validation",
+      "name": "Security Validation",
+      "passed": true,
+      "score": 0.96,
+      "details": "Vulnerabilities: 0 found, mitigated",
+      "execution_time": 0.48281383514404297
+    },
+    {
+      "gate_id": "reliability_resilience",
+      "name": "Reliability & Resilience",
+      "passed": true,
+      "score": 0.9252124472627103,
+      "details": "Uptime: 99.69%",
+      "execution_time": 0.6640160083770752
+    },
+    {
+      "gate_id": "scalability_optimization",
+      "name": "Scalability Optimization",
+      "passed": true,
+      "score": 0.91,
+      "details": "Throughput: 2541 RPS",
+      "execution_time": 0.6009795665740967
+    },
+    {
+      "gate_id": "code_quality",
+      "name": "Code Quality Standards",
+      "passed": true,
+      "score": 0.7730512864719705,
+      "details": "Test coverage: 89.9%",
+      "execution_time": 0.612006425857544
+    },
+    {
+      "gate_id": "deployment_readiness",
+      "name": "Deployment Readiness",
+      "passed": true,
+      "score": 0.95,
+      "details": "Production-ready configuration",
+      "execution_time": 0.7070212364196777
+    }
+  ]
+}
