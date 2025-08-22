@@ -92,7 +92,8 @@ class TestGenOrchestrator:
         self,
         file_path: Union[str, Path],
         output_dir: Union[str, Path],
-        phases: Optional[List[AnalysisPhase]] = None
+        phases: Optional[List[AnalysisPhase]] = None,
+        retry_attempts: int = 3
     ) -> ProcessingResult:
         """Process a single file through all analysis phases."""
         file_path = Path(file_path)
@@ -108,17 +109,29 @@ class TestGenOrchestrator:
             "phases": [p.value for p in phases]
         }):
             try:
-                # Phase 1: Test Generation
+                # Phase 1: Test Generation (with retry logic)
                 if AnalysisPhase.TEST_GENERATION in phases:
                     result.phase = AnalysisPhase.TEST_GENERATION
                     self.logger.info("Starting test generation phase", {
                         "file": str(file_path)
                     })
 
-                    result.tests_generated = self.generator.generate_tests(file_path, output_dir)
-                    self.logger.info("Test generation completed", {
-                        "output_file": str(result.tests_generated)
-                    })
+                    for attempt in range(retry_attempts):
+                        try:
+                            result.tests_generated = self.generator.generate_tests(file_path, output_dir)
+                            self.logger.info("Test generation completed", {
+                                "output_file": str(result.tests_generated),
+                                "attempt": attempt + 1
+                            })
+                            break
+                        except Exception as gen_error:
+                            if attempt == retry_attempts - 1:
+                                raise gen_error
+                            self.logger.warning(f"Test generation attempt {attempt + 1} failed, retrying", {
+                                "error": str(gen_error),
+                                "remaining_attempts": retry_attempts - attempt - 1
+                            })
+                            await asyncio.sleep(1.0 * (attempt + 1))  # Exponential backoff
 
                 # Phase 2: Security Analysis
                 if AnalysisPhase.SECURITY_SCAN in phases and self.security_scanner:
@@ -245,6 +258,8 @@ class TestGenOrchestrator:
                 }
             })
 
+        # Store metrics for monitoring
+        self.metrics_collector.record_batch_metrics(metrics)
         return results
 
     def generate_comprehensive_report(

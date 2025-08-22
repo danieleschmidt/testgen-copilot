@@ -38,8 +38,12 @@ class TestGenerator:
     # Public API
     # ------------------------------------------------------------------
     def generate_tests(self, file_path: str | Path, output_dir: str | Path) -> Path:
-        """Generate tests for ``file_path`` inside ``output_dir``."""
+        """Generate tests for ``file_path`` inside ``output_dir`` with enhanced error handling."""
         logger = get_generator_logger()
+        
+        # Track operation start time for metrics
+        import time
+        start_time = time.time()
 
         source_path = Path(file_path)
         out_path = Path(output_dir)
@@ -101,6 +105,15 @@ class TestGenerator:
                 elif lang == "rust":
                     result = self._generate_rust_tests(source_path, out_path)
                 else:
+                    # Record failed generation metrics
+                    execution_time = time.time() - start_time
+                    try:
+                        from .metrics_collector import MetricsCollector
+                        metrics_collector = MetricsCollector()
+                        metrics_collector.record_generation_metrics(execution_time, False)
+                    except Exception:
+                        pass  # Don't fail on metrics recording
+                    
                     logger.error("Unsupported language", {
                         "language": self.config.language,
                         "supported_languages": ["python", "javascript", "typescript", "java", "c#", "go", "rust"],
@@ -108,10 +121,24 @@ class TestGenerator:
                     })
                     raise ValueError(f"Unsupported language: {self.config.language}")
 
+            # Calculate execution time and record metrics
+            execution_time = time.time() - start_time
+            
+            # Import metrics collector and record success
+            try:
+                from .metrics_collector import MetricsCollector
+                metrics_collector = MetricsCollector()
+                metrics_collector.record_generation_metrics(execution_time, True)
+            except Exception as metrics_error:
+                logger.warning("Failed to record metrics", {
+                    "error": str(metrics_error)
+                })
+            
             logger.info("Test generation completed successfully", {
                 "generated_file": str(result),
                 "language": lang,
-                "source_file": str(source_path)
+                "source_file": str(source_path),
+                "execution_time_seconds": execution_time
             })
 
             return result
