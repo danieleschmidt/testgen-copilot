@@ -71,11 +71,23 @@ class OperationalMetrics:
 class MetricsCollector:
     """Collects and aggregates metrics from various sources."""
 
-    def __init__(self, repo_path: Path):
-        self.repo_path = repo_path
+    def __init__(self, repo_path: Path = None):
+        self.repo_path = repo_path or Path.cwd()
         self.logger = get_core_logger()
-        self.metrics_dir = repo_path / "docs" / "status"
+        self.metrics_dir = self.repo_path / "docs" / "status"
         self.metrics_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize runtime metrics storage
+        self.metrics = {
+            'test_generation': {
+                'total_executions': 0,
+                'successful_generations': 0,
+                'failed_generations': 0,
+                'total_time': 0.0,
+                'avg_execution_time': 0.0
+            },
+            'batch_processing': {}
+        }
 
     def collect_dora_metrics(self, days_back: int = 30) -> DORAMetrics:
         """Collect DORA metrics from git history."""
@@ -437,6 +449,57 @@ def main():
         metrics = collector.collect_comprehensive_metrics()
         collector.save_metrics_report(metrics)
         print(f"Metrics collected and saved to {collector.metrics_dir}")
+
+    def record_generation_metrics(self, execution_time: float, success: bool) -> None:
+        """Record test generation metrics."""
+        self.metrics['test_generation']['total_executions'] += 1
+        self.metrics['test_generation']['total_time'] += execution_time
+        
+        if success:
+            self.metrics['test_generation']['successful_generations'] += 1
+        else:
+            self.metrics['test_generation']['failed_generations'] += 1
+            
+        # Update average execution time
+        total_execs = self.metrics['test_generation']['total_executions']
+        self.metrics['test_generation']['avg_execution_time'] = (
+            self.metrics['test_generation']['total_time'] / total_execs
+        )
+
+    def record_batch_metrics(self, project_metrics) -> None:
+        """Record project-level batch processing metrics."""
+        batch_metrics = {
+            'files_processed': project_metrics.files_analyzed,
+            'tests_generated': project_metrics.tests_generated,
+            'security_issues': project_metrics.security_issues_found,
+            'avg_coverage': project_metrics.coverage_percentage,
+            'avg_quality': project_metrics.quality_score,
+            'total_time': project_metrics.processing_time_seconds,
+            'timestamp': project_metrics.timestamp.isoformat()
+        }
+        
+        self.metrics['batch_processing'] = batch_metrics
+        
+        # Store to metrics file for persistence
+        metrics_file = self.metrics_dir / "batch_processing_metrics.json"
+        try:
+            existing_metrics = []
+            if metrics_file.exists():
+                with open(metrics_file) as f:
+                    existing_metrics = json.load(f)
+            
+            existing_metrics.append(batch_metrics)
+            
+            # Keep only last 100 entries
+            if len(existing_metrics) > 100:
+                existing_metrics = existing_metrics[-100:]
+                
+            with open(metrics_file, 'w') as f:
+                json.dump(existing_metrics, f, indent=2)
+                
+            self.logger.info("Batch metrics recorded successfully")
+        except Exception as e:
+            self.logger.error(f"Error recording batch metrics: {e}")
 
 
 if __name__ == "__main__":
