@@ -1,0 +1,163 @@
+{
+  "benchmark_results": {
+    "small_linear": {
+      "Quantum Annealing": [
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=5, solution_quality=100, execution_time=0.17205349604288736, iterations=2000, approximation_ratio=0.9, convergence_guarantee=True, optimality_gap=np.float64(0.21732319965254035), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=8, solution_quality=np.float64(96.14038477630902), execution_time=0.2296607494354248, iterations=2000, approximation_ratio=np.float64(0.9392853240571807), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=10, solution_quality=100, execution_time=0.283568541208903, iterations=2000, approximation_ratio=0.9, convergence_guarantee=True, optimality_gap=np.float64(0.06711043416626018), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ],
+      "Enhanced Quantum": [
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=5, solution_quality=100, execution_time=0.21925942103068033, iterations=2000, approximation_ratio=0.9, convergence_guarantee=True, optimality_gap=np.float64(0.004746418269650853), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=8, solution_quality=np.float64(98.8546948998311), execution_time=0.31297675768534344, iterations=2000, approximation_ratio=np.float64(0.9106745131314584), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=10, solution_quality=100, execution_time=0.28677789370218915, iterations=2000, approximation_ratio=0.9, convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ]
+    },
+    "medium_complex": {
+      "Quantum Annealing": [
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=15, solution_quality=np.float64(90.20254209380455), execution_time=0.31222979227701825, iterations=2000, approximation_ratio=np.float64(1.0044465688989315), convergence_guarantee=True, optimality_gap=np.float64(0.11541085027903758), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=20, solution_quality=np.float64(80.72710782212866), execution_time=0.2969067891438802, iterations=2000, approximation_ratio=np.float64(1.11738718725681), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=25, solution_quality=np.float64(77.93656384862659), execution_time=0.20429253578186035, iterations=2000, approximation_ratio=np.float64(1.1587724717754198), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ],
+      "Enhanced Quantum": [
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=15, solution_quality=np.float64(83.15305217706951), execution_time=0.22764857610066733, iterations=2000, approximation_ratio=np.float64(1.082991368133232), convergence_guarantee=True, optimality_gap=np.float64(0.013142993892122388), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=20, solution_quality=np.float64(84.09091931360801), execution_time=0.2466723918914795, iterations=2000, approximation_ratio=np.float64(1.0731257556480123), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=25, solution_quality=np.float64(77.08851706332263), execution_time=0.19265166918436685, iterations=2000, approximation_ratio=np.float64(1.1702790115476207), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ]
+    },
+    "large_parallel": {
+      "Quantum Annealing": [
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=30, solution_quality=np.float64(98.96885631507932), execution_time=0.21480576197306314, iterations=2000, approximation_ratio=np.float64(0.90943703523367), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=40, solution_quality=np.float64(97.81619360937648), execution_time=0.28145519892374676, iterations=2000, approximation_ratio=np.float64(0.9203279180212837), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=50, solution_quality=np.float64(97.5707097225153), execution_time=0.23863935470581055, iterations=2000, approximation_ratio=np.float64(0.9224404628207602), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ],
+      "Enhanced Quantum": [
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=30, solution_quality=np.float64(98.97031669172858), execution_time=0.17511709531148276, iterations=2000, approximation_ratio=np.float64(0.9095529519745186), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=40, solution_quality=np.float64(97.36615999375852), execution_time=0.19667458534240723, iterations=2000, approximation_ratio=np.float64(0.9244825948018207), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=50, solution_quality=np.float64(97.39307450405128), execution_time=0.3021869659423828, iterations=2000, approximation_ratio=np.float64(0.924641668576198), convergence_guarantee=True, optimality_gap=0, makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ]
+    },
+    "dependency_heavy": {
+      "Quantum Annealing": [
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=12, solution_quality=np.float64(99.12428692175719), execution_time=0.20361502965291342, iterations=2000, approximation_ratio=np.float64(0.9080940599282427), convergence_guarantee=True, optimality_gap=np.float64(0.8343119938109866), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=18, solution_quality=np.float64(79.36759446425219), execution_time=0.2446893850962321, iterations=2000, approximation_ratio=np.float64(1.135479835236751), convergence_guarantee=True, optimality_gap=np.float64(0.31343477814989906), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Quantum Annealing', problem_size=24, solution_quality=np.float64(97.90868031419667), execution_time=0.2327547868092855, iterations=2000, approximation_ratio=np.float64(0.9194687906655821), convergence_guarantee=True, optimality_gap=np.float64(0.33878087605325446), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ],
+      "Enhanced Quantum": [
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=12, solution_quality=np.float64(80.08942484731003), execution_time=0.20238494873046875, iterations=2000, approximation_ratio=np.float64(1.1353930364055496), convergence_guarantee=True, optimality_gap=np.float64(0.6467658424463558), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=18, solution_quality=np.float64(76.84944767576128), execution_time=0.23929548263549805, iterations=2000, approximation_ratio=np.float64(1.179127523460375), convergence_guarantee=True, optimality_gap=np.float64(0.13207614425176759), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)",
+        "OptimizationResult(algorithm='Enhanced Quantum', problem_size=24, solution_quality=np.float64(80.24749323913962), execution_time=0.28012752532958984, iterations=2000, approximation_ratio=np.float64(1.1259993620106248), convergence_guarantee=True, optimality_gap=np.float64(0.45454747322147543), makespan=0.0, resource_efficiency=0.0, dependency_satisfaction=1.0, variance=0.0, confidence_interval=(0.0, 0.0), success=True, error_message=None)"
+      ]
+    }
+  },
+  "statistical_analysis": {
+    "small_linear": {
+      "Quantum Annealing": {
+        "quality_mean": 98.713461592103,
+        "quality_std": 2.228349888366365,
+        "quality_median": 100,
+        "time_mean": 0.22842759556240505,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 0.9130951080190602,
+        "convergence_rate": 100.0
+      },
+      "Enhanced Quantum": {
+        "quality_mean": 99.61823163327703,
+        "quality_std": 0.6612422078867644,
+        "quality_median": 100,
+        "time_mean": 0.273004690806071,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 0.9035581710438195,
+        "convergence_rate": 100.0
+      }
+    },
+    "medium_complex": {
+      "Quantum Annealing": {
+        "quality_mean": 82.9554045881866,
+        "quality_std": 6.429427302335175,
+        "quality_median": 80.72710782212866,
+        "time_mean": 0.27114303906758624,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 1.093535409310387,
+        "convergence_rate": 100.0
+      },
+      "Enhanced Quantum": {
+        "quality_mean": 81.44416285133339,
+        "quality_std": 3.801136193878301,
+        "quality_median": 83.15305217706951,
+        "time_mean": 0.22232421239217123,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 1.1087987117762883,
+        "convergence_rate": 100.0
+      }
+    },
+    "large_parallel": {
+      "Quantum Annealing": {
+        "quality_mean": 98.11858654899036,
+        "quality_std": 0.7465149636951954,
+        "quality_median": 97.81619360937648,
+        "time_mean": 0.24496677186754015,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 0.9174018053585713,
+        "convergence_rate": 100.0
+      },
+      "Enhanced Quantum": {
+        "quality_mean": 97.9098503965128,
+        "quality_std": 0.9184893413549237,
+        "quality_median": 97.39307450405128,
+        "time_mean": 0.22465954886542427,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 0.9195590717841791,
+        "convergence_rate": 100.0
+      }
+    },
+    "dependency_heavy": {
+      "Quantum Annealing": {
+        "quality_mean": 92.13352056673536,
+        "quality_std": 11.072311267148871,
+        "quality_median": 97.90868031419667,
+        "time_mean": 0.22701973385281032,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 0.9876808952768585,
+        "convergence_rate": 100.0
+      },
+      "Enhanced Quantum": {
+        "quality_mean": 79.06212192073697,
+        "quality_std": 1.917861280152441,
+        "quality_median": 80.08942484731003,
+        "time_mean": 0.2406026522318522,
+        "success_rate": 100.0,
+        "approximation_ratio_mean": 1.1468399739588497,
+        "convergence_rate": 100.0
+      }
+    }
+  },
+  "theoretical_guarantees": {
+    "Quantum Annealing": {
+      "overall_mean_quality": 92.98024332400384,
+      "overall_std_quality": 8.635934238244099,
+      "overall_success_rate": 100.0,
+      "problems_solved": 12,
+      "total_problems": 12
+    },
+    "Enhanced Quantum": {
+      "overall_mean_quality": 89.50859170046505,
+      "overall_std_quality": 9.907134787504027,
+      "overall_success_rate": 100.0,
+      "problems_solved": 12,
+      "total_problems": 12
+    }
+  },
+  "metadata": {
+    "timestamp": "2025-08-23T15:36:18.884673",
+    "problem_categories": [
+      "small_linear",
+      "medium_complex",
+      "large_parallel",
+      "dependency_heavy"
+    ],
+    "optimizers": [
+      "Quantum Annealing",
+      "Enhanced Quantum"
+    ]
+  }
+}

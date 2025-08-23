@@ -1,0 +1,1881 @@
+{
+  "benchmark_results": {
+    "5": {
+      "simple": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.0045850276947021484,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "simple",
+              "total_time": 0.041794538497924805
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.11955809593200684,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "simple",
+              "total_time": 0.12250065803527832
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.003389596939086914,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "simple",
+              "total_time": 0.006033182144165039
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 8.344650268554688e-05,
+            "solution_quality": 23.55032658696716,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 9.47537814138889,
+              "resource_efficiency": 0.05917210978278602,
+              "tasks_scheduled": 5,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 6.246566772460938e-05,
+            "solution_quality": 23.582835920012652,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 9.411363953611112,
+              "resource_efficiency": 0.05971393200021087,
+              "tasks_scheduled": 5,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 7.796287536621094e-05,
+            "solution_quality": 23.900277913907296,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 13.359593471666669,
+              "resource_efficiency": 0.06500463189845501,
+              "tasks_scheduled": 5,
+              "complexity": "simple"
+            }
+          }
+        ]
+      },
+      "medium": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.003322601318359375,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "medium",
+              "total_time": 0.0061070919036865234
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.0028853416442871094,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "medium",
+              "total_time": 0.00678706169128418
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.002147674560546875,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "medium",
+              "total_time": 0.0050470829010009766
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 0.000110626220703125,
+            "solution_quality": 25.105542000980243,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 20.070957817222222,
+              "resource_efficiency": 0.08509236668300404,
+              "tasks_scheduled": 5,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 9.012222290039062e-05,
+            "solution_quality": 23.636319689824067,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 11.837559182222224,
+              "resource_efficiency": 0.06060532816373443,
+              "tasks_scheduled": 5,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 0.00028204917907714844,
+            "solution_quality": 24.918424504259423,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 14.788835759444446,
+              "resource_efficiency": 0.08197374173765708,
+              "tasks_scheduled": 5,
+              "complexity": "medium"
+            }
+          }
+        ]
+      },
+      "complex": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.0019383430480957031,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "complex",
+              "total_time": 0.005911350250244141
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.0032193660736083984,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "complex",
+              "total_time": 0.006844520568847656
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 5,
+            "execution_time": 0.0012717247009277344,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 5,
+              "tasks_added": 5,
+              "complexity": "complex",
+              "total_time": 0.0041697025299072266
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 7.414817810058594e-05,
+            "solution_quality": 24.545471283279884,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 15.637144321944447,
+              "resource_efficiency": 0.07575785472133147,
+              "tasks_scheduled": 5,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 8.344650268554688e-05,
+            "solution_quality": 22.960197711559843,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 5.692356223333333,
+              "resource_efficiency": 0.04933662852599736,
+              "tasks_scheduled": 5,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 5,
+            "execution_time": 8.869171142578125e-05,
+            "solution_quality": 24.66797926893981,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 11.452527181944443,
+              "resource_efficiency": 0.07779965448233016,
+              "tasks_scheduled": 5,
+              "complexity": "complex"
+            }
+          }
+        ]
+      }
+    },
+    "10": {
+      "simple": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.0030362606048583984,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "simple",
+              "total_time": 0.005394458770751953
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.003936052322387695,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "simple",
+              "total_time": 0.008239984512329102
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.004475116729736328,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "simple",
+              "total_time": 0.0073719024658203125
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 6.604194641113281e-05,
+            "solution_quality": 23.99966844195026,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 24.73993342,
+              "resource_efficiency": 0.066661140699171,
+              "tasks_scheduled": 10,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 0.00015783309936523438,
+            "solution_quality": 24.18070722777041,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 24.259215530277775,
+              "resource_efficiency": 0.06967845379617348,
+              "tasks_scheduled": 10,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 0.00010848045349121094,
+            "solution_quality": 25.955644510536903,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 42.77670704416666,
+              "resource_efficiency": 0.09926074184228174,
+              "tasks_scheduled": 10,
+              "complexity": "simple"
+            }
+          }
+        ]
+      },
+      "medium": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.0030345916748046875,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "medium",
+              "total_time": 0.006318330764770508
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.00391387939453125,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "medium",
+              "total_time": 0.007325649261474609
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.004869222640991211,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "medium",
+              "total_time": 0.009291648864746094
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 0.00016927719116210938,
+            "solution_quality": 24.469547305363104,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 17.665335631944444,
+              "resource_efficiency": 0.07449245508938508,
+              "tasks_scheduled": 10,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 0.00013065338134765625,
+            "solution_quality": 25.16223084377517,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 35.45635909388889,
+              "resource_efficiency": 0.08603718072958613,
+              "tasks_scheduled": 10,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 8.20159912109375e-05,
+            "solution_quality": 24.142200228492626,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 23.318823740277775,
+              "resource_efficiency": 0.06903667047487713,
+              "tasks_scheduled": 10,
+              "complexity": "medium"
+            }
+          }
+        ]
+      },
+      "complex": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.001516103744506836,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "complex",
+              "total_time": 0.0055310726165771484
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.002533435821533203,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "complex",
+              "total_time": 0.005688190460205078
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 10,
+            "execution_time": 0.002165079116821289,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 10,
+              "tasks_added": 10,
+              "complexity": "complex",
+              "total_time": 0.0058329105377197266
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 7.462501525878906e-05,
+            "solution_quality": 24.72785146125975,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 24.439292297500003,
+              "resource_efficiency": 0.07879752435432924,
+              "tasks_scheduled": 10,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 0.00010585784912109375,
+            "solution_quality": 24.042764426311034,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 20.79765970138889,
+              "resource_efficiency": 0.06737940710518399,
+              "tasks_scheduled": 10,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 10,
+            "execution_time": 0.000171661376953125,
+            "solution_quality": 24.27296585212385,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 20.508034456111112,
+              "resource_efficiency": 0.0712160975353975,
+              "tasks_scheduled": 10,
+              "complexity": "complex"
+            }
+          }
+        ]
+      }
+    },
+    "20": {
+      "simple": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.002609729766845703,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "simple",
+              "total_time": 0.01121377944946289
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.008231878280639648,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "simple",
+              "total_time": 0.015411138534545898
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.0021593570709228516,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "simple",
+              "total_time": 0.006068706512451172
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.000202178955078125,
+            "solution_quality": 24.365835130167177,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 61.633397511111106,
+              "resource_efficiency": 0.07276391883611963,
+              "tasks_scheduled": 20,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.0001678466796875,
+            "solution_quality": 24.691636088503003,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 40.71254841694444,
+              "resource_efficiency": 0.07819393480838342,
+              "tasks_scheduled": 20,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.000202178955078125,
+            "solution_quality": 24.738405579816774,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 59.50272700888888,
+              "resource_efficiency": 0.07897342633027958,
+              "tasks_scheduled": 20,
+              "complexity": "simple"
+            }
+          }
+        ]
+      },
+      "medium": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.0029757022857666016,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "medium",
+              "total_time": 0.009321928024291992
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.0011544227600097656,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "medium",
+              "total_time": 0.006876468658447266
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.005386829376220703,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "medium",
+              "total_time": 0.010299444198608398
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.00027108192443847656,
+            "solution_quality": 23.83194257355673,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 36.8123157175,
+              "resource_efficiency": 0.06386570955927885,
+              "tasks_scheduled": 20,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.0001232624053955078,
+            "solution_quality": 24.515474134537072,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 46.74813835944444,
+              "resource_efficiency": 0.07525790224228451,
+              "tasks_scheduled": 20,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.00013136863708496094,
+            "solution_quality": 24.88670085590401,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 59.678876125555554,
+              "resource_efficiency": 0.08144501426506684,
+              "tasks_scheduled": 20,
+              "complexity": "medium"
+            }
+          }
+        ]
+      },
+      "complex": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.0009682178497314453,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "complex",
+              "total_time": 0.007471323013305664
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.0044727325439453125,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "complex",
+              "total_time": 0.013667106628417969
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 20,
+            "execution_time": 0.005350828170776367,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 20,
+              "tasks_added": 20,
+              "complexity": "complex",
+              "total_time": 0.014128923416137695
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.00016021728515625,
+            "solution_quality": 24.194612540183133,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 44.72576675833333,
+              "resource_efficiency": 0.06991020900305224,
+              "tasks_scheduled": 20,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.00011396408081054688,
+            "solution_quality": 24.353774387349667,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 56.75927076527778,
+              "resource_efficiency": 0.07256290645582784,
+              "tasks_scheduled": 20,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 20,
+            "execution_time": 0.00011301040649414062,
+            "solution_quality": 24.511617609112665,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 60.6258941225,
+              "resource_efficiency": 0.07519362681854443,
+              "tasks_scheduled": 20,
+              "complexity": "complex"
+            }
+          }
+        ]
+      }
+    },
+    "50": {
+      "simple": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.0014858245849609375,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "simple",
+              "total_time": 0.016338109970092773
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.006254434585571289,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "simple",
+              "total_time": 0.027547121047973633
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.0018002986907958984,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "simple",
+              "total_time": 0.01918625831604004
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.00024175643920898438,
+            "solution_quality": 24.499028125098096,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 105.32805617027779,
+              "resource_efficiency": 0.07498380208496835,
+              "tasks_scheduled": 50,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.0005486011505126953,
+            "solution_quality": 24.448119603919423,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 135.0153363563889,
+              "resource_efficiency": 0.07413532673199036,
+              "tasks_scheduled": 50,
+              "complexity": "simple"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.00040841102600097656,
+            "solution_quality": 24.442838206881138,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 139.00782657916668,
+              "resource_efficiency": 0.07404730344801896,
+              "tasks_scheduled": 50,
+              "complexity": "simple"
+            }
+          }
+        ]
+      },
+      "medium": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.0019173622131347656,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "medium",
+              "total_time": 0.024040699005126953
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.007648468017578125,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "medium",
+              "total_time": 0.02997756004333496
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.0017833709716796875,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "medium",
+              "total_time": 0.02493429183959961
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.0005822181701660156,
+            "solution_quality": 24.29720068027254,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 107.04443627749998,
+              "resource_efficiency": 0.07162001133787566,
+              "tasks_scheduled": 50,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.0006146430969238281,
+            "solution_quality": 24.223834770904297,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 132.37279884749998,
+              "resource_efficiency": 0.0703972461817382,
+              "tasks_scheduled": 50,
+              "complexity": "medium"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.0005481243133544922,
+            "solution_quality": 24.515608849990947,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 151.82911968777776,
+              "resource_efficiency": 0.07526014749984909,
+              "tasks_scheduled": 50,
+              "complexity": "medium"
+            }
+          }
+        ]
+      },
+      "complex": {
+        "quantum": [
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.008385419845581055,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "complex",
+              "total_time": 0.03076934814453125
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.0012633800506591797,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "complex",
+              "total_time": 0.02428460121154785
+            }
+          },
+          {
+            "algorithm": "quantum_annealing",
+            "problem_size": 50,
+            "execution_time": 0.002460479736328125,
+            "solution_quality": 0.0,
+            "convergence_iterations": 0,
+            "quantum_advantage": 1.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "tasks_generated": 50,
+              "tasks_added": 50,
+              "complexity": "complex",
+              "total_time": 0.02581954002380371
+            }
+          }
+        ],
+        "classical": [
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.00048065185546875,
+            "solution_quality": 24.489955209863,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 144.79227728666663,
+              "resource_efficiency": 0.07483258683104987,
+              "tasks_scheduled": 50,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.0004017353057861328,
+            "solution_quality": 24.420014620715335,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 162.62212687972223,
+              "resource_efficiency": 0.07366691034525556,
+              "tasks_scheduled": 50,
+              "complexity": "complex"
+            }
+          },
+          {
+            "algorithm": "classical_greedy",
+            "problem_size": 50,
+            "execution_time": 0.0004792213439941406,
+            "solution_quality": 24.442821471130124,
+            "convergence_iterations": 1,
+            "quantum_advantage": 0.0,
+            "error_message": null,
+            "success": true,
+            "metadata": {
+              "total_makespan": 99.33339843166667,
+              "resource_efficiency": 0.07404702451883544,
+              "tasks_scheduled": 50,
+              "complexity": "complex"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "statistical_analysis": {
+    "5": {
+      "simple": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 23.677813473629033,
+          "median": 23.582835920012652,
+          "std_dev": 0.19334434197825726,
+          "min_value": 23.55032658696716,
+          "max_value": 23.900277913907296,
+          "confidence_interval_95": [
+            23.459023754169657,
+            23.89660319308841
+          ],
+          "quartiles": [
+            23.55032658696716,
+            23.582835920012652,
+            23.900277913907296
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "medium": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.553428731687912,
+          "median": 24.918424504259423,
+          "std_dev": 0.7997311957127099,
+          "min_value": 23.636319689824067,
+          "max_value": 25.105542000980243,
+          "confidence_interval_95": [
+            23.648447690284726,
+            25.4584097730911
+          ],
+          "quartiles": [
+            23.636319689824067,
+            24.918424504259423,
+            25.105542000980243
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "complex": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.05788275459318,
+          "median": 24.545471283279884,
+          "std_dev": 0.9525945579898804,
+          "min_value": 22.960197711559843,
+          "max_value": 24.66797926893981,
+          "confidence_interval_95": [
+            22.97992053460448,
+            25.13584497458188
+          ],
+          "quartiles": [
+            22.960197711559843,
+            24.545471283279884,
+            24.66797926893981
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      }
+    },
+    "10": {
+      "simple": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.712006726752524,
+          "median": 24.18070722777041,
+          "std_dev": 1.0808191168900096,
+          "min_value": 23.99966844195026,
+          "max_value": 25.955644510536903,
+          "confidence_interval_95": [
+            23.48894475891231,
+            25.935068694592736
+          ],
+          "quartiles": [
+            23.99966844195026,
+            24.18070722777041,
+            25.955644510536903
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "medium": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.591326125876964,
+          "median": 24.469547305363104,
+          "std_dev": 0.5208053137907981,
+          "min_value": 24.142200228492626,
+          "max_value": 25.16223084377517,
+          "confidence_interval_95": [
+            24.001979433176455,
+            25.180672818577474
+          ],
+          "quartiles": [
+            24.142200228492626,
+            24.469547305363104,
+            25.16223084377517
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "complex": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.34786057989821,
+          "median": 24.27296585212385,
+          "std_dev": 0.34863014291653316,
+          "min_value": 24.042764426311034,
+          "max_value": 24.72785146125975,
+          "confidence_interval_95": [
+            23.953348434451673,
+            24.742372725344747
+          ],
+          "quartiles": [
+            24.042764426311034,
+            24.27296585212385,
+            24.72785146125975
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      }
+    },
+    "20": {
+      "simple": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.59862559949565,
+          "median": 24.691636088503003,
+          "std_dev": 0.20295417780145783,
+          "min_value": 24.365835130167177,
+          "max_value": 24.738405579816774,
+          "confidence_interval_95": [
+            24.368961327089462,
+            24.82828987190184
+          ],
+          "quartiles": [
+            24.365835130167177,
+            24.691636088503003,
+            24.738405579816774
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "medium": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.411372521332606,
+          "median": 24.515474134537072,
+          "std_dev": 0.5350295486689266,
+          "min_value": 23.83194257355673,
+          "max_value": 24.88670085590401,
+          "confidence_interval_95": [
+            23.805929591593724,
+            25.016815451071487
+          ],
+          "quartiles": [
+            23.83194257355673,
+            24.515474134537072,
+            24.88670085590401
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "complex": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.35333484554849,
+          "median": 24.353774387349667,
+          "std_dev": 0.15850299154748032,
+          "min_value": 24.194612540183133,
+          "max_value": 24.511617609112665,
+          "confidence_interval_95": [
+            24.173971825667383,
+            24.532697865429594
+          ],
+          "quartiles": [
+            24.194612540183133,
+            24.353774387349667,
+            24.511617609112665
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      }
+    },
+    "50": {
+      "simple": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.463328645299555,
+          "median": 24.448119603919423,
+          "std_dev": 0.03102922706230341,
+          "min_value": 24.442838206881138,
+          "max_value": 24.499028125098096,
+          "confidence_interval_95": [
+            24.428215769409107,
+            24.498441521190003
+          ],
+          "quartiles": [
+            24.442838206881138,
+            24.448119603919423,
+            24.499028125098096
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "medium": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.345548100389262,
+          "median": 24.29720068027254,
+          "std_dev": 0.15177658936961536,
+          "min_value": 24.223834770904297,
+          "max_value": 24.515608849990947,
+          "confidence_interval_95": [
+            24.17379672111997,
+            24.517299479658554
+          ],
+          "quartiles": [
+            24.223834770904297,
+            24.29720068027254,
+            24.515608849990947
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      },
+      "complex": {
+        "quantum": {
+          "mean": 0.0,
+          "median": 0.0,
+          "std_dev": 0.0,
+          "min_value": 0.0,
+          "max_value": 0.0,
+          "confidence_interval_95": [
+            0.0,
+            0.0
+          ],
+          "quartiles": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        },
+        "classical": {
+          "mean": 24.450930433902823,
+          "median": 24.442821471130124,
+          "std_dev": 0.035668444885041846,
+          "min_value": 24.420014620715335,
+          "max_value": 24.489955209863,
+          "confidence_interval_95": [
+            24.410567788841153,
+            24.491293078964492
+          ],
+          "quartiles": [
+            24.420014620715335,
+            24.442821471130124,
+            24.489955209863
+          ],
+          "skewness": 0.0,
+          "kurtosis": 0.0
+        }
+      }
+    }
+  },
+  "quantum_advantage": {
+    "5": {
+      "simple": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 23.677813473629033,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "medium": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.553428731687912,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "complex": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.05788275459318,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      }
+    },
+    "10": {
+      "simple": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.712006726752524,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "medium": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.591326125876964,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "complex": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.34786057989821,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      }
+    },
+    "20": {
+      "simple": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.59862559949565,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "medium": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.411372521332606,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "complex": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.35333484554849,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      }
+    },
+    "50": {
+      "simple": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.463328645299555,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "medium": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.345548100389262,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      },
+      "complex": {
+        "percentage_improvement": 0.0,
+        "statistical_significance": false,
+        "quantum_mean": 0.0,
+        "classical_mean": 24.450930433902823,
+        "quantum_success_rate": 100.0,
+        "classical_success_rate": 100.0
+      }
+    }
+  },
+  "success_rates": {
+    "5": {
+      "simple": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "medium": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "complex": {
+        "quantum": 100.0,
+        "classical": 100.0
+      }
+    },
+    "10": {
+      "simple": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "medium": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "complex": {
+        "quantum": 100.0,
+        "classical": 100.0
+      }
+    },
+    "20": {
+      "simple": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "medium": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "complex": {
+        "quantum": 100.0,
+        "classical": 100.0
+      }
+    },
+    "50": {
+      "simple": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "medium": {
+        "quantum": 100.0,
+        "classical": 100.0
+      },
+      "complex": {
+        "quantum": 100.0,
+        "classical": 100.0
+      }
+    }
+  },
+  "metadata": {
+    "timestamp": "2025-08-23T15:33:43.128564",
+    "problem_sizes": [
+      5,
+      10,
+      20,
+      50
+    ],
+    "complexities": [
+      "simple",
+      "medium",
+      "complex"
+    ],
+    "iterations_per_config": 3
+  }
+}

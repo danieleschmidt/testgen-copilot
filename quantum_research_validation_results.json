@@ -1,0 +1,590 @@
+{
+  "benchmark_results": {
+    "10": {
+      "quantum": [
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 10,
+          "execution_time": 0.0008578300476074219,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 10,
+          "execution_time": 0.00037932395935058594,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 10,
+          "execution_time": 0.0003159046173095703,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 10,
+          "execution_time": 0.0002586841583251953,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 10,
+          "execution_time": 0.00026607513427734375,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        }
+      ],
+      "classical": [
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 10,
+          "execution_time": 3.7670135498046875e-05,
+          "solution_quality": 81.53951793674754,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 10,
+          "execution_time": 2.5033950805664062e-05,
+          "solution_quality": 95.71404079969444,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 10,
+          "execution_time": 2.193450927734375e-05,
+          "solution_quality": 74.82926155363015,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 10,
+          "execution_time": 2.4318695068359375e-05,
+          "solution_quality": 89.37924108080223,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 10,
+          "execution_time": 2.193450927734375e-05,
+          "solution_quality": 81.83098192052272,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        }
+      ]
+    },
+    "25": {
+      "quantum": [
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 25,
+          "execution_time": 0.046823740005493164,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 25,
+          "execution_time": 0.0007658004760742188,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 25,
+          "execution_time": 0.0006566047668457031,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 25,
+          "execution_time": 0.003183126449584961,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 25,
+          "execution_time": 0.0004909038543701172,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        }
+      ],
+      "classical": [
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 25,
+          "execution_time": 0.00012230873107910156,
+          "solution_quality": 76.16390743592333,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 25,
+          "execution_time": 0.00010347366333007812,
+          "solution_quality": 70.57080724413852,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 25,
+          "execution_time": 8.392333984375e-05,
+          "solution_quality": 77.2807954660068,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 25,
+          "execution_time": 0.00013899803161621094,
+          "solution_quality": 81.20864159689722,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 25,
+          "execution_time": 7.510185241699219e-05,
+          "solution_quality": 80.54799538081252,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        }
+      ]
+    },
+    "50": {
+      "quantum": [
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 50,
+          "execution_time": 0.0008864402770996094,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 50,
+          "execution_time": 0.0010890960693359375,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 50,
+          "execution_time": 0.0006303787231445312,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 50,
+          "execution_time": 0.0005929470062255859,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 50,
+          "execution_time": 0.0010027885437011719,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        }
+      ],
+      "classical": [
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 50,
+          "execution_time": 9.918212890625e-05,
+          "solution_quality": 68.27573228879282,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 50,
+          "execution_time": 0.0003790855407714844,
+          "solution_quality": 69.25968588190511,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 50,
+          "execution_time": 0.0001380443572998047,
+          "solution_quality": 66.86369787677083,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 50,
+          "execution_time": 0.00026297569274902344,
+          "solution_quality": 56.4735069694953,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 50,
+          "execution_time": 0.0003638267517089844,
+          "solution_quality": 70.2406316093479,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        }
+      ]
+    },
+    "100": {
+      "quantum": [
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 100,
+          "execution_time": 0.0007853507995605469,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 100,
+          "execution_time": 0.0010826587677001953,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 100,
+          "execution_time": 0.0006246566772460938,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 100,
+          "execution_time": 0.0006694793701171875,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 100,
+          "execution_time": 0.0008766651153564453,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        }
+      ],
+      "classical": [
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 100,
+          "execution_time": 0.00022363662719726562,
+          "solution_quality": 41.14594810281048,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 100,
+          "execution_time": 0.0003590583801269531,
+          "solution_quality": 42.52994591156265,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 100,
+          "execution_time": 0.0003407001495361328,
+          "solution_quality": 41.87052958349392,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 100,
+          "execution_time": 0.00046253204345703125,
+          "solution_quality": 44.42065091179045,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 100,
+          "execution_time": 0.0003902912139892578,
+          "solution_quality": 49.543326202644636,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        }
+      ]
+    },
+    "200": {
+      "quantum": [
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 200,
+          "execution_time": 0.0007152557373046875,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 200,
+          "execution_time": 0.0005309581756591797,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 200,
+          "execution_time": 0.0009675025939941406,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 200,
+          "execution_time": 0.000637054443359375,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        },
+        {
+          "algorithm": "quantum_annealing",
+          "problem_size": 200,
+          "execution_time": 0.0008530616760253906,
+          "solution_quality": -Infinity,
+          "convergence_iterations": 1000,
+          "quantum_advantage": 1.0
+        }
+      ],
+      "classical": [
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 200,
+          "execution_time": 0.0004181861877441406,
+          "solution_quality": -6.14640383902541,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 200,
+          "execution_time": 0.0009877681732177734,
+          "solution_quality": -5.820812594514734,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 200,
+          "execution_time": 0.0007741451263427734,
+          "solution_quality": -6.862766626068506,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 200,
+          "execution_time": 0.0008909702301025391,
+          "solution_quality": 0.7733584106121754,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        },
+        {
+          "algorithm": "classical_greedy",
+          "problem_size": 200,
+          "execution_time": 0.0007779598236083984,
+          "solution_quality": -1.2520905813639729,
+          "convergence_iterations": 1,
+          "quantum_advantage": 0.0
+        }
+      ]
+    }
+  },
+  "statistical_analysis": {
+    "10": {
+      "quantum": {
+        "mean": -Infinity,
+        "std_dev": NaN,
+        "confidence_interval_95": [
+          NaN,
+          NaN
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      },
+      "classical": {
+        "mean": 84.65860865827942,
+        "std_dev": 8.044364715484155,
+        "confidence_interval_95": [
+          77.60741209314708,
+          91.70980522341176
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      }
+    },
+    "25": {
+      "quantum": {
+        "mean": -Infinity,
+        "std_dev": NaN,
+        "confidence_interval_95": [
+          NaN,
+          NaN
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      },
+      "classical": {
+        "mean": 77.15442942475568,
+        "std_dev": 4.251297138483287,
+        "confidence_interval_95": [
+          73.42800318222969,
+          80.88085566728166
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      }
+    },
+    "50": {
+      "quantum": {
+        "mean": -Infinity,
+        "std_dev": NaN,
+        "confidence_interval_95": [
+          NaN,
+          NaN
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      },
+      "classical": {
+        "mean": 66.2226509252624,
+        "std_dev": 5.591056301253333,
+        "confidence_interval_95": [
+          61.32187399865505,
+          71.12342785186975
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      }
+    },
+    "100": {
+      "quantum": {
+        "mean": -Infinity,
+        "std_dev": NaN,
+        "confidence_interval_95": [
+          NaN,
+          NaN
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      },
+      "classical": {
+        "mean": 43.90208014246043,
+        "std_dev": 3.3800438826874326,
+        "confidence_interval_95": [
+          40.93934105012083,
+          46.864819234800024
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      }
+    },
+    "200": {
+      "quantum": {
+        "mean": -Infinity,
+        "std_dev": NaN,
+        "confidence_interval_95": [
+          NaN,
+          NaN
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      },
+      "classical": {
+        "mean": -3.86174304607209,
+        "std_dev": 3.404343639473754,
+        "confidence_interval_95": [
+          -6.845781814351971,
+          -0.8777042777922088
+        ],
+        "p_value": 0.0,
+        "effect_size": 0.0
+      }
+    }
+  },
+  "quantum_advantage": {
+    "10": {
+      "percentage_improvement": -Infinity,
+      "statistical_significance": true,
+      "mean_quantum_quality": -Infinity,
+      "mean_classical_quality": 84.65860865827942
+    },
+    "25": {
+      "percentage_improvement": -Infinity,
+      "statistical_significance": true,
+      "mean_quantum_quality": -Infinity,
+      "mean_classical_quality": 77.15442942475568
+    },
+    "50": {
+      "percentage_improvement": -Infinity,
+      "statistical_significance": true,
+      "mean_quantum_quality": -Infinity,
+      "mean_classical_quality": 66.2226509252624
+    },
+    "100": {
+      "percentage_improvement": -Infinity,
+      "statistical_significance": true,
+      "mean_quantum_quality": -Infinity,
+      "mean_classical_quality": 43.90208014246043
+    },
+    "200": {
+      "percentage_improvement": 0.0,
+      "statistical_significance": false,
+      "mean_quantum_quality": -Infinity,
+      "mean_classical_quality": -3.86174304607209
+    }
+  },
+  "performance_scaling": {},
+  "metadata": {
+    "timestamp": 1755963112.227027,
+    "problem_sizes": [
+      10,
+      25,
+      50,
+      100,
+      200
+    ],
+    "iterations_per_size": 5
+  }
+}

@@ -1,0 +1,380 @@
+{
+  "deployment_id": "global-deploy-1755963826",
+  "timestamp": "2025-08-23T15:43:46.751040+00:00",
+  "regions": {
+    "us-east-1": {
+      "status": "deployed",
+      "localization": {
+        "locale": "en-US",
+        "currency": "USD",
+        "rtl_support": false
+      },
+      "compliance": [
+        "soc2"
+      ],
+      "infrastructure": {
+        "compute": {
+          "instance_type": "c6i.2xlarge",
+          "min_instances": 2,
+          "max_instances": 20,
+          "auto_scaling": true
+        },
+        "database": {
+          "engine": "postgresql",
+          "version": "15",
+          "instance_class": "db.r6g.xlarge",
+          "multi_az": true,
+          "backup_retention_days": 30,
+          "encryption_at_rest": true
+        },
+        "cache": {
+          "engine": "redis",
+          "node_type": "cache.r6g.large",
+          "num_cache_clusters": 2
+        },
+        "storage": {
+          "type": "s3",
+          "encryption": "AES-256",
+          "versioning": true,
+          "lifecycle_policies": true
+        },
+        "network": {
+          "vpc_cidr": "10.0.0.0/16",
+          "availability_zones": 3,
+          "nat_gateway": true,
+          "vpc_endpoints": true
+        }
+      },
+      "performance_targets": {
+        "response_time_p99_ms": 500,
+        "availability_percent": 99.99,
+        "throughput_rps": 1000,
+        "error_rate_percent": 0.01
+      }
+    },
+    "eu-west-1": {
+      "status": "deployed",
+      "localization": {
+        "locale": "en-GB",
+        "currency": "GBP",
+        "rtl_support": false
+      },
+      "compliance": [
+        "gdpr"
+      ],
+      "infrastructure": {
+        "compute": {
+          "instance_type": "c6i.2xlarge",
+          "min_instances": 2,
+          "max_instances": 20,
+          "auto_scaling": true
+        },
+        "database": {
+          "engine": "postgresql",
+          "version": "15",
+          "instance_class": "db.r6g.xlarge",
+          "multi_az": true,
+          "backup_retention_days": 30,
+          "encryption_at_rest": true
+        },
+        "cache": {
+          "engine": "redis",
+          "node_type": "cache.r6g.large",
+          "num_cache_clusters": 2
+        },
+        "storage": {
+          "type": "s3",
+          "encryption": "AES-256",
+          "versioning": true,
+          "lifecycle_policies": true
+        },
+        "network": {
+          "vpc_cidr": "10.0.0.0/16",
+          "availability_zones": 3,
+          "nat_gateway": true,
+          "vpc_endpoints": true
+        }
+      },
+      "performance_targets": {
+        "response_time_p99_ms": 500,
+        "availability_percent": 99.99,
+        "throughput_rps": 1000,
+        "error_rate_percent": 0.01
+      }
+    },
+    "ap-southeast-1": {
+      "status": "deployed",
+      "localization": {
+        "locale": "en-US",
+        "currency": "USD",
+        "rtl_support": false
+      },
+      "compliance": [
+        "pdpa"
+      ],
+      "infrastructure": {
+        "compute": {
+          "instance_type": "c6i.2xlarge",
+          "min_instances": 2,
+          "max_instances": 20,
+          "auto_scaling": true
+        },
+        "database": {
+          "engine": "postgresql",
+          "version": "15",
+          "instance_class": "db.r6g.xlarge",
+          "multi_az": true,
+          "backup_retention_days": 30,
+          "encryption_at_rest": true
+        },
+        "cache": {
+          "engine": "redis",
+          "node_type": "cache.r6g.large",
+          "num_cache_clusters": 2
+        },
+        "storage": {
+          "type": "s3",
+          "encryption": "AES-256",
+          "versioning": true,
+          "lifecycle_policies": true
+        },
+        "network": {
+          "vpc_cidr": "10.0.0.0/16",
+          "availability_zones": 3,
+          "nat_gateway": true,
+          "vpc_endpoints": true
+        }
+      },
+      "performance_targets": {
+        "response_time_p99_ms": 500,
+        "availability_percent": 99.99,
+        "throughput_rps": 1000,
+        "error_rate_percent": 0.01
+      }
+    },
+    "ap-northeast-1": {
+      "status": "deployed",
+      "localization": {
+        "locale": "ja-JP",
+        "currency": "JPY",
+        "rtl_support": false
+      },
+      "compliance": [
+        "pdpa"
+      ],
+      "infrastructure": {
+        "compute": {
+          "instance_type": "c6i.2xlarge",
+          "min_instances": 2,
+          "max_instances": 20,
+          "auto_scaling": true
+        },
+        "database": {
+          "engine": "postgresql",
+          "version": "15",
+          "instance_class": "db.r6g.xlarge",
+          "multi_az": true,
+          "backup_retention_days": 30,
+          "encryption_at_rest": true
+        },
+        "cache": {
+          "engine": "redis",
+          "node_type": "cache.r6g.large",
+          "num_cache_clusters": 2
+        },
+        "storage": {
+          "type": "s3",
+          "encryption": "AES-256",
+          "versioning": true,
+          "lifecycle_policies": true
+        },
+        "network": {
+          "vpc_cidr": "10.0.0.0/16",
+          "availability_zones": 3,
+          "nat_gateway": true,
+          "vpc_endpoints": true
+        }
+      },
+      "performance_targets": {
+        "response_time_p99_ms": 500,
+        "availability_percent": 99.99,
+        "throughput_rps": 1000,
+        "error_rate_percent": 0.01
+      }
+    },
+    "ca-central-1": {
+      "status": "deployed",
+      "localization": {
+        "locale": "en-US",
+        "currency": "USD",
+        "rtl_support": false
+      },
+      "compliance": [
+        "ccpa",
+        "pipeda"
+      ],
+      "infrastructure": {
+        "compute": {
+          "instance_type": "c6i.2xlarge",
+          "min_instances": 2,
+          "max_instances": 20,
+          "auto_scaling": true
+        },
+        "database": {
+          "engine": "postgresql",
+          "version": "15",
+          "instance_class": "db.r6g.xlarge",
+          "multi_az": true,
+          "backup_retention_days": 30,
+          "encryption_at_rest": true
+        },
+        "cache": {
+          "engine": "redis",
+          "node_type": "cache.r6g.large",
+          "num_cache_clusters": 2
+        },
+        "storage": {
+          "type": "s3",
+          "encryption": "AES-256",
+          "versioning": true,
+          "lifecycle_policies": true
+        },
+        "network": {
+          "vpc_cidr": "10.0.0.0/16",
+          "availability_zones": 3,
+          "nat_gateway": true,
+          "vpc_endpoints": true
+        }
+      },
+      "performance_targets": {
+        "response_time_p99_ms": 500,
+        "availability_percent": 99.99,
+        "throughput_rps": 1000,
+        "error_rate_percent": 0.01
+      }
+    }
+  },
+  "global_config": {
+    "global_load_balancer": {
+      "type": "anycast",
+      "health_checks": true,
+      "failover_enabled": true,
+      "latency_routing": true
+    },
+    "cdn": {
+      "provider": "cloudflare",
+      "edge_locations": 200,
+      "cache_everything": false,
+      "smart_routing": true
+    },
+    "dns": {
+      "provider": "route53",
+      "health_checks": true,
+      "geolocation_routing": true,
+      "latency_routing": true
+    },
+    "monitoring": {
+      "global_dashboards": true,
+      "cross_region_alerts": true,
+      "performance_monitoring": true,
+      "security_monitoring": true
+    },
+    "backup": {
+      "cross_region_replication": true,
+      "automated_failover": true,
+      "disaster_recovery": true
+    }
+  },
+  "compliance_status": {
+    "overall_compliant": true,
+    "frameworks_covered": [
+      "pdpa",
+      "gdpr",
+      "pipeda",
+      "soc2",
+      "ccpa"
+    ],
+    "data_residency_compliant": true,
+    "encryption_enabled": true,
+    "audit_logging_enabled": true,
+    "user_rights_supported": true,
+    "regions_status": {
+      "us-east-1": {
+        "compliant": true,
+        "requirements_met": [
+          "encryption",
+          "audit_logging"
+        ],
+        "frameworks": [
+          "soc2"
+        ]
+      },
+      "eu-west-1": {
+        "compliant": true,
+        "requirements_met": [
+          "data_residency",
+          "encryption",
+          "audit_logging",
+          "user_consent",
+          "right_to_deletion"
+        ],
+        "frameworks": [
+          "gdpr"
+        ]
+      },
+      "ap-southeast-1": {
+        "compliant": true,
+        "requirements_met": [
+          "data_residency",
+          "encryption",
+          "audit_logging",
+          "user_consent",
+          "right_to_deletion"
+        ],
+        "frameworks": [
+          "pdpa"
+        ]
+      },
+      "ap-northeast-1": {
+        "compliant": true,
+        "requirements_met": [
+          "data_residency",
+          "encryption",
+          "audit_logging",
+          "user_consent",
+          "right_to_deletion"
+        ],
+        "frameworks": [
+          "pdpa"
+        ]
+      },
+      "ca-central-1": {
+        "compliant": true,
+        "requirements_met": [
+          "encryption",
+          "audit_logging",
+          "user_consent",
+          "right_to_deletion",
+          "data_residency",
+          "encryption",
+          "audit_logging",
+          "user_consent",
+          "right_to_deletion"
+        ],
+        "frameworks": [
+          "ccpa",
+          "pipeda"
+        ]
+      }
+    }
+  },
+  "performance_metrics": {},
+  "deployment_summary": {
+    "successful_deployments": 5,
+    "total_deployments": 5,
+    "success_rate_percent": 100.0,
+    "global_availability": true,
+    "multi_continent_coverage": true,
+    "compliance_coverage": 5
+  }
+}

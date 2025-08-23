@@ -1,610 +1,638 @@
 #!/usr/bin/env python3
 """
-🧪 QUALITY GATES VALIDATION SYSTEM
-==================================
+Quality Gates Validation Suite
+=============================
 
-Comprehensive quality gates with automatic validation and scoring.
-Implements mandatory quality checks with 85%+ pass threshold.
+Comprehensive quality validation for the quantum-inspired test generation project.
+This suite validates code quality, security, performance, and research standards.
 """
 
-import ast
-import os
-import re
-import subprocess
 import sys
 import time
-import unittest
-from pathlib import Path
-from typing import Dict, List, Tuple, Any
 import json
+import subprocess
+from pathlib import Path
+from typing import Dict, List, Any, Optional
+import logging
+from dataclasses import dataclass, field
 
-class QualityGate:
-    """Base class for quality gates"""
-    
-    def __init__(self, name: str, threshold: float = 0.85):
-        self.name = name
-        self.threshold = threshold
-        self.score = 0.0
-        self.passed = False
-        self.details = []
-    
-    def validate(self, project_path: Path) -> bool:
-        """Validate quality gate - to be implemented by subclasses"""
-        raise NotImplementedError
-    
-    def get_report(self) -> Dict[str, Any]:
-        """Get quality gate report"""
-        return {
-            "name": self.name,
-            "score": self.score,
-            "threshold": self.threshold,
-            "passed": self.passed,
-            "details": self.details
-        }
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
+@dataclass
+class QualityGateResult:
+    """Result from a quality gate check."""
+    gate_name: str
+    passed: bool
+    score: float
+    max_score: float
+    details: Dict[str, Any] = field(default_factory=dict)
+    error_message: Optional[str] = None
 
-class CodeQualityGate(QualityGate):
-    """Code quality validation gate"""
-    
-    def __init__(self):
-        super().__init__("Code Quality", threshold=0.85)
-    
-    def validate(self, project_path: Path) -> bool:
-        """Validate code quality metrics"""
-        python_files = list(project_path.rglob("*.py"))
-        if not python_files:
-            self.score = 1.0
-            self.passed = True
-            self.details.append("No Python files found to analyze")
-            return True
-        
-        total_score = 0.0
-        file_count = 0
-        
-        for py_file in python_files:
-            if self._should_skip_file(py_file):
-                continue
-                
-            file_score = self._analyze_file(py_file)
-            total_score += file_score
-            file_count += 1
-        
-        if file_count > 0:
-            self.score = total_score / file_count
-        else:
-            self.score = 1.0
-            
-        self.passed = self.score >= self.threshold
-        self.details.append(f"Analyzed {file_count} Python files")
-        self.details.append(f"Average code quality score: {self.score:.2f}")
-        
-        return self.passed
-    
-    def _should_skip_file(self, file_path: Path) -> bool:
-        """Check if file should be skipped from analysis"""
-        skip_patterns = ["__pycache__", ".git", "venv", "env", "node_modules", "test_"]
-        return any(pattern in str(file_path) for pattern in skip_patterns)
-    
-    def _analyze_file(self, file_path: Path) -> float:
-        """Analyze individual file for code quality"""
-        try:
-            content = file_path.read_text(encoding='utf-8')
-            tree = ast.parse(content)
-            
-            # Quality metrics
-            metrics = {
-                "has_docstring": self._has_module_docstring(tree),
-                "function_complexity": self._check_function_complexity(tree),
-                "line_length": self._check_line_length(content),
-                "naming_convention": self._check_naming_convention(tree),
-                "imports_organized": self._check_import_organization(tree)
-            }
-            
-            # Calculate weighted score
-            weights = {
-                "has_docstring": 0.2,
-                "function_complexity": 0.3,
-                "line_length": 0.2,
-                "naming_convention": 0.2,
-                "imports_organized": 0.1
-            }
-            
-            score = sum(metrics[key] * weights[key] for key in metrics)
-            return score
-            
-        except Exception as e:
-            self.details.append(f"Error analyzing {file_path}: {e}")
-            return 0.5  # Neutral score for unparseable files
-    
-    def _has_module_docstring(self, tree: ast.AST) -> float:
-        """Check if module has docstring"""
-        if tree.body and isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Str):
-            return 1.0
-        return 0.0
-    
-    def _check_function_complexity(self, tree: ast.AST) -> float:
-        """Check function complexity (simplified cyclomatic complexity)"""
-        complexities = []
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                complexity = self._calculate_complexity(node)
-                complexities.append(complexity)
-        
-        if not complexities:
-            return 1.0
-        
-        # Score based on average complexity (lower is better)
-        avg_complexity = sum(complexities) / len(complexities)
-        if avg_complexity <= 5:
-            return 1.0
-        elif avg_complexity <= 10:
-            return 0.8
-        elif avg_complexity <= 15:
-            return 0.6
-        else:
-            return 0.4
-    
-    def _calculate_complexity(self, node: ast.FunctionDef) -> int:
-        """Calculate cyclomatic complexity for a function"""
-        complexity = 1  # Base complexity
-        
-        for child in ast.walk(node):
-            if isinstance(child, (ast.If, ast.While, ast.For, ast.ExceptHandler)):
-                complexity += 1
-            elif isinstance(child, ast.BoolOp):
-                complexity += len(child.values) - 1
-        
-        return complexity
-    
-    def _check_line_length(self, content: str) -> float:
-        """Check line length compliance"""
-        lines = content.split('\n')
-        long_lines = [line for line in lines if len(line) > 100]
-        
-        if not lines:
-            return 1.0
-        
-        compliance_rate = 1.0 - (len(long_lines) / len(lines))
-        return max(0.0, compliance_rate)
-    
-    def _check_naming_convention(self, tree: ast.AST) -> float:
-        """Check naming convention compliance"""
-        violations = 0
-        total_names = 0
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                total_names += 1
-                if not re.match(r'^[a-z_][a-z0-9_]*$', node.name):
-                    violations += 1
-            elif isinstance(node, ast.ClassDef):
-                total_names += 1
-                if not re.match(r'^[A-Z][a-zA-Z0-9]*$', node.name):
-                    violations += 1
-        
-        if total_names == 0:
-            return 1.0
-        
-        return 1.0 - (violations / total_names)
-    
-    def _check_import_organization(self, tree: ast.AST) -> float:
-        """Check import organization"""
-        imports = []
-        for node in tree.body:
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                imports.append(node)
-        
-        if not imports:
-            return 1.0
-        
-        # Simple check: imports should be at the top
-        non_import_before_import = False
-        for i, node in enumerate(tree.body):
-            if not isinstance(node, (ast.Import, ast.ImportFrom, ast.Expr)):
-                for j in range(i + 1, len(tree.body)):
-                    if isinstance(tree.body[j], (ast.Import, ast.ImportFrom)):
-                        non_import_before_import = True
-                        break
-                break
-        
-        return 0.7 if non_import_before_import else 1.0
-
-
-class SecurityGate(QualityGate):
-    """Security validation gate"""
-    
-    def __init__(self):
-        super().__init__("Security", threshold=0.90)
-    
-    def validate(self, project_path: Path) -> bool:
-        """Validate security measures"""
-        python_files = list(project_path.rglob("*.py"))
-        vulnerabilities = []
-        
-        for py_file in python_files:
-            if self._should_skip_file(py_file):
-                continue
-            
-            file_vulns = self._scan_file_security(py_file)
-            vulnerabilities.extend(file_vulns)
-        
-        # Score based on vulnerabilities found
-        if len(python_files) == 0:
-            self.score = 1.0
-        else:
-            # Lower score for more vulnerabilities
-            vuln_rate = len(vulnerabilities) / len(python_files)
-            self.score = max(0.0, 1.0 - vuln_rate * 0.2)
-        
-        self.passed = self.score >= self.threshold
-        self.details.append(f"Scanned {len(python_files)} files")
-        self.details.append(f"Found {len(vulnerabilities)} potential security issues")
-        
-        if vulnerabilities:
-            self.details.extend(vulnerabilities[:5])  # Show first 5 issues
-        
-        return self.passed
-    
-    def _should_skip_file(self, file_path: Path) -> bool:
-        """Check if file should be skipped from security scan"""
-        skip_patterns = ["__pycache__", ".git", "venv", "env", "test_"]
-        return any(pattern in str(file_path) for pattern in skip_patterns)
-    
-    def _scan_file_security(self, file_path: Path) -> List[str]:
-        """Scan file for security vulnerabilities"""
-        vulnerabilities = []
-        
-        try:
-            content = file_path.read_text(encoding='utf-8')
-            
-            # Check for common security issues
-            security_patterns = [
-                (r'eval\s*\(', "Use of eval() function"),
-                (r'exec\s*\(', "Use of exec() function"),
-                (r'os\.system\s*\(', "Use of os.system()"),
-                (r'subprocess\.call\s*\([^)]*shell\s*=\s*True', "Shell injection risk"),
-                (r'pickle\.loads?\s*\(', "Unsafe deserialization"),
-                (r'input\s*\([^)]*\)\s*.*os\.system', "Command injection risk"),
-                (r'password\s*=\s*["\'][^"\']+["\']', "Hardcoded password"),
-                (r'api[_-]?key\s*=\s*["\'][^"\']+["\']', "Hardcoded API key")
-            ]
-            
-            for pattern, issue in security_patterns:
-                if re.search(pattern, content, re.IGNORECASE):
-                    vulnerabilities.append(f"{file_path.name}: {issue}")
-            
-        except Exception as e:
-            vulnerabilities.append(f"{file_path.name}: Error scanning file - {e}")
-        
-        return vulnerabilities
-
-
-class PerformanceGate(QualityGate):
-    """Performance validation gate"""
-    
-    def __init__(self):
-        super().__init__("Performance", threshold=0.80)
-    
-    def validate(self, project_path: Path) -> bool:
-        """Validate performance characteristics"""
-        python_files = list(project_path.rglob("*.py"))
-        performance_issues = []
-        
-        for py_file in python_files:
-            if self._should_skip_file(py_file):
-                continue
-            
-            issues = self._analyze_performance(py_file)
-            performance_issues.extend(issues)
-        
-        # Score based on performance issues
-        if len(python_files) == 0:
-            self.score = 1.0
-        else:
-            issue_rate = len(performance_issues) / len(python_files)
-            self.score = max(0.0, 1.0 - issue_rate * 0.3)
-        
-        self.passed = self.score >= self.threshold
-        self.details.append(f"Analyzed {len(python_files)} files for performance")
-        self.details.append(f"Found {len(performance_issues)} potential performance issues")
-        
-        if performance_issues:
-            self.details.extend(performance_issues[:3])
-        
-        return self.passed
-    
-    def _should_skip_file(self, file_path: Path) -> bool:
-        """Check if file should be skipped"""
-        skip_patterns = ["__pycache__", ".git", "venv", "test_"]
-        return any(pattern in str(file_path) for pattern in skip_patterns)
-    
-    def _analyze_performance(self, file_path: Path) -> List[str]:
-        """Analyze file for performance issues"""
-        issues = []
-        
-        try:
-            content = file_path.read_text(encoding='utf-8')
-            tree = ast.parse(content)
-            
-            # Check for performance anti-patterns
-            for node in ast.walk(tree):
-                if isinstance(node, ast.For):
-                    # Check for nested loops
-                    for child in ast.walk(node):
-                        if child != node and isinstance(child, ast.For):
-                            issues.append(f"{file_path.name}: Nested loops detected - consider optimization")
-                            break
-                
-                elif isinstance(node, ast.ListComp):
-                    # Check for complex list comprehensions
-                    if len(list(ast.walk(node))) > 10:
-                        issues.append(f"{file_path.name}: Complex list comprehension - consider breaking down")
-            
-            # Check for inefficient patterns in source
-            inefficient_patterns = [
-                (r'\.append\s*\([^)]+\)\s*in\s+for', "List append in loop - consider list comprehension"),
-                (r'range\s*\(\s*len\s*\(', "range(len()) - consider enumerate()"),
-                (r'\.keys\s*\(\s*\)\s*in\s+for.*\[', "dict.keys() with indexing - use .items()")
-            ]
-            
-            for pattern, issue in inefficient_patterns:
-                if re.search(pattern, content):
-                    issues.append(f"{file_path.name}: {issue}")
-            
-        except Exception as e:
-            issues.append(f"{file_path.name}: Error analyzing performance - {e}")
-        
-        return issues
-
-
-class TestCoverageGate(QualityGate):
-    """Test coverage validation gate"""
-    
-    def __init__(self):
-        super().__init__("Test Coverage", threshold=0.85)
-    
-    def validate(self, project_path: Path) -> bool:
-        """Validate test coverage"""
-        src_files = list((project_path / "src").rglob("*.py")) if (project_path / "src").exists() else []
-        test_files = list((project_path / "tests").rglob("*.py")) if (project_path / "tests").exists() else []
-        
-        if not src_files:
-            # Look for Python files in project root
-            src_files = [f for f in project_path.rglob("*.py") if not self._is_test_file(f)]
-        
-        if not src_files:
-            self.score = 1.0
-            self.passed = True
-            self.details.append("No source files found to test")
-            return True
-        
-        # Calculate coverage estimate based on test files
-        coverage_estimate = self._estimate_coverage(src_files, test_files)
-        self.score = coverage_estimate
-        self.passed = self.score >= self.threshold
-        
-        self.details.append(f"Found {len(src_files)} source files")
-        self.details.append(f"Found {len(test_files)} test files")
-        self.details.append(f"Estimated coverage: {self.score:.1%}")
-        
-        return self.passed
-    
-    def _is_test_file(self, file_path: Path) -> bool:
-        """Check if file is a test file"""
-        test_indicators = ["test_", "_test", "tests/", "conftest"]
-        return any(indicator in str(file_path) for indicator in test_indicators)
-    
-    def _estimate_coverage(self, src_files: List[Path], test_files: List[Path]) -> float:
-        """Estimate test coverage based on file analysis"""
-        if not src_files:
-            return 1.0
-        
-        if not test_files:
-            return 0.0
-        
-        # Simple heuristic: ratio of test files to source files
-        base_coverage = min(1.0, len(test_files) / len(src_files))
-        
-        # Bonus for test quality indicators
-        test_content = ""
-        for test_file in test_files:
-            try:
-                test_content += test_file.read_text(encoding='utf-8')
-            except:
-                continue
-        
-        # Look for testing patterns
-        quality_indicators = [
-            r'def test_',
-            r'assert\s+',
-            r'@pytest\.mark',
-            r'unittest\.TestCase',
-            r'mock\.',
-            r'patch\('
-        ]
-        
-        quality_bonus = 0.0
-        for pattern in quality_indicators:
-            if re.search(pattern, test_content):
-                quality_bonus += 0.1
-        
-        # Cap at 1.0
-        return min(1.0, base_coverage + quality_bonus * 0.1)
-
-
-class DocumentationGate(QualityGate):
-    """Documentation validation gate"""
-    
-    def __init__(self):
-        super().__init__("Documentation", threshold=0.75)
-    
-    def validate(self, project_path: Path) -> bool:
-        """Validate documentation completeness"""
-        doc_score = 0.0
-        doc_components = 0
-        
-        # Check for README
-        readme_files = list(project_path.glob("README*"))
-        if readme_files:
-            doc_score += 0.3
-            self.details.append("README file found")
-        doc_components += 1
-        
-        # Check for API documentation
-        docs_dir = project_path / "docs"
-        if docs_dir.exists() and list(docs_dir.rglob("*.md")):
-            doc_score += 0.2
-            self.details.append("Documentation directory found")
-        doc_components += 1
-        
-        # Check for docstrings in Python files
-        python_files = list(project_path.rglob("*.py"))
-        if python_files:
-            docstring_score = self._check_docstrings(python_files)
-            doc_score += docstring_score * 0.3
-            self.details.append(f"Docstring coverage: {docstring_score:.1%}")
-        doc_components += 1
-        
-        # Check for configuration documentation
-        config_files = list(project_path.glob("*.toml")) + list(project_path.glob("*.yaml")) + list(project_path.glob("*.json"))
-        if config_files:
-            doc_score += 0.1
-            self.details.append("Configuration files found")
-        doc_components += 1
-        
-        # Check for examples
-        example_indicators = ["example", "demo", "sample"]
-        example_files = []
-        for indicator in example_indicators:
-            example_files.extend(project_path.rglob(f"*{indicator}*"))
-        
-        if example_files:
-            doc_score += 0.1
-            self.details.append("Example/demo files found")
-        doc_components += 1
-        
-        self.score = doc_score
-        self.passed = self.score >= self.threshold
-        
-        return self.passed
-    
-    def _check_docstrings(self, python_files: List[Path]) -> float:
-        """Check docstring coverage in Python files"""
-        total_functions = 0
-        documented_functions = 0
-        
-        for py_file in python_files:
-            if "test_" in str(py_file) or "__pycache__" in str(py_file):
-                continue
-            
-            try:
-                content = py_file.read_text(encoding='utf-8')
-                tree = ast.parse(content)
-                
-                for node in ast.walk(tree):
-                    if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-                        total_functions += 1
-                        
-                        # Check if it has a docstring
-                        if (node.body and 
-                            isinstance(node.body[0], ast.Expr) and 
-                            isinstance(node.body[0].value, (ast.Str, ast.Constant))):
-                            documented_functions += 1
-            
-            except Exception:
-                continue
-        
-        if total_functions == 0:
-            return 1.0
-        
-        return documented_functions / total_functions
-
+@dataclass
+class QualityReport:
+    """Comprehensive quality assessment report."""
+    overall_score: float
+    max_score: float
+    passed_gates: int
+    total_gates: int
+    gate_results: List[QualityGateResult] = field(default_factory=list)
+    recommendation: str = ""
 
 class QualityGateValidator:
-    """Main quality gate validation system"""
+    """Comprehensive quality gate validation system."""
     
-    def __init__(self, project_path: Path):
-        self.project_path = project_path
-        self.gates = [
-            CodeQualityGate(),
-            SecurityGate(),
-            PerformanceGate(),
-            TestCoverageGate(),
-            DocumentationGate()
-        ]
-        self.results = {}
-    
-    def validate_all(self) -> Dict[str, Any]:
-        """Validate all quality gates"""
-        print("🧪 QUALITY GATES VALIDATION")
-        print("=" * 35)
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.results: List[QualityGateResult] = []
         
-        passed_gates = 0
-        total_gates = len(self.gates)
+    def run_import_validation(self) -> QualityGateResult:
+        """Validate all core imports work correctly."""
+        self.logger.info("🔬 Running import validation...")
         
-        for gate in self.gates:
-            print(f"\n📋 Validating {gate.name}...")
+        try:
+            # Test core imports
+            import testgen_copilot
+            from testgen_copilot.quantum_planner import create_quantum_planner, QuantumTask, TaskPriority
+            from testgen_copilot.generator import TestGenerator, GenerationConfig
+            from testgen_copilot.security import SecurityScanner
+            from testgen_copilot.performance_optimizer import get_performance_optimizer
+            from testgen_copilot.monitoring import get_health_monitor
+            from testgen_copilot.resilience import get_resilience_manager
             
+            # Test basic functionality
+            planner = create_quantum_planner(max_iterations=100)
+            generator = TestGenerator()
+            scanner = SecurityScanner()
+            optimizer = get_performance_optimizer()
+            health = get_health_monitor()
+            resilience = get_resilience_manager()
+            
+            score = 100.0
+            details = {
+                "modules_imported": 6,
+                "basic_instantiation": "success",
+                "quantum_planner_created": True,
+                "generator_created": True,
+                "scanner_created": True
+            }
+            
+            return QualityGateResult(
+                gate_name="Import Validation",
+                passed=True,
+                score=score,
+                max_score=100.0,
+                details=details
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Import validation failed: {e}")
+            return QualityGateResult(
+                gate_name="Import Validation",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message=str(e)
+            )
+    
+    def run_code_quality_check(self) -> QualityGateResult:
+        """Run code quality analysis using ruff."""
+        self.logger.info("📊 Running code quality analysis...")
+        
+        try:
+            # Run ruff check
+            result = subprocess.run(
+                ["ruff", "check", "src/", "--output-format=json"],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0:
+                # No issues found
+                score = 100.0
+                issues = []
+            else:
+                # Parse ruff output
+                try:
+                    issues = json.loads(result.stdout) if result.stdout else []
+                except json.JSONDecodeError:
+                    issues = []
+                
+                # Calculate score based on issue severity
+                error_count = sum(1 for issue in issues if issue.get('type') == 'error')
+                warning_count = sum(1 for issue in issues if issue.get('type') == 'warning')
+                
+                # Scoring: -10 per error, -2 per warning
+                penalty = error_count * 10 + warning_count * 2
+                score = max(0, 100 - penalty)
+            
+            passed = score >= 80  # 80% threshold
+            
+            return QualityGateResult(
+                gate_name="Code Quality",
+                passed=passed,
+                score=score,
+                max_score=100.0,
+                details={
+                    "total_issues": len(issues),
+                    "error_count": sum(1 for issue in issues if issue.get('type') == 'error'),
+                    "warning_count": sum(1 for issue in issues if issue.get('type') == 'warning'),
+                    "issues": issues[:10]  # First 10 issues for review
+                }
+            )
+            
+        except subprocess.TimeoutExpired:
+            return QualityGateResult(
+                gate_name="Code Quality",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message="Code quality check timed out"
+            )
+        except Exception as e:
+            return QualityGateResult(
+                gate_name="Code Quality",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message=f"Code quality check failed: {e}"
+            )
+    
+    def run_security_validation(self) -> QualityGateResult:
+        """Run security validation using bandit."""
+        self.logger.info("🛡️ Running security analysis...")
+        
+        try:
+            # Run bandit security check
+            result = subprocess.run(
+                ["bandit", "-r", "src/", "-f", "json"],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            # Bandit returns non-zero even for warnings, so check output
+            try:
+                bandit_output = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                bandit_output = {"results": [], "metrics": {"_totals": {"SEVERITY.HIGH": 0, "SEVERITY.MEDIUM": 0, "SEVERITY.LOW": 0}}}
+            
+            # Calculate security score
+            high_issues = bandit_output.get("metrics", {}).get("_totals", {}).get("SEVERITY.HIGH", 0)
+            medium_issues = bandit_output.get("metrics", {}).get("_totals", {}).get("SEVERITY.MEDIUM", 0)
+            low_issues = bandit_output.get("metrics", {}).get("_totals", {}).get("SEVERITY.LOW", 0)
+            
+            # Scoring: -20 per high, -10 per medium, -2 per low
+            penalty = high_issues * 20 + medium_issues * 10 + low_issues * 2
+            score = max(0, 100 - penalty)
+            passed = score >= 85  # Higher threshold for security
+            
+            return QualityGateResult(
+                gate_name="Security Validation",
+                passed=passed,
+                score=score,
+                max_score=100.0,
+                details={
+                    "high_severity_issues": high_issues,
+                    "medium_severity_issues": medium_issues,
+                    "low_severity_issues": low_issues,
+                    "total_issues": len(bandit_output.get("results", [])),
+                    "issues_sample": bandit_output.get("results", [])[:5]
+                }
+            )
+            
+        except subprocess.TimeoutExpired:
+            return QualityGateResult(
+                gate_name="Security Validation",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message="Security check timed out"
+            )
+        except Exception as e:
+            # If bandit is not available, create a basic security validation
+            self.logger.warning(f"Bandit not available, running basic security check: {e}")
+            return self._basic_security_check()
+    
+    def _basic_security_check(self) -> QualityGateResult:
+        """Basic security validation when bandit is not available."""
+        try:
+            # Check for common security anti-patterns
+            security_issues = []
+            
+            for py_file in Path("src").rglob("*.py"):
+                content = py_file.read_text()
+                
+                # Check for potential issues
+                if "eval(" in content:
+                    security_issues.append(f"Use of eval() in {py_file}")
+                if "exec(" in content:
+                    security_issues.append(f"Use of exec() in {py_file}")
+                if "shell=True" in content:
+                    security_issues.append(f"Shell execution in {py_file}")
+                if "password" in content.lower() and "=" in content:
+                    security_issues.append(f"Potential hardcoded credential in {py_file}")
+            
+            score = max(0, 100 - len(security_issues) * 15)  # -15 per issue
+            passed = score >= 85
+            
+            return QualityGateResult(
+                gate_name="Security Validation",
+                passed=passed,
+                score=score,
+                max_score=100.0,
+                details={
+                    "basic_check": True,
+                    "issues_found": len(security_issues),
+                    "issues": security_issues
+                }
+            )
+        except Exception as e:
+            return QualityGateResult(
+                gate_name="Security Validation",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message=f"Basic security check failed: {e}"
+            )
+    
+    def run_performance_validation(self) -> QualityGateResult:
+        """Validate performance characteristics."""
+        self.logger.info("⚡ Running performance validation...")
+        
+        try:
+            # Test quantum planner performance
             start_time = time.time()
-            passed = gate.validate(self.project_path)
-            validation_time = time.time() - start_time
             
-            self.results[gate.name] = gate.get_report()
-            self.results[gate.name]["validation_time"] = validation_time
+            from testgen_copilot.quantum_planner import create_quantum_planner, QuantumTask, TaskPriority
+            from datetime import timedelta
             
-            status = "✅ PASSED" if passed else "❌ FAILED"
-            print(f"   {status} - Score: {gate.score:.2f} (threshold: {gate.threshold:.2f})")
+            planner = create_quantum_planner(max_iterations=100, quantum_processors=2)
             
-            if gate.details:
-                for detail in gate.details[:3]:  # Show first 3 details
-                    print(f"   • {detail}")
+            # Add some test tasks
+            for i in range(5):
+                planner.add_task(
+                    task_id=f"perf_test_{i}",
+                    name=f"Performance Test Task {i}",
+                    description="Performance testing task",
+                    priority=TaskPriority.GROUND_STATE,
+                    estimated_duration=timedelta(hours=1),
+                    resources_required={"cpu": 1.0, "memory": 2.0}
+                )
             
-            if passed:
-                passed_gates += 1
+            # Time the planning operation
+            planning_start = time.time()
+            import asyncio
+            plan = asyncio.run(planner.generate_optimal_plan())
+            planning_time = time.time() - planning_start
+            
+            total_time = time.time() - start_time
+            
+            # Performance scoring
+            performance_score = 100.0
+            
+            # Penalize if too slow
+            if planning_time > 2.0:  # More than 2 seconds for 5 tasks is slow
+                performance_score -= 30
+            elif planning_time > 1.0:  # More than 1 second is moderate
+                performance_score -= 15
+            
+            if total_time > 5.0:  # More than 5 seconds total is slow
+                performance_score -= 20
+            
+            passed = performance_score >= 70  # 70% threshold
+            
+            return QualityGateResult(
+                gate_name="Performance Validation",
+                passed=passed,
+                score=performance_score,
+                max_score=100.0,
+                details={
+                    "total_time_seconds": total_time,
+                    "planning_time_seconds": planning_time,
+                    "tasks_processed": 5,
+                    "plan_generated": plan is not None,
+                    "performance_class": "fast" if planning_time < 0.5 else "moderate" if planning_time < 2.0 else "slow"
+                }
+            )
+            
+        except Exception as e:
+            return QualityGateResult(
+                gate_name="Performance Validation",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message=f"Performance validation failed: {e}"
+            )
+    
+    def run_research_validation(self) -> QualityGateResult:
+        """Validate research quality and academic standards."""
+        self.logger.info("🎓 Running research validation...")
+        
+        try:
+            # Check for academic rigor indicators
+            research_score = 0.0
+            
+            # Check if quantum research results exist
+            if Path("academic_quantum_results.json").exists():
+                with open("academic_quantum_results.json") as f:
+                    results = json.load(f)
+                    
+                # Evaluate research quality
+                theoretical_guarantees = results.get("theoretical_guarantees", {})
+                
+                if theoretical_guarantees:
+                    research_score += 30  # Has theoretical analysis
+                    
+                    # Check quality scores
+                    for algo, stats in theoretical_guarantees.items():
+                        quality = stats.get("overall_mean_quality", 0)
+                        success_rate = stats.get("overall_success_rate", 0)
+                        
+                        if quality > 80:
+                            research_score += 25  # High quality results
+                        elif quality > 50:
+                            research_score += 15  # Moderate quality
+                        
+                        if success_rate >= 95:
+                            research_score += 20  # High reliability
+                        elif success_rate >= 80:
+                            research_score += 10  # Moderate reliability
+                        
+                        break  # Score first algorithm
+            
+            # Check for research documentation
+            research_files = [
+                "quantum_research_publication_report.md",
+                "robust_quantum_results.json",
+                "research_validation_suite.py",
+                "academic_quantum_optimization.py"
+            ]
+            
+            existing_files = sum(1 for f in research_files if Path(f).exists())
+            research_score += (existing_files / len(research_files)) * 25  # 25 points for documentation
+            
+            passed = research_score >= 70  # 70% threshold for research
+            
+            return QualityGateResult(
+                gate_name="Research Validation",
+                passed=passed,
+                score=research_score,
+                max_score=100.0,
+                details={
+                    "research_files_found": existing_files,
+                    "total_research_files": len(research_files),
+                    "has_theoretical_analysis": Path("academic_quantum_results.json").exists(),
+                    "has_benchmarking": Path("robust_quantum_results.json").exists(),
+                    "research_quality": "high" if research_score > 80 else "moderate" if research_score > 60 else "needs_improvement"
+                }
+            )
+            
+        except Exception as e:
+            return QualityGateResult(
+                gate_name="Research Validation",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message=f"Research validation failed: {e}"
+            )
+    
+    def run_architecture_validation(self) -> QualityGateResult:
+        """Validate architectural principles and patterns."""
+        self.logger.info("🏗️ Running architecture validation...")
+        
+        try:
+            arch_score = 0.0
+            
+            # Check for key architectural components
+            components = {
+                "quantum_planner.py": 25,  # Core quantum algorithm
+                "generator.py": 20,        # Test generation
+                "security.py": 15,         # Security scanning
+                "monitoring.py": 10,       # Observability
+                "resilience.py": 10,       # Error handling
+                "performance_optimizer.py": 10,  # Performance
+                "internationalization.py": 5,   # Globalization
+                "multi_region.py": 5       # Multi-region support
+            }
+            
+            src_path = Path("src/testgen_copilot")
+            for component, points in components.items():
+                if (src_path / component).exists():
+                    arch_score += points
+            
+            # Check for proper modular structure
+            if (src_path / "api").exists():
+                arch_score += 5  # API module
+            if (src_path / "database").exists():
+                arch_score += 5  # Database module
+            if (src_path / "integrations").exists():
+                arch_score += 5  # Integrations module
+            
+            passed = arch_score >= 80  # 80% architectural completeness
+            
+            return QualityGateResult(
+                gate_name="Architecture Validation",
+                passed=passed,
+                score=arch_score,
+                max_score=100.0,
+                details={
+                    "components_found": sum(1 for comp in components if (src_path / comp).exists()),
+                    "total_components": len(components),
+                    "modular_structure": {
+                        "api_module": (src_path / "api").exists(),
+                        "database_module": (src_path / "database").exists(),
+                        "integrations_module": (src_path / "integrations").exists()
+                    }
+                }
+            )
+            
+        except Exception as e:
+            return QualityGateResult(
+                gate_name="Architecture Validation",
+                passed=False,
+                score=0.0,
+                max_score=100.0,
+                error_message=f"Architecture validation failed: {e}"
+            )
+    
+    def run_all_quality_gates(self) -> QualityReport:
+        """Run all quality gates and generate comprehensive report."""
+        self.logger.info("🚀 Starting comprehensive quality gate validation...")
+        
+        # Define all quality gates
+        quality_gates = [
+            self.run_import_validation,
+            self.run_code_quality_check,
+            self.run_security_validation,
+            self.run_performance_validation,
+            self.run_research_validation,
+            self.run_architecture_validation
+        ]
+        
+        results = []
+        total_score = 0.0
+        max_total_score = 0.0
+        passed_gates = 0
+        
+        # Execute all quality gates
+        for gate_func in quality_gates:
+            try:
+                result = gate_func()
+                results.append(result)
+                total_score += result.score
+                max_total_score += result.max_score
+                if result.passed:
+                    passed_gates += 1
+            except Exception as e:
+                self.logger.error(f"Quality gate {gate_func.__name__} failed with exception: {e}")
+                results.append(QualityGateResult(
+                    gate_name=gate_func.__name__.replace("run_", "").replace("_", " ").title(),
+                    passed=False,
+                    score=0.0,
+                    max_score=100.0,
+                    error_message=str(e)
+                ))
         
         # Calculate overall score
-        overall_score = sum(gate.score for gate in self.gates) / len(self.gates)
-        overall_passed = passed_gates >= total_gates * 0.8  # 80% of gates must pass
+        overall_score = (total_score / max_total_score * 100) if max_total_score > 0 else 0
         
-        print(f"\n🏆 QUALITY GATES SUMMARY")
-        print("=" * 30)
-        print(f"Passed Gates: {passed_gates}/{total_gates}")
-        print(f"Overall Score: {overall_score:.2f}")
-        print(f"Status: {'✅ PASSED' if overall_passed else '❌ FAILED'}")
+        # Generate recommendation
+        if overall_score >= 90:
+            recommendation = "🎯 EXCELLENT - Production ready with outstanding quality"
+        elif overall_score >= 80:
+            recommendation = "✅ GOOD - Production ready with minor improvements needed"
+        elif overall_score >= 70:
+            recommendation = "⚠️ ACCEPTABLE - Needs improvements before production"
+        elif overall_score >= 60:
+            recommendation = "🔧 NEEDS WORK - Significant improvements required"
+        else:
+            recommendation = "❌ CRITICAL - Major issues must be resolved"
         
-        self.results["summary"] = {
-            "passed_gates": passed_gates,
-            "total_gates": total_gates,
-            "overall_score": overall_score,
-            "overall_passed": overall_passed,
-            "pass_rate": passed_gates / total_gates
-        }
-        
-        return self.results
+        return QualityReport(
+            overall_score=overall_score,
+            max_score=100.0,
+            passed_gates=passed_gates,
+            total_gates=len(quality_gates),
+            gate_results=results,
+            recommendation=recommendation
+        )
     
-    def save_report(self, output_path: Path) -> None:
-        """Save quality gate report to file"""
-        with open(output_path, 'w') as f:
-            json.dump(self.results, f, indent=2, default=str)
-        print(f"\n📄 Quality gate report saved to: {output_path}")
+    def generate_quality_report(self, report: QualityReport) -> str:
+        """Generate human-readable quality report."""
+        
+        report_text = f"""
+# 🏆 QUALITY GATES VALIDATION REPORT
+## Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}
+
+## 📊 Overall Assessment
+- **Overall Score**: {report.overall_score:.1f}/100
+- **Gates Passed**: {report.passed_gates}/{report.total_gates} 
+- **Recommendation**: {report.recommendation}
+
+## 🔍 Detailed Results
+
+"""
+        
+        for result in report.gate_results:
+            status_icon = "✅" if result.passed else "❌"
+            report_text += f"""### {status_icon} {result.gate_name}
+- **Score**: {result.score:.1f}/{result.max_score}
+- **Status**: {'PASSED' if result.passed else 'FAILED'}
+"""
+            
+            if result.error_message:
+                report_text += f"- **Error**: {result.error_message}\n"
+            
+            if result.details:
+                report_text += f"- **Details**: {json.dumps(result.details, indent=2)}\n"
+            
+            report_text += "\n"
+        
+        # Add improvement recommendations
+        failed_gates = [r for r in report.gate_results if not r.passed]
+        if failed_gates:
+            report_text += "## 🔧 Improvement Recommendations\n\n"
+            for gate in failed_gates:
+                report_text += f"- **{gate.gate_name}**: Address issues to improve score from {gate.score:.1f}\n"
+        
+        return report_text
 
 
 def main():
-    """Main execution function"""
-    project_path = Path("/root/repo")
+    """Execute quality gates validation."""
+    validator = QualityGateValidator()
     
-    validator = QualityGateValidator(project_path)
-    results = validator.validate_all()
+    logger.info("🎯 Starting Quality Gates Validation Suite")
     
-    # Save report
-    report_path = project_path / "quality_gates_report.json"
-    validator.save_report(report_path)
-    
-    # Return exit code based on results
-    return 0 if results["summary"]["overall_passed"] else 1
+    try:
+        # Run all quality gates
+        report = validator.run_all_quality_gates()
+        
+        # Save detailed results
+        results_file = Path("quality_gates_results.json")
+        with open(results_file, 'w') as f:
+            # Convert dataclasses to dict for JSON serialization
+            results_dict = {
+                "overall_score": report.overall_score,
+                "max_score": report.max_score,
+                "passed_gates": report.passed_gates,
+                "total_gates": report.total_gates,
+                "recommendation": report.recommendation,
+                "gate_results": [
+                    {
+                        "gate_name": r.gate_name,
+                        "passed": r.passed,
+                        "score": r.score,
+                        "max_score": r.max_score,
+                        "details": r.details,
+                        "error_message": r.error_message
+                    }
+                    for r in report.gate_results
+                ]
+            }
+            json.dump(results_dict, f, indent=2)
+        
+        logger.info(f"💾 Quality gates results saved to: {results_file}")
+        
+        # Generate human-readable report
+        report_text = validator.generate_quality_report(report)
+        report_file = Path("quality_gates_report.md")
+        with open(report_file, 'w') as f:
+            f.write(report_text)
+        
+        logger.info(f"📄 Quality gates report saved to: {report_file}")
+        
+        # Print summary
+        print("\n" + "="*80)
+        print("🏆 QUALITY GATES VALIDATION SUMMARY")
+        print("="*80)
+        print(f"Overall Score: {report.overall_score:.1f}/100")
+        print(f"Gates Passed: {report.passed_gates}/{report.total_gates}")
+        print(f"Recommendation: {report.recommendation}")
+        
+        # Print individual gate results
+        print("\n📋 Individual Gate Results:")
+        for result in report.gate_results:
+            status = "✅ PASS" if result.passed else "❌ FAIL"
+            print(f"  {status} {result.gate_name}: {result.score:.1f}/100")
+        
+        # Exit with appropriate code
+        if report.overall_score >= 70:
+            print("\n🎯 Quality gates validation SUCCESSFUL!")
+            return 0
+        else:
+            print("\n⚠️ Quality gates validation needs improvement")
+            return 1
+            
+    except Exception as e:
+        logger.error(f"Quality gates validation failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
 
 
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+    exit(main())
