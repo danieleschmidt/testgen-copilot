@@ -14,7 +14,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import yaml
+# YAML support is optional
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
 
 from .logging_config import get_core_logger
 
@@ -248,7 +253,11 @@ class BacklogManager:
         try:
             if self.config_path.exists():
                 with open(self.config_path) as f:
-                    self.config = yaml.safe_load(f)
+                    if HAS_YAML:
+                        self.config = yaml.safe_load(f)
+                    else:
+                        # Fallback to JSON if YAML not available
+                        self.config = json.load(f)
             else:
                 self.config = {
                     'automation_limits': {
