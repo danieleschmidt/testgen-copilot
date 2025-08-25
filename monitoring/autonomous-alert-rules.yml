@@ -1,0 +1,332 @@
+groups:
+  - name: autonomous_sdlc_alerts
+    rules:
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: (100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 2m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 2 minutes"
+          
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes"
+          
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is above 90% for more than 5 minutes"
+
+      # Autonomous Services Alerts
+      - alert: AutonomousAPIDown
+        expr: up{job="autonomous-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: autonomous-api
+        annotations:
+          summary: "Autonomous API is down"
+          description: "The main autonomous API service is not responding"
+          
+      - alert: ResearchEngineDown
+        expr: up{job="research-engine"} == 0
+        for: 2m
+        labels:
+          severity: error
+          component: research-engine
+        annotations:
+          summary: "Research engine is down"
+          description: "The autonomous research engine is not responding"
+          
+      - alert: EvolutionEngineDown
+        expr: up{job="evolution-engine"} == 0
+        for: 2m
+        labels:
+          severity: error
+          component: evolution-engine
+        annotations:
+          summary: "Evolution engine is down"
+          description: "The self-evolving architecture engine is not responding"
+          
+      - alert: NeuralPredictorDown
+        expr: up{job="neural-predictor"} == 0
+        for: 2m
+        labels:
+          severity: error
+          component: neural-predictor
+        annotations:
+          summary: "Neural predictor is down"
+          description: "The neural test predictor service is not responding"
+          
+      - alert: QuantumOptimizerDown
+        expr: up{job="quantum-optimizer"} == 0
+        for: 2m
+        labels:
+          severity: error
+          component: quantum-optimizer
+        annotations:
+          summary: "Quantum optimizer is down"
+          description: "The quantum scale optimizer is not responding"
+
+      # Database Alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "The PostgreSQL database is not responding"
+          
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Redis is down"
+          description: "The Redis cache is not responding"
+          
+      - alert: HighDatabaseConnections
+        expr: postgres_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database connections"
+          description: "Database has more than 80 active connections"
+
+      # Performance Alerts
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is above 2 seconds"
+          
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: error
+          component: performance
+        annotations:
+          summary: "High error rate"
+          description: "Error rate is above 5% for more than 2 minutes"
+          
+      - alert: LowRequestRate
+        expr: rate(http_requests_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+          component: performance
+        annotations:
+          summary: "Low request rate"
+          description: "Request rate is unusually low"
+
+      # Autonomous-Specific Alerts
+      - alert: ResearchHypothesisFailure
+        expr: autonomous_research_failed_hypotheses > 5
+        for: 1m
+        labels:
+          severity: warning
+          component: research
+        annotations:
+          summary: "Multiple research hypothesis failures"
+          description: "More than 5 research hypotheses have failed recently"
+          
+      - alert: EvolutionSafetyViolation
+        expr: autonomous_evolution_safety_violations > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: evolution
+        annotations:
+          summary: "Evolution safety violation detected"
+          description: "The evolution engine has violated safety constraints"
+          
+      - alert: MLModelAccuracyDrop
+        expr: autonomous_ml_model_accuracy < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          component: ml
+        annotations:
+          summary: "ML model accuracy drop"
+          description: "Neural predictor accuracy has dropped below 70%"
+          
+      - alert: QuantumCoherenceLoss
+        expr: autonomous_quantum_coherence < 0.5
+        for: 3m
+        labels:
+          severity: warning
+          component: quantum
+        annotations:
+          summary: "Quantum coherence loss"
+          description: "Quantum optimizer coherence has dropped below 50%"
+
+      # Circuit Breaker Alerts
+      - alert: CircuitBreakerOpen
+        expr: autonomous_circuit_breaker_state > 0
+        for: 1m
+        labels:
+          severity: error
+          component: resilience
+        annotations:
+          summary: "Circuit breaker opened"
+          description: "A circuit breaker has opened due to service failures"
+          
+      - alert: HighRetryRate
+        expr: rate(autonomous_retry_attempts[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          component: resilience
+        annotations:
+          summary: "High retry rate"
+          description: "Retry rate is unusually high, indicating service instability"
+
+      # Security Alerts
+      - alert: SecurityScannerDown
+        expr: up{job="security-scanner"} == 0
+        for: 2m
+        labels:
+          severity: error
+          component: security
+        annotations:
+          summary: "Security scanner is down"
+          description: "The autonomous security scanner is not responding"
+          
+      - alert: HighSecurityVulnerabilities
+        expr: autonomous_security_vulnerabilities_high > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "High severity security vulnerabilities detected"
+          description: "High severity security vulnerabilities have been detected"
+          
+      - alert: UnauthorizedAccess
+        expr: rate(http_requests_total{status="401"}[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High unauthorized access attempts"
+          description: "Multiple unauthorized access attempts detected"
+
+      # Monitoring System Alerts
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: monitoring
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus monitoring system is not responding"
+          
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana dashboard system is not responding"
+          
+      - alert: MonitoringDataLoss
+        expr: increase(prometheus_tsdb_head_samples_appended_total[1h]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "No monitoring data being collected"
+          description: "Prometheus is not collecting any metrics"
+
+      # Container and Infrastructure Alerts
+      - alert: ContainerRestartLoop
+        expr: rate(container_start_time_seconds[1h]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "Container restart loop detected"
+          description: "A container is restarting frequently"
+          
+      - alert: HighContainerMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High container memory usage"
+          description: "Container memory usage is above 90%"
+          
+      - alert: NetworkLatencyHigh
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 3m
+        labels:
+          severity: warning
+          component: network
+        annotations:
+          summary: "High network latency"
+          description: "Network latency is above acceptable thresholds"
+
+      # Business Logic Alerts
+      - alert: AutomationEfficiencyDrop
+        expr: autonomous_automation_efficiency < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "Automation efficiency drop"
+          description: "Overall automation efficiency has dropped below 80%"
+          
+      - alert: QualityGateFailures
+        expr: autonomous_quality_gate_failures > 3
+        for: 5m
+        labels:
+          severity: error
+          component: business
+        annotations:
+          summary: "Multiple quality gate failures"
+          description: "More than 3 quality gates have failed recently"
+          
+      - alert: DeploymentFailureRate
+        expr: rate(autonomous_deployment_failures[1h]) > 0.1
+        for: 5m
+        labels:
+          severity: error
+          component: business
+        annotations:
+          summary: "High deployment failure rate"
+          description: "Deployment failure rate is above acceptable thresholds"
