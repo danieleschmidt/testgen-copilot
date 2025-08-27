@@ -1,0 +1,34 @@
+{
+  "deployment_id": "deploy_testgen-copilot-api_1756276462",
+  "application_name": "testgen-copilot-api",
+  "version": "2.2.0-beta",
+  "strategy": "canary",
+  "start_time": "2025-08-27T06:34:22.469565",
+  "end_time": "2025-08-27T06:34:30.507530",
+  "status": "completed",
+  "target_results": {
+    "production_us-west-2": {
+      "status": "completed",
+      "strategy": "canary",
+      "final_traffic": 100.0,
+      "timestamp": "2025-08-27T06:34:30.506634"
+    }
+  },
+  "health_checks": [],
+  "metrics": {
+    "canary_5.0_error_rate": 0.005,
+    "canary_5.0_response_time": 250,
+    "canary_25.0_error_rate": 0.005,
+    "canary_25.0_response_time": 250,
+    "canary_50.0_error_rate": 0.005,
+    "canary_50.0_response_time": 250,
+    "canary_75.0_error_rate": 0.005,
+    "canary_75.0_response_time": 250,
+    "canary_100.0_error_rate": 0.005,
+    "canary_100.0_response_time": 250
+  },
+  "rollback_triggered": false,
+  "previous_version": null,
+  "error_message": null,
+  "logs": []
+}

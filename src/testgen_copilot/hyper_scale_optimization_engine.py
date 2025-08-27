@@ -37,11 +37,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
 from rich.table import Table
 from rich.tree import Tree
 
-from .logging_config import setup_logger
-from .performance_monitor import PerformanceMonitor
-from .adaptive_intelligence import AdaptiveIntelligenceSystem
+from .logging_config import get_logger
 
-logger = setup_logger(__name__)
+logger = get_logger(__name__)
 console = Console()
 
 
@@ -139,9 +137,7 @@ class HyperScaleOptimizationEngine:
         self.thread_pool = ThreadPoolExecutor(max_workers=self.max_workers)
         self.process_pool = ProcessPoolExecutor(max_workers=self.max_processes)
         
-        # Performance monitoring
-        self.performance_monitor = PerformanceMonitor()
-        self.adaptive_ai = AdaptiveIntelligenceSystem()
+        # Performance monitoring - simplified for now
         
         # Optimization components
         self.optimization_patterns: Dict[str, OptimizationPattern] = {}

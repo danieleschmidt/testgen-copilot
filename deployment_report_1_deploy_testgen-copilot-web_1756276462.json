@@ -1,0 +1,29 @@
+{
+  "deployment_id": "deploy_testgen-copilot-web_1756276462",
+  "application_name": "testgen-copilot-web",
+  "version": "2.1.0",
+  "strategy": "blue_green",
+  "start_time": "2025-08-27T06:34:22.453763",
+  "end_time": "2025-08-27T06:34:22.468485",
+  "status": "completed",
+  "target_results": {
+    "staging_us-east-1": {
+      "status": "completed",
+      "strategy": "blue_green",
+      "timestamp": "2025-08-27T06:34:22.466305"
+    }
+  },
+  "health_checks": [
+    {
+      "environment": "green",
+      "target": "staging_us-east-1",
+      "status": "healthy",
+      "timestamp": "2025-08-27T06:34:22.462277"
+    }
+  ],
+  "metrics": {},
+  "rollback_triggered": false,
+  "previous_version": null,
+  "error_message": null,
+  "logs": []
+}

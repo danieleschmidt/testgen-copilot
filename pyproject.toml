@@ -49,6 +49,7 @@ security = [
     "bandit>=1.7.0",
     "safety>=2.0.0",
     "cryptography>=3.4.0",
+    "pyjwt>=2.8.0",
 ]
 
 dev = [
