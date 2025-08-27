@@ -1,0 +1,51 @@
+{
+  "deployment_id": "deploy_testgen-copilot-global_1756276470",
+  "application_name": "testgen-copilot-global",
+  "version": "2.0.0",
+  "strategy": "blue_green",
+  "start_time": "2025-08-27T06:34:30.520035",
+  "end_time": "2025-08-27T06:34:30.541080",
+  "status": "completed",
+  "target_results": {
+    "production_us-east-1": {
+      "status": "completed",
+      "strategy": "blue_green",
+      "timestamp": "2025-08-27T06:34:30.527294"
+    },
+    "production_us-west-2": {
+      "status": "completed",
+      "strategy": "blue_green",
+      "timestamp": "2025-08-27T06:34:30.533540"
+    },
+    "production_eu-west-1": {
+      "status": "completed",
+      "strategy": "blue_green",
+      "timestamp": "2025-08-27T06:34:30.539499"
+    }
+  },
+  "health_checks": [
+    {
+      "environment": "green",
+      "target": "production_us-east-1",
+      "status": "healthy",
+      "timestamp": "2025-08-27T06:34:30.523557"
+    },
+    {
+      "environment": "green",
+      "target": "production_us-west-2",
+      "status": "healthy",
+      "timestamp": "2025-08-27T06:34:30.529891"
+    },
+    {
+      "environment": "green",
+      "target": "production_eu-west-1",
+      "status": "healthy",
+      "timestamp": "2025-08-27T06:34:30.535894"
+    }
+  ],
+  "metrics": {},
+  "rollback_triggered": false,
+  "previous_version": null,
+  "error_message": null,
+  "logs": []
+}

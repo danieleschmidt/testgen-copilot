@@ -1,0 +1,23 @@
+{
+  "deployment_id": "deploy_testgen-copilot-worker_1756276470",
+  "application_name": "testgen-copilot-worker",
+  "version": "2.1.1",
+  "strategy": "rolling_update",
+  "start_time": "2025-08-27T06:34:30.508600",
+  "end_time": "2025-08-27T06:34:30.519052",
+  "status": "completed",
+  "target_results": {
+    "production_eu-west-1": {
+      "status": "completed",
+      "strategy": "rolling_update",
+      "batches_updated": 3,
+      "timestamp": "2025-08-27T06:34:30.518228"
+    }
+  },
+  "health_checks": [],
+  "metrics": {},
+  "rollback_triggered": false,
+  "previous_version": null,
+  "error_message": null,
+  "logs": []
+}
